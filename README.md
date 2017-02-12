@@ -10,7 +10,7 @@
 ZEUS is a modern build system featuring an interactive shell
 with tab completion and support for keybindings.
 
-It looks for shellscripts inside the ZEUS directory in your project,
+It looks for shellscripts inside the **zeus** directory in your project,
 and transforms these into commands.
 
 A command can have typed parameters and commands can be chained.
@@ -37,10 +37,14 @@ The name ZEUS refers to the ancient greek god of the sky and thunder.
 When starting the interactive shell there is good chance you will be hit by a lighting,
 that will boost your productivity :)
 
+A sneak preview of the dark mode:
+
+![alt text](https://github.com/dreadl0ck/zeus/zeus.gif "ZEUS Preview")
+
 > NOTE:
-> ZEUS is still under active development and is an early release dedicated to testers.
-> Please read the BUGS section as well as the COMING SOON section
-> to get an impression of whats coming up for version 1.0
+> ZEUS is still under active development and this is an early release dedicated to testers.
+> Please read the BUGS section to see whats causing trouble
+> as well as the COMING SOON section to get an impression of whats coming up for version 1.0
 
 ## Installation
 
@@ -51,16 +55,16 @@ $ go get -u github.com/dreadl0ck/zeus
 ...
 ```
 
+ZEUS uses ZEUS as its build system!
+After the initial install simply run **zeus** inside the project directory,
+to get the command overview.
+
 Initial install from source:
 
 ```shell
 $ godep go install
 ...
 ```
-
-ZEUS uses ZEUS as its build system!
-After the initial install simply run **zeus** inside the project directory,
-to get the command overview.
 
 When developing install with:
 
@@ -122,6 +126,7 @@ To start the interactive shell inside your project, run:
 ```shell
 $ cd project_folder
 $ zeus
+...
 ```
 
 
@@ -153,20 +158,20 @@ you can list them by using the **builtins** command.
 
 ## Headers
 
-A ZEUS header looks like this:
+A simple ZEUS header could look like this:
 
 ```shell
-# ---------------------------------------------------------------------- #
+# ---------------------------------------- #
 # @zeus-chain: clean
 # @zeus-help: build project
 # @zeus-args: name:String
 # @zeus-build-number
-# ---------------------------------------------------------------------- #
+# ---------------------------------------- #
 # zeus build script
 # this script produces the zeus binary
 #
 # it will be be placed in bin/$name
-# ---------------------------------------------------------------------- #
+# ---------------------------------------- #
 ```
 
 **Header Fields:**
@@ -677,6 +682,7 @@ If the interactive misbehaves after loading project data with keybindings, remov
 You have ideas, feedback, bugs, security issues, pull requests, questions etc?
 Contact me: dreadl0ck@protonmail.ch
 
+```pgp
 -----BEGIN PGP PUBLIC KEY BLOCK-----
 Version: GnuPG v2
 
@@ -728,3 +734,4 @@ e20IYxdHVOr2AQFsZG/KbVEAxquw+1UwJ8DMoZrMuabrEgNWK8Ym82hUSXYH3Rw/
 xJyz65Yc+1IGpL/Np+NhwWeSRaJNvynPjD3G7jTIEWsRXD+uPMo=
 =sBwF
 -----END PGP PUBLIC KEY BLOCK-----
+```
