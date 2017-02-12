@@ -369,6 +369,7 @@ To remove a Keybinding:
 zeus » keys remove Ctrl-H
 ```
 
+> NOTE: some key combination such as Ctrl-C (SIGINT) are not available because they are handled by the shell
 
 ## Auto Formatter
 
@@ -681,6 +682,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ## Contact
 
 You have ideas, feedback, bugs, security issues, pull requests, questions etc?
+
 Contact me: dreadl0ck@protonmail.ch
 
 ```pgp
