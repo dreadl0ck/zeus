@@ -1,0 +1,76 @@
+{
+	"ImportPath": "c0de/zeus",
+	"GoVersion": "go1.7",
+	"GodepVersion": "v74",
+	"Packages": [
+		"./..."
+	],
+	"Deps": [
+		{
+			"ImportPath": "c0de/ansistrip",
+			"Rev": "fd722b4ede85cc04a643f51117fcfc2352cd88c6"
+		},
+		{
+			"ImportPath": "github.com/GeertJohan/go.rice",
+			"Rev": "9fdfd46f9806a9228aae341d65ab75c5235c383c"
+		},
+		{
+			"ImportPath": "github.com/GeertJohan/go.rice/embedded",
+			"Rev": "9fdfd46f9806a9228aae341d65ab75c5235c383c"
+		},
+		{
+			"ImportPath": "github.com/Sirupsen/logrus",
+			"Comment": "v0.11.0-35-g61e43dc",
+			"Rev": "61e43dc76f7ee59a82bdf3d71033dc12bea4c77d"
+		},
+		{
+			"ImportPath": "github.com/chzyer/readline",
+			"Comment": "v1.4-20-geef24db",
+			"Rev": "eef24db1d59cac55d773312ab6efe1890187f2de"
+		},
+		{
+			"ImportPath": "github.com/daaku/go.zipexe",
+			"Rev": "a5fe2436ffcb3236e175e5149162b41cd28bd27d"
+		},
+		{
+			"ImportPath": "github.com/fatih/color",
+			"Comment": "v1.1.0-4-gbf82308",
+			"Rev": "bf82308e8c8546dc2b945157173eb8a959ae9505"
+		},
+		{
+			"ImportPath": "github.com/fsnotify/fsnotify",
+			"Comment": "v1.4.1",
+			"Rev": "944cff21b3baf3ced9a880365682152ba577d348"
+		},
+		{
+			"ImportPath": "github.com/kardianos/osext",
+			"Rev": "c2c54e542fb797ad986b31721e1baedf214ca413"
+		},
+		{
+			"ImportPath": "github.com/mattn/go-colorable",
+			"Comment": "v0.0.6-9-gd228849",
+			"Rev": "d228849504861217f796da67fae4f6e347643f15"
+		},
+		{
+			"ImportPath": "github.com/mattn/go-isatty",
+			"Rev": "66b8e73f3f5cda9f96b69efd03dd3d7fc4a5cdb8"
+		},
+		{
+			"ImportPath": "github.com/mgutz/ansi",
+			"Rev": "c286dcecd19ff979eeb73ea444e479b903f2cfcb"
+		},
+		{
+			"ImportPath": "github.com/mvdan/sh/syntax",
+			"Comment": "v0.3.0-101-g54be6d1",
+			"Rev": "54be6d15d3a17e48506c51c76a31e928411e2d1e"
+		},
+		{
+			"ImportPath": "github.com/x-cray/logrus-prefixed-formatter",
+			"Rev": "a35e641b1da09880f6432c2c7e814ef0817663f7"
+		},
+		{
+			"ImportPath": "golang.org/x/sys/unix",
+			"Rev": "8d1157a435470616f975ff9bb013bea8d0962067"
+		}
+	]
+}

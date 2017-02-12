@@ -1,0 +1,20 @@
+{
+    "MakefileOverview": true,
+    "AutoFormat": true,
+    "FixParseErrors": true,
+    "Colors": true,
+    "PassCommandsToShell": true,
+    "WebInterface": false,
+    "Interactive": true,
+    "LogToFileColor": false,
+    "LogToFile": true,
+    "Debug": false,
+    "RecursionDepth": 1,
+    "ProjectNamePrompt": true,
+    "AllowUntypedArgs": false,
+    "ColorProfile": "default",
+    "HistoryFile": true,
+    "HistoryLimit": 20,
+    "ExitOnInterrupt": true,
+    "DisableTimestamps": false
+}

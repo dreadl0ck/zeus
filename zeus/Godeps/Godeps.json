@@ -1,0 +1,9 @@
+{
+	"ImportPath": "c0de/zeus/zeus",
+	"GoVersion": "go1.7",
+	"GodepVersion": "v74",
+	"Packages": [
+		"./..."
+	],
+	"Deps": []
+}
