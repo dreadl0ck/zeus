@@ -39,7 +39,7 @@ that will boost your productivity :)
 
 A sneak preview of the dark mode:
 
-![alt text](https://github.com/dreadl0ck/zeus/zeus.gif "ZEUS Preview")
+![alt text](https://github.com/dreadl0ck/zeus/blob/master/zeus.gif "ZEUS Preview")
 
 > NOTE:
 > ZEUS is still under active development and this is an early release dedicated to testers.
