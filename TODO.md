@@ -7,6 +7,7 @@
           \/    \/           \/
                 A Powerful Build System
 
+- fix globals.sh generation when migrating makefiles
 - events: add support for filetypes
 - arguments: accept name=val syntax
 

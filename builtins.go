@@ -169,13 +169,13 @@ func printConfiguration() {
 // print the current project data as JSON to stdout
 func printProjectData() {
 
+	// make it pretty
 	b, err := json.MarshalIndent(projectData, "", "	")
 	if err != nil {
 		Log.WithError(err).Fatal("failed to marshal zeus project data to JSON")
 	}
 
 	l.Println(string(b))
-
 }
 
 // print the contents of globals.sh on stdout

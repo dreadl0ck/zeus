@@ -57,6 +57,7 @@ func configItems() []readline.PrefixCompleterInterface {
 		readline.PcItem("HistoryLimit"),
 		readline.PcItem("ExitOnInterrupt", readline.PcItem("true"), readline.PcItem("false")),
 		readline.PcItem("DisableTimestamps", readline.PcItem("true"), readline.PcItem("false")),
+		readline.PcItem("PrintBuiltins", readline.PcItem("true"), readline.PcItem("false")),
 	}
 }
 

@@ -101,7 +101,16 @@ func main() {
 				return
 			}
 		}
-		cLog.WithError(err).Fatal("zeus directory does not exist!")
+
+		if len(os.Args) > 2 {
+			if os.Args[1] == "makefile" && os.Args[2] == "migrate" {
+				migrateMakefile()
+				return
+			}
+		}
+		cLog.WithError(err).Error("zeus directory does not exist!")
+		cLog.Info("run 'zeus bootstrap' to create a default one, or 'zeus makefile migrate' if you want to migrate from a GNU Makefile.")
+		os.Exit(1)
 	}
 
 	// make sure its a directory
@@ -208,7 +217,7 @@ func main() {
 		cLog.WithError(err).Fatal("failed to get current directory name")
 	}
 
-	l.Println(cp.colorText + "Project Name: " + cp.colorPrompt + filepath.Base(workingDir) + cp.colorText)
+	l.Println(cp.colorText + "Project Name: " + cp.colorPrompt + filepath.Base(workingDir) + cp.colorText + "\n")
 	printAuthor()
 
 	if projectData.BuildNumber > 0 {
@@ -229,7 +238,6 @@ func main() {
 
 	printDeadline()
 	listMilestones()
-	printAliases()
 
 	if conf.MakefileOverview {
 		// print makefile command overview
@@ -245,8 +253,9 @@ func main() {
 
 		switch os.Args[1] {
 		case helpCommand:
-			// print help
-			printBuiltins()
+			if conf.PrintBuiltins {
+				printBuiltins()
+			}
 			printCommands()
 
 		case formatCommand:
@@ -290,6 +299,9 @@ func main() {
 
 		case builtinsCommand:
 			printBuiltins()
+
+		case makefileCommand:
+			handleMakefileCommand(os.Args[1:])
 
 		default:
 
@@ -342,8 +354,9 @@ func main() {
 			cLog.WithError(err).Fatal("failed to read user input")
 		}
 	} else {
-		// print help
-		printBuiltins()
+		if conf.PrintBuiltins {
+			printBuiltins()
+		}
 		printCommands()
 	}
 }

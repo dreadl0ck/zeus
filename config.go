@@ -67,6 +67,7 @@ type config struct {
 	HistoryLimit        int
 	ExitOnInterrupt     bool
 	DisableTimestamps   bool
+	PrintBuiltins       bool
 }
 
 // newConfig returns the default configuration in case there is no config file
@@ -90,6 +91,7 @@ func newConfig() *config {
 		HistoryLimit:        20,
 		ExitOnInterrupt:     true,
 		DisableTimestamps:   false,
+		PrintBuiltins:       true,
 	}
 }
 

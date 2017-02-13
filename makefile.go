@@ -67,7 +67,7 @@ func migrateMakefile() {
 		writeInProgress bool
 		err             error
 		perm            = os.FileMode(0700)
-		dir             = "zeusTEST"
+		dir             = "zeus"
 	)
 
 	Log.WithField("dir", dir).Info("Makefile migration started.")
