@@ -38,7 +38,8 @@ The 1.0 Release will support *multiple scripting languages*,
 an optional *webinterface*, *wiki support*, *markdown / HTML report generation* and an *encrypted storage* for sensitive information.
 
 The name ZEUS refers to the ancient greek god of the *sky and thunder*.
-When starting the interactive shell there is good chance you will be hit by a *ighting* and bitten by a *cobra*,
+
+When starting the interactive shell there is a good chance you will be hit by a *lighting* and bitten by a *cobra*,
 which could lead to enourmous *super powers*!
 
 A sneak preview of the dark mode, running in the ZEUS project directory:
