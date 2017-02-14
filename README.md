@@ -638,6 +638,11 @@ Heres a simple overview of the architecure:
 The listed features will be implemented over the next weeks.
 After that the 1.0 Release is expected.
 
+- Dependencies
+
+     For each target you can define multiple outputs, which can be used as dependencies for other build targets.
+     Targets are skipped if no build is required.
+
 - Webinterface
 
      The Webinterface will allow to track the build status and display project information,
@@ -681,13 +686,13 @@ Path tab completion is still buggy, the reason for this seems to be an issue in 
 When using path completion at the moment, press tab and select and starting path.
 After selection, the completer will insert a trailing space character. This behaviour is wrong and needs to fixed.
 
-To go deeper into a directory structure, hit delete then tab again and select a file/directory. 
+To go deeper into a directory structure, hit delete then tab again and select a file/directory.
 Dont start typing the leading characters of the file / dirname, this leads to invalid paths.
 
 Also the Keybindings should be used with care, this is not stable yet.
 I observed them firing after being loaded from the project data.
 This means handling the runes for key detection needs to be improved.
-If the interactive misbehaves after loading project data with keybindings, remove them manually from the project data JSON.
+If the interactive shell misbehaves after loading project data with keybindings, remove them manually from the project data JSON.
 
 > NOTE: Please notify me about any issues you encounter during testing.
 
