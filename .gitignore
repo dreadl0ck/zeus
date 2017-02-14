@@ -1,5 +1,4 @@
 bin/*
 zeus.log
 error_dump.sh
-zeus/zeus_data.json
 zeus/zeus_history

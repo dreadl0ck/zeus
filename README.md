@@ -1,6 +1,6 @@
 # ZEUS
 
-    ________ ____  __ __  ______  _______
+    ________ ____  __ __  ______  __  ___
     \___   // __ \|  |  \/  ___/  \\/^//^\
      /    /\  ___/|  |  /\___ \   //  \\ /
     /_____ \\___  >____//____  >  \\  /^\\
@@ -626,7 +626,7 @@ ANSI Escape Sequences are from the [ansi](https://github.com/mgutz/ansi) package
 The interactive shell uses the [readline](https://github.com/chzyer/readline) library,
 although some modifications were made to make the path completion work.
 
-For shell script formatting the [syntax]("https://www.github.com/mvdan/sh/syntax") package is used.
+For shell script formatting the [syntax](https://www.github.com/mvdan/sh/syntax) package is used.
 
 Heres a simple overview of the architecure:
 
@@ -695,12 +695,12 @@ If the interactive misbehaves after loading project data with keybindings, remov
     -------------------------------------------------------------------------------
     Language                     files          blank        comment           code
     -------------------------------------------------------------------------------
-    Go                              22            819            822           2822
-    Markdown                         2            205              0            489
-    JSON                             7              0              0            217
-    Bourne Shell                    14             35            105             37
+    Go                              23            825            828           2945
+    Markdown                         3            239              0            592
+    JSON                             3              0              0            134
+    Bourne Shell                    14             31            126             40
     -------------------------------------------------------------------------------
-    SUM:                            45           1059            927           3565
+    SUM:                            43           1095            954           3711
     -------------------------------------------------------------------------------
 
 

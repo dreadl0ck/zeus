@@ -1,12 +1,13 @@
 # ZEUS TODOs
 
-    ________ ____  __ __  ______  _______
+    ________ ____  __ __  ______  __  ___
     \___   // __ \|  |  \/  ___/  \\/^//^\
      /    /\  ___/|  |  /\___ \   //  \\ /
     /_____ \\___  >____//____  >  \\  /^\\
           \/    \/           \/   /\\/\ //\
                 An Electrifying Build System
 
+- add date format config option
 - finish implementing Dependencies
 - watch scripts and parse again on WRITE event
 - fix globals.sh generation when migrating makefiles

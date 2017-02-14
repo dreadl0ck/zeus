@@ -1,0 +1,35 @@
+{
+    "BuildNumber": 12,
+    "Deadline": "01-04-2017",
+    "Milestones": [
+        {
+            "Name": "tests",
+            "Date": "2017-03-01T00:00:00Z",
+            "Description": "Implement unit tests",
+            "PercentComplete": 0
+        },
+        {
+            "Name": "webinterface",
+            "Date": "2017-03-10T00:00:00Z",
+            "Description": "Implement web interface",
+            "PercentComplete": 0
+        }
+    ],
+    "Aliases": {
+        "gs": "git status"
+    },
+    "Events": {
+        "zeus": {
+            "Path": "zeus",
+            "Op": 2,
+            "Chain": ""
+        },
+        "zeus/zeus_config.json": {
+            "Path": "zeus/zeus_config.json",
+            "Op": 2,
+            "Chain": ""
+        }
+    },
+    "Author": "",
+    "KeyBindings": {}
+}
