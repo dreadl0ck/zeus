@@ -39,12 +39,15 @@ an optional *webinterface*, *wiki support*, *markdown / HTML report generation* 
 
 The name ZEUS refers to the ancient greek god of the *sky and thunder*.
 
-When starting the interactive shell there is a good chance you will be hit by a *lighting* and bitten by a *cobra*,
-which could lead to enourmous *super powers*!
+When starting the interactive shell there is a good chance you will be struck by a *lighting* and bitten by a *cobra*,
+which could lead to enourmous **super coding powers**!
 
 A sneak preview of the dark mode, running in the ZEUS project directory:
 
 ![alt text](https://github.com/dreadl0ck/zeus/blob/master/docs/zeus.gif "ZEUS Preview")
+
+The Dark Mode does not work in terminals with a black background, because it contains black text colors.
+I recommend using the solarized dark terminal theme, if you want to use the dark mode.
 
 > NOTE:
 > ZEUS is still under active development and this is an early release dedicated to testers.
@@ -123,7 +126,7 @@ milestones [remove <name>] [set <name> <0-100>] [add <name> <date> [description]
 ## Interactive Shell
 
 ZEUS has a built in interactive shell with tab completion for all its commands!
-All scripts inside the **zeus** directory (expect for globals.sh) will be treated and parsed as commands.
+All scripts inside the **zeus** directory (except for globals.sh) will be treated and parsed as commands.
 
 To start the interactive shell inside your project, run:
 

@@ -12,7 +12,7 @@
     "RecursionDepth": 1,
     "ProjectNamePrompt": true,
     "AllowUntypedArgs": false,
-    "ColorProfile": "dark",
+    "ColorProfile": "default",
     "HistoryFile": true,
     "HistoryLimit": 20,
     "ExitOnInterrupt": true,
