@@ -153,7 +153,7 @@ func handleLine(line string) {
 		clearScreen()
 
 		l.Println(cp.colorText + asciiArt + ansi.Reset + "\n")
-		l.Println("Project Name: " + cp.colorPrompt + filepath.Base(workingDir) + cp.colorText + "\n")
+		l.Println(cp.colorText + "Project Name: " + cp.colorPrompt + filepath.Base(workingDir) + cp.colorText + "\n")
 
 	case builtinsCommand:
 		printBuiltins()

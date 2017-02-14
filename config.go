@@ -68,6 +68,8 @@ type config struct {
 	ExitOnInterrupt     bool
 	DisableTimestamps   bool
 	PrintBuiltins       bool
+	StopOnError         bool
+	DumpScriptOnError   bool
 }
 
 // newConfig returns the default configuration in case there is no config file
@@ -92,6 +94,8 @@ func newConfig() *config {
 		ExitOnInterrupt:     true,
 		DisableTimestamps:   false,
 		PrintBuiltins:       true,
+		StopOnError:         true,
+		DumpScriptOnError:   true,
 	}
 }
 

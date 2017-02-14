@@ -1,48 +1,53 @@
 # ZEUS
 
-    ________ ____  __ __  ______
-    \___   // __ \|  |  \/  ___/
-     /    /\  ___/|  |  /\___ \
-    /_____ \\___  >____//____  >
-          \/    \/           \/
-                A Powerful Build System
+    ________ ____  __ __  ______  _______
+    \___   // __ \|  |  \/  ___/  \\/^//^\
+     /    /\  ___/|  |  /\___ \   //  \\ /
+    /_____ \\___  >____//____  >  \\  /^\\
+          \/    \/           \/   /\\/\ //\
+                An Electrifying Build System
 
-ZEUS is a modern build system featuring an interactive shell
-with tab completion and support for keybindings.
+ZEUS is a modern build system featuring an *interactive shell*
+with *tab completion* and support for *keybindings*.
 
 It looks for shellscripts inside the **zeus** directory in your project,
 and transforms these into commands.
 
-A command can have typed parameters and commands can be chained.
-For each command a command chain is resolved prior to execution, similiar to GNU Make.
+A command can have *typed parameters* and commands can be *chained*.
+For each command a command chain is resolved prior to execution, similiar to GNU Make targets.
+The scripts supply information by using ZEUS headers.
 
 You can export global variables and functions visible to all scripts.
-The built in event engine allows the user to register file system events,
+The *Event Engine* allows the user to register file system events,
 and run commands when an event occurs.
 
-It also features an auto formatter for shell scripts, a bootstrapping functionality,
-build report logging and a rich set of customizations available by using a config file.
+It also features an auto formatter for shell scripts, a *bootstrapping* functionality,
+*build report logging* and a rich set of customizations available by using a config file.
 
-ZEUS can save and restore project specific data such as events,
-keybindings, aliases, milestones, author, build number and a project deadline.
+ZEUS can save and restore project specific data such as *events*,
+*keybindings*, *aliases*, *milestones*, *author*, *build number* and a project *deadline*.
 
 JSON is used for serialization of the ***zeus_config*** and ***zeus_data*** files.
 This makes them easy to read, edit and transparent,
 especially when working in a team and using version control.
 
 It was designed to happily coexist with GNU Make,
-and offers a builtin Makefile command overview and migration assistance.
+and offers a builtin Makefile *command overview* and *migration assistance*.
 
-The name ZEUS refers to the ancient greek god of the sky and thunder.
-When starting the interactive shell there is good chance you will be hit by a lighting,
-that will boost your productivity :)
+The 1.0 Release will support *multiple scripting languages*,
+an optional *webinterface*, *wiki support*, *markdown / HTML report generation* and an *encrypted storage* for sensitive information.
 
-A sneak preview of the dark mode:
+The name ZEUS refers to the ancient greek god of the *sky and thunder*.
+When starting the interactive shell there is good chance you will be hit by a *ighting* and bitten by a *cobra*,
+which could lead to enourmous *super powers*!
 
-![alt text](https://github.com/dreadl0ck/zeus/blob/master/zeus.gif "ZEUS Preview")
+A sneak preview of the dark mode, running in the ZEUS project directory:
+
+![alt text](https://github.com/dreadl0ck/zeus/blob/master/docs/zeus.gif "ZEUS Preview")
 
 > NOTE:
 > ZEUS is still under active development and this is an early release dedicated to testers.
+> There will be regular updates so make sure to update your build from time to time.
 > Please read the BUGS section to see whats causing trouble
 > as well as the COMING SOON section to get an impression of whats coming up for version 1.0
 
@@ -79,7 +84,7 @@ $ zeus install
 
 GNU Make has its disadvantages:
 For large projects you will end up with few hundred lines long Makefile,
-that is hard to read, overloaded and hard to maintain.
+that is hard to read, overloaded and annoying to maintain.
 
 Also writing pure shell is not possible, instead the make shell dialect is used.
 If you ever tried writing an if condition in a Makefile you will know what I'm talking about ;)
@@ -88,15 +93,13 @@ ZEUS keeps things structured and reusable:
 The scripts can also be executed manually without ZEUS if needed,
 and generic scripts can be reused in multiple projects.
 
-***CAUTION:***
-GNU Make executes the script line by line,
-and stops if one line returns an error code != 0
+Similar to GNU Make, ZEUS executes the script line by line,
+and stops if executing line returned an error code != 0.
 
-ZEUS does NOT do that!
-Execution is canceled and marked as failed when a script (aka command) returns with a non zero exit code!
-That means the programmer is responsible for error checking and handling inside the scripts!
+This Behaviour can be disabled in the config by using the **StopOnError** option.
 
-**Terminology**
+***Terminology***
+
 Command Prompts:
 
 ```shell
@@ -400,6 +403,7 @@ To change the color profile to dark:
 zeus » colors dark
 ```
 
+> NOTE: dark mode is strongly recommended :) use the solarized dark theme for optimal terminal background.
 
 ## Documentation
 
@@ -431,6 +435,18 @@ Available types are: Int, String, Float, Bool
 
 Argument typechecking can be disabled in the config, by setting the **AllowUntypedArgs** field to true.
 
+Here's an example of how this looks like in the interactive shell:
+
+```
+├~» build [name:string] [arch:string] [verbose:bool]
+├──── chain:            (clean all -> configure)
+├──── help:             build the executable for the specified platform
+├~» deploy [server:string] [user:string] [container:string]
+├──── chain:            (clean -> configure)
+├──── help:             deploy to the specified server ip, as the user using the named docker container
+```
+
+For how to declare arguments in the ZEUS header, please check the headers section.
 
 ## Auto Sanitizing
 
@@ -449,7 +465,7 @@ That means you can use git and all other shell tools without having to leave the
 This behaviour can be disabled by using the *PassCommandsToShell* option.
 There is path and command completion for basic shell commands (cat, ls, ssh, git, tree etc)
 
-Remember: Events, Aliases and Keybindings can contain shell commands!
+> Remember: Events, Aliases and Keybindings can contain shell commands!
 
 
 ## Makefile Integration
@@ -478,12 +494,26 @@ This might be helpful when switching to ZEUS or when using both for whatever rea
 ZEUS helps you migrate from Makefiles, by parsing them and transforming the build targets into a ZEUS structure.
 Your Makefile will remain unchanged, Makefiles and ZEUS can happily coexist!
 
-simply run:
+simply run this from the interactive shell:
 
 ```shell
 zeus » makefile migrate
 ```
 
+or from the commandline:
+
+```shell
+$ zeus makefile migrate
+~> clean
+~> configure
+~> status
+~> backup
+...
+[INFO] migration complete.
+```
+
+Your makefile will remain unchanged. This command creates the **zeus** directory with your make commands as ZEUS scripts.
+Please note migrating the globals does currently not work, so you will have to do this manually until patched.
 
 ## Configuration
 
@@ -519,13 +549,16 @@ HistoryFile           | bool   | save command history in a file
 HistoryLimit          | int    | history entry limit
 ExitOnInterrupt       | bool   | exit the interactive shell with an SIGINT (Ctrl-C)
 DisableTimestamps     | bool   | disable timestamps when logging
+StopOnError           | bool   | stop script execution when theres an error inside a script
+DumpScriptOnError     | bool   | dump the currently processed script into a file if an error occurs
 
 ## Logging
 
 ZEUS can write its output into a logfile.
-This could be used for archiving tests etc
+This could be used for archiving test results for example.
 
-You can choose wheter the output should be colorized or not.
+You can choose wheter the output should be colorized or not in the config.
+
 
 ## Direct Command Execution
 
@@ -585,53 +618,65 @@ That means it is independent of any API changes in the used libraries and will w
 
 ## Internals
 
-For parsing the header fields, regular expressions are used.
+For parsing the header fields, golang RE2 regular expressions are used.
 On startup two goroutines will be spawned for parsing the scripts concurrently.
 
-The interactive shell uses the readline library,
+ANSI Escape Sequences are from the [ansi](https://github.com/mgutz/ansi) package.
+
+The interactive shell uses the [readline](https://github.com/chzyer/readline) library,
 although some modifications were made to make the path completion work.
 
-For shell script formatting the "github.com/mvdan/sh/syntax" package is used.
+For shell script formatting the [syntax]("https://www.github.com/mvdan/sh/syntax") package is used.
 
-The code is well commented and formatted. Have a look!
+Heres a simple overview of the architecure:
 
+![alt text](https://github.com/dreadl0ck/zeus/blob/master/docs/zeus_overview.jpg "ZEUS Overview")
 
 ## Coming Soon
 
-The listed features will be implemented voer the next weeks.
+The listed features will be implemented over the next weeks.
 After that the 1.0 Release is expected.
-
-- Encrypted Storage
-
-Projects can contain sensitive information like encryption keys or passwords.
-ZEUS 1.0 will feature encrypted storage inside the project data,
-that be accessed and modified using the interactive shell.
 
 - Webinterface
 
-ZEUS 1.0 will feature an optional web interface to track your build status and display project information,
-execute build commands and much more!
+     The Webinterface will allow to track the build status and display project information,
+     execute build commands and much more!
+
+- Markdown Wiki
+
+     A Markdown Wiki will be served from the projects 'wiki' directory.
+     All Markdown Documents in this folder can be viewed in the browser,
+     which makes creating good project docs very easy.
+
+- Zeusfile
+
+     Similiar to GNU Make, ZEUS will offer to add all targets to a single file.
+     This might be useful for small projects and you can still use the interactive shell if desired.
+     The File will follow the [YAML](http://yaml.org) specification.
+
+- Encrypted Storage
+
+     Projects can contain sensitive information like encryption keys or passwords.
+     ZEUS 1.0 will feature encrypted storage inside the project data,
+     that be accessed and modified using the interactive shell.
 
 - Markdown / HTML Report Generation
 
-ZEUS 1.0 will offer generating a markdown build report that can be converted to HTML,
-which allows adding nice fonts and syntax highlighting for dumped output.
-
-I think this is especially interesting for archiving unit test results.
+     A generated Markdown build report that can be converted to HTML,
+     which allows adding nice fonts and syntax highlighting for dumped output.
+     I think this is especially interesting for archiving unit test results.
 
 - Support for more Scripting Languages
 
-The parser was implemented to be generic and can be adapted for parsing any kind of scripting language.
-The next ones being officially supported will be python and javascript.
+     The parser was implemented to be generic and can be adapted for parsing any kind of scripting language.
+     The next ones being officially supported will be python and javascript.
 
-In theory, even mixing scripting languages is possible, although this will require improved handling of the globals.
-Also the formatter was implemented generically, and could be adapted to work for more languages.
+     In theory, even mixing scripting languages is possible, although this will require improved handling of the globals.
+     Also the formatter was implemented generically, and could be adapted to work for more languages.
 
 ## Bugs
 
-Path tab completion is still buggy, the reason for this seems to be an issue in the readline library,
-and I need more time to investigate & fix it.
-
+Path tab completion is still buggy, the reason for this seems to be an issue in the readline library.
 When using path completion at the moment, press tab and select and starting path.
 After selection, the completer will insert a trailing space character. This behaviour is wrong and needs to fixed.
 

@@ -3,10 +3,8 @@
 # ---------------------------------------------------------------------- #
 # @zeus-help: clean up to prepare for build
 # ---------------------------------------------------------------------- #
-# zeus cycle2 script
-# this script produces a cycle
-#
-# this is a test for the zeus cycle detection
+# zeus clean script
+# this script simply cleans the bin folder
 # ---------------------------------------------------------------------- #
 
-rm -rf bin/
+rm -rf bin/*

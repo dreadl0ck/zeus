@@ -12,9 +12,12 @@
     "RecursionDepth": 1,
     "ProjectNamePrompt": true,
     "AllowUntypedArgs": false,
-    "ColorProfile": "default",
+    "ColorProfile": "dark",
     "HistoryFile": true,
     "HistoryLimit": 20,
     "ExitOnInterrupt": true,
-    "DisableTimestamps": false
+    "DisableTimestamps": false,
+    "PrintBuiltins": true,
+    "StopOnError": true,
+    "DumpScriptOnError": false
 }

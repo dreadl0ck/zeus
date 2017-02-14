@@ -1,12 +1,14 @@
 # ZEUS TODOs
 
-    ________ ____  __ __  ______
-    \___   // __ \|  |  \/  ___/
-     /    /\  ___/|  |  /\___ \
-    /_____ \\___  >____//____  >
-          \/    \/           \/
-                A Powerful Build System
+    ________ ____  __ __  ______  _______
+    \___   // __ \|  |  \/  ___/  \\/^//^\
+     /    /\  ___/|  |  /\___ \   //  \\ /
+    /_____ \\___  >____//____  >  \\  /^\\
+          \/    \/           \/   /\\/\ //\
+                An Electrifying Build System
 
+- finish implementing Dependencies
+- watch scripts and parse again on WRITE event
 - fix globals.sh generation when migrating makefiles
 - events: add support for filetypes
 - arguments: accept name=val syntax
@@ -26,6 +28,8 @@
 # <content>
 ```
 
+- markdown wiki
+- Zeusfile
 - markdown reports
 - goconvey tests
 - webUI with live stats, controls and current report

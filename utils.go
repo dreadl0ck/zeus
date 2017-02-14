@@ -145,7 +145,7 @@ func clearProcessMap() {
 			// kill it
 			err := p.Kill()
 			if err != nil {
-				Log.WithError(err).Error("failed to kill " + name)
+				Log.WithError(err).Debug("failed to kill " + name)
 			}
 		}
 	}

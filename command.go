@@ -81,14 +81,29 @@ type command struct {
 	// completer for interactive shell
 	PrefixCompleter *readline.PrefixCompleter
 
-	//postRun commandChain
+	// buildNumber
+	buildNumber bool
 
-	// BuildNumber
-	BuildNumber bool
+	// dependency means that the command will only be executed if the named file does NOT exist
+	// if the file exists the dependency is complete and the command will be skipped
+	dependency string
 }
 
 // Run executes the command
 func (c *command) Run(args []string) error {
+
+	// check if theres a dependency set for the current command
+	if c.dependency != "" {
+		_, err := os.Stat(c.dependency)
+		if err == nil {
+			// file exists, skip it
+			Log.WithFields(logrus.Fields{
+				"commandName": c.name,
+				"dependency":  c.dependency,
+			}).Info("skipping command because its dependency exists")
+			return nil
+		}
+	}
 
 	var (
 		argc         = len(args)
@@ -176,12 +191,20 @@ func (c *command) Run(args []string) error {
 		}
 
 		// create command instance and pass new script to bash
-		cmd = exec.Command("/bin/bash", "-c", script)
+		if conf.StopOnError {
+			cmd = exec.Command("/bin/bash", []string{"-e", "-c", script}...)
+		} else {
+			cmd = exec.Command("/bin/bash", "-c", script)
+		}
 	} else {
 
 		// create command instance
 		// no globals - only execute target script
-		cmd = exec.Command(c.path, args...)
+		if conf.StopOnError {
+			cmd = exec.Command(c.path, append([]string{"-e"}, args...)...)
+		} else {
+			cmd = exec.Command(c.path, args...)
+		}
 	}
 
 	// set up environment
@@ -192,7 +215,7 @@ func (c *command) Run(args []string) error {
 
 	currentCommand++
 
-	if c.BuildNumber {
+	if c.buildNumber {
 		projectData.BuildNumber++
 		projectData.update()
 	}
@@ -222,7 +245,9 @@ func (c *command) Run(args []string) error {
 			script = string(scriptBytes)
 		}
 
-		dumpScript(script)
+		if conf.DumpScriptOnError {
+			dumpScript(script)
+		}
 
 		cLog.WithError(err).Error("failed to wait for command: " + c.name)
 		return err
@@ -321,7 +346,8 @@ func (job *parseJob) newCommand(path string) (*command, error) {
 		help:            d.help,
 		commandChain:    commandChain,
 		PrefixCompleter: readline.PcItem(name),
-		BuildNumber:     d.buildNumber,
+		buildNumber:     d.buildNumber,
+		dependency:      d.dependency,
 	}, nil
 }
 
@@ -396,7 +422,7 @@ func (job *parseJob) getCommandChain(parsedCommands [][]string) (commandChain co
 				"params":  args[1:],
 			}).Debug("setting parameters")
 
-			// creating a hard copy here,
+			// creating a hard copy of the struct here,
 			// otherwise params would be set for every execution of the command
 			cmd = &command{
 				name:            cmd.name,
@@ -407,7 +433,7 @@ func (job *parseJob) getCommandChain(parsedCommands [][]string) (commandChain co
 				help:            cmd.help,
 				commandChain:    cmd.commandChain,
 				PrefixCompleter: cmd.PrefixCompleter,
-				BuildNumber:     cmd.BuildNumber,
+				buildNumber:     cmd.buildNumber,
 			}
 		}
 

@@ -33,7 +33,7 @@ import (
 
 var (
 	// regex for a VALID zeus header field
-	validzeusHeaderField = regexp.MustCompile(`#+[[:space:]]+@zeus-([a-z]+):+`)
+	validzeusHeaderField = regexp.MustCompile(`#+[[:space:]]+@zeus(-([a-z]+))+:+`)
 
 	// regex for an INVALID zeus header field
 	invalidzeusHeaderField = regexp.MustCompile("#*[[:space:]]*@*zeus-([a-z]+):*[[:space:]]*")
@@ -65,6 +65,7 @@ type parser struct {
 	zeusFieldHelp        string
 	zeusFieldArgs        string
 	zeusFieldBuildNumber string
+	zeusFieldDependency  string
 
 	// separator for build chain commands
 	separator string
@@ -92,6 +93,7 @@ func newParser() *parser {
 		zeusFieldHelp:        "zeus-help",
 		zeusFieldArgs:        "zeus-args",
 		zeusFieldBuildNumber: "zeus-build-number",
+		zeusFieldDependency:  "zeus-dependency",
 
 		separator:      "->",
 		jobs:           map[string]*parseJob{},
@@ -107,6 +109,7 @@ type commandData struct {
 	parsedCommands [][]string
 	manual         string
 	buildNumber    bool
+	dependency     string
 }
 
 // argument types
@@ -197,7 +200,7 @@ func (p *parser) parseScript(path string, job *parseJob) (*commandData, error) {
 					}
 					Log.Fatal("invalid zeus-help header field in line ", c, " : ", line)
 				}
-				d.help = strings.TrimSpace(trimzeusPrefix(line))
+				d.help = strings.TrimSpace(trimZeusPrefix(line))
 				break
 
 			// parse args field
@@ -214,7 +217,7 @@ func (p *parser) parseScript(path string, job *parseJob) (*commandData, error) {
 				}
 
 				// parse arg types
-				for _, s := range strings.Fields(strings.TrimSpace(trimzeusPrefix(line))) {
+				for _, s := range strings.Fields(strings.TrimSpace(trimZeusPrefix(line))) {
 
 					var (
 						k     reflect.Kind
@@ -282,6 +285,10 @@ func (p *parser) parseScript(path string, job *parseJob) (*commandData, error) {
 
 			case strings.Contains(line, p.zeusFieldBuildNumber):
 				d.buildNumber = true
+
+			case strings.Contains(line, p.zeusFieldDependency):
+				d.dependency = strings.TrimSpace(trimZeusPrefix(line))
+
 			default:
 				continue
 			}
@@ -308,7 +315,7 @@ func parseCommandChain(line string) (parsedCommands [][]string) {
 	var (
 		// trim whitespace and zeus prefix
 		// then get commands seperated by parser separator
-		cmds = strings.Split(strings.TrimSpace(trimzeusPrefix(line)), p.separator)
+		cmds = strings.Split(strings.TrimSpace(trimZeusPrefix(line)), p.separator)
 
 		cLog = Log.WithFields(logrus.Fields{
 			"prefix": "parseCommandChain",
@@ -348,6 +355,6 @@ func parseCommandChain(line string) (parsedCommands [][]string) {
 }
 
 // trim the zeus prefix from the beginning of a line
-func trimzeusPrefix(line string) string {
+func trimZeusPrefix(line string) string {
 	return string(validzeusHeaderField.ReplaceAll([]byte(line), []byte("")))
 }
