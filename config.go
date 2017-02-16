@@ -26,6 +26,7 @@ import (
 	"reflect"
 	"strconv"
 
+	"github.com/Sirupsen/logrus"
 	"github.com/fsnotify/fsnotify"
 )
 
@@ -128,6 +129,8 @@ func parseGlobalConfig() (*config, error) {
 		Log.WithError(err).Fatal("failed to unmarshal confg - invalid JSON")
 	}
 
+	c.handle()
+
 	return c, nil
 }
 
@@ -155,10 +158,12 @@ func parseProjectConfig() (*config, error) {
 		Log.WithError(err).Fatal("failed to unmarshal confg - invalid JSON")
 	}
 
+	c.handle()
+
 	return c, nil
 }
 
-// handle configuration commands
+// handle config shell command
 func handleConfigCommand(args []string) {
 
 	switch args[1] {
@@ -263,6 +268,7 @@ func (c *config) setValue(field, value string) {
 		f.SetBool(b)
 
 		Log.Info("set config field ", field, " to ", value)
+
 	case reflect.Int:
 		i, err := strconv.ParseInt(value, 10, 0)
 		if err != nil {
@@ -275,6 +281,17 @@ func (c *config) setValue(field, value string) {
 		Log.Info("set config field ", field, " to ", value)
 	default:
 		Log.Error("unknown type: ", f.Kind())
+		return
 	}
 	c.update()
+	c.handle()
+}
+
+// handle the config by applying updated values
+func (c *config) handle() {
+	if c.Debug {
+		Log.Level = logrus.DebugLevel
+	} else {
+		Log.Level = logrus.InfoLevel
+	}
 }

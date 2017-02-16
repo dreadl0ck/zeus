@@ -132,8 +132,8 @@ func main() {
 			cLog.WithError(err).Debug("failed to parse global config")
 			cLog.Info("initializing default configuration")
 			conf = newConfig()
+			conf.update()
 		}
-		conf.update()
 	}
 
 	// look for project data

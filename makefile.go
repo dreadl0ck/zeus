@@ -67,12 +67,12 @@ func migrateMakefile() {
 		writeInProgress bool
 		err             error
 		perm            = os.FileMode(0700)
-		dir             = "zeus"
+		dir             = zeusDir
 	)
 
 	Log.WithField("dir", dir).Info("Makefile migration started.")
 
-	b, err := ioutil.ReadFile("Makefile")
+	contents, err := ioutil.ReadFile("Makefile")
 	if err != nil {
 		Log.WithError(err).Debug("unable to read Makefile")
 		return
@@ -85,10 +85,19 @@ func migrateMakefile() {
 		return
 	}
 
-	for _, line := range bytes.Split(b, []byte("\n")) {
+	for _, line := range bytes.Split(contents, []byte("\n")) {
 
 		if writeInProgress {
 
+			// write empty lines to file
+			// they can can be used used for formatting
+			// which is perfectly valid in makefiles
+			if len(line) == 0 {
+				file.WriteString(string(line) + "\n")
+				continue
+			}
+
+			// match everything preceeded by whitespace
 			if makeTargetBody.Match(line) {
 
 				// trim whitespace
@@ -135,8 +144,6 @@ func migrateMakefile() {
 					line = []byte("fi")
 				}
 
-				// Log.Debug("WRITE: ", string(line))
-
 				// write to file
 				file.WriteString(string(line) + "\n")
 			} else {
@@ -172,29 +179,29 @@ func migrateMakefile() {
 			writeInProgress = true
 		}
 	}
-	l.Println("migrated Makefile")
-}
 
-// create globals.sh from makefile
-func createGlobals() (g string) {
+	// handle globals
 
-	b, err := ioutil.ReadFile("Makefile")
-	if err != nil {
-		Log.WithError(err).Debug("unable to read Makefile")
-		return
-	}
-
-	l.Println("GLOBALS:")
-
-	for _, line := range bytes.Split(b, []byte("\n")) {
-
-		if makefileTarget.Match(line) && !bytes.Contains(line, []byte("\t")) {
-			if global.Match(line) {
-				g += string(line) + "\n"
-			}
+	var globals string
+	for _, line := range bytes.Split(contents, []byte("\n")) {
+		if global.Match(line) {
+			globals += string(line) + "\n"
 		}
 	}
-	return
+
+	if len(globals) > 0 {
+		f, err := os.Create(dir + "/globals.sh")
+		if err != nil {
+			Log.WithError(err).Error("failed to create globals file")
+			return
+		}
+		defer f.Close()
+		f.WriteString("#!/bin/bash\n")
+		f.WriteString(globals + "\n")
+		l.Println("created " + dir + "/globals.sh")
+	}
+
+	l.Println("migrated Makefile")
 }
 
 // handle makefile shell commands

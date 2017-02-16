@@ -666,6 +666,11 @@ After that the 1.0 Release is expected.
 - Encrypted Storage
 
      Projects can contain sensitive information like encryption keys or passwords.
+
+     Lets search for github commits that include 'remove password': [click](https://github.com/search?utf8=✓&q=remove+password&type=Commits&ref=searchresults)
+     Oops.
+     Oh wait, theres more: [click](http://thehackernews.com/2013/01/hundreds-of-ssh-private-keys-exposed.html)
+
      ZEUS 1.0 will feature encrypted storage inside the project data,
      that be accessed and modified using the interactive shell.
 
