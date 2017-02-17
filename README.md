@@ -10,6 +10,8 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/dreadl0ck/zeus)](https://goreportcard.com/report/github.com/dreadl0ck/zeus)
 [![License](https://img.shields.io/aur/license/yaourt.svg)](https://raw.githubusercontent.com/dreadl0ck/zeus/master/docs/LICENSE)
 [![Golang](https://img.shields.io/badge/Go-1.8-blue.svg)](https://golang.org)
+[![Linux](https://img.shields.io/badge/Supports-Linux-green.svg)](https://img.shields.io/badge/Supports-Linux-green.svg)
+[![macOS](https://img.shields.io/badge/Supports-macOS-green.svg)](https://img.shields.io/badge/Supports-macOS-green.svg)
 
 ZEUS is a modern build system featuring an *interactive shell*
 with *tab completion* and support for *keybindings*.
