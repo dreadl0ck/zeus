@@ -192,6 +192,7 @@ func listMilestones() {
 		}
 		l.Println("")
 	} else {
-		l.Println("no milestones set.\n")
+		l.Println("no milestones set.")
+		l.Println("")
 	}
 }
