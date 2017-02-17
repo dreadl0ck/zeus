@@ -364,10 +364,10 @@ Ctrl-S = git status
 Ctrl-P = git push
 ```
 
-To add a Keybinding:
+To set a Keybinding:
 
 ```shell
-zeus » keys add Ctrl-H help
+zeus » keys set Ctrl-H help
 ```
 
 To remove a Keybinding:
