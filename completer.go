@@ -209,15 +209,20 @@ func directoryCompleter(path string) []string {
 	names := make([]string, 0)
 	files, err := ioutil.ReadDir(path)
 	if err != nil {
+
+		// check if path is multilevel
+		// otherwise read current directory
+		// the error for reading the directory can be ignored
+		// because when the path is invalid there will be no completions and an empty string array is returned
+		// this behaviour is equivalent with the bash shell
 		arr := strings.Split(path, "/")
 		if len(arr) > 1 {
 			// trim base
 			path = strings.TrimSuffix(path, filepath.Base(path))
-			files, err = ioutil.ReadDir(path)
+			files, _ = ioutil.ReadDir(path)
 		} else {
-			files, err = ioutil.ReadDir("./")
+			files, _ = ioutil.ReadDir("./")
 		}
-
 	}
 	for _, f := range files {
 		if f.IsDir() {

@@ -97,7 +97,7 @@ func migrateMakefile() {
 				continue
 			}
 
-			// match everything preceeded by whitespace
+			// match everything preceded by whitespace
 			if makeTargetBody.Match(line) {
 
 				// trim whitespace

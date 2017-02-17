@@ -650,7 +650,7 @@ ANSI Escape Sequences are from the [ansi](https://github.com/mgutz/ansi) package
 The interactive shell uses the [readline](https://github.com/chzyer/readline) library,
 although some modifications were made to make the path completion work.
 
-For shell script formatting the [syntax](https://www.github.com/mvdan/sh/syntax) package is used.
+For shell script formatting the [syntax](https://godoc.org/github.com/mvdan/sh/syntax) package is used.
 
 Heres a simple overview of the architecure:
 

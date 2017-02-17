@@ -40,7 +40,7 @@ var (
 )
 
 // readline loop for interactive mode
-// when there's an unkown command it will be passed to the shell
+// when there's an unknown command it will be passed to the shell
 func readlineLoop() error {
 
 	if conf.PrintBuiltins {

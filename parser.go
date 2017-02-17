@@ -120,7 +120,7 @@ const (
 	argTypeFloat  = "Float"
 )
 
-// a commmand argument has a name and a type
+// a command argument has a name and a type
 type commandArg struct {
 	name    string
 	argType reflect.Kind
@@ -314,7 +314,7 @@ func parseCommandChain(line string) (parsedCommands [][]string) {
 
 	var (
 		// trim whitespace and zeus prefix
-		// then get commands seperated by parser separator
+		// then get commands separated by parser separator
 		cmds = strings.Split(strings.TrimSpace(trimZeusPrefix(line)), p.separator)
 
 		cLog = Log.WithFields(logrus.Fields{

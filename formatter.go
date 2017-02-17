@@ -160,7 +160,7 @@ func (f *formatter) formatPath(path string) error {
 	return nil
 }
 
-// walk the zeus directoy and run formatPath on all files
+// walk the zeus directory and run formatPath on all files
 func (f *formatter) formatzeusDir() error {
 
 	var cLog = Log.WithField("prefix", "formatzeusDir")

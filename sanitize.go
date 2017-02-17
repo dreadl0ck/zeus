@@ -88,7 +88,7 @@ func sanitizeFile(path string) {
 }
 
 // sanitize the given header field and correct typos
-// multiple or no occurence of @, # and : should be handled
+// multiple or no occurrence of @, # and : should be handled
 func sanitizeField(line, field string) string {
 	return "# @" + field + ": " + string(invalidzeusHeaderField.ReplaceAll([]byte(line), []byte("")))
 }

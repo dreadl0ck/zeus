@@ -30,7 +30,7 @@ var (
 	cp *colorProfile
 
 	// ErrUnknownColorProfile means the color profile does not exist
-	ErrUnknownColorProfile = errors.New("unkown color profile")
+	ErrUnknownColorProfile = errors.New("unknown color profile")
 )
 
 type colorProfile struct {
