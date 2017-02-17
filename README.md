@@ -517,7 +517,7 @@ $ zeus makefile migrate
 ```
 
 Your makefile will remain unchanged. This command creates the **zeus** directory with your make commands as ZEUS scripts.
-Please note migrating the globals does currently not work, so you will have to do this manually until patched.
+If there are any global variables declared in your Makefile, they will be extracted and put into the **zeus/globals.sh** file.
 
 ## Configuration
 
