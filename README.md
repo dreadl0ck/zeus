@@ -7,6 +7,10 @@
           \/    \/           \/   /\\/\ //\
                 An Electrifying Build System
 
+[![Go Report Card](https://goreportcard.com/badge/github.com/dreadl0ck/zeus)](https://goreportcard.com/report/github.com/dreadl0ck/zeus)
+[![License](https://img.shields.io/aur/license/yaourt.svg)](https://raw.githubusercontent.com/dreadl0ck/zeus/master/docs/LICENSE)
+[![Golang](https://img.shields.io/badge/Go-1.8-blue.svg)](https://golang.org)
+
 ZEUS is a modern build system featuring an *interactive shell*
 with *tab completion* and support for *keybindings*.
 
@@ -224,6 +228,16 @@ that will be run before execution of the target script.
 This command chain will be executed from left to right,
 each of them can also contain a chain commands and so on...
 
+You can also run command chains in the interactive shell.
+This is useful for trying out chains and see the result instantly.
+
+A simple example:
+
+```shell
+# clean the project, build for amd64 and deploy the binary on the server
+zeus » clean -> build-amd64 -> deploy
+```
+
 
 ## Globals
 
@@ -369,6 +383,8 @@ To set a Keybinding:
 ```shell
 zeus » keys set Ctrl-H help
 ```
+
+> NOTE: use [TAB] for completion of available keybindings
 
 To remove a Keybinding:
 
@@ -591,11 +607,13 @@ including empty ZEUS headers.
 ## Tests
 
 ZEUS will have automated tests for its core functionality.
+
 These are not yet implemented, but will be added for the 1.0 release!
 
 ## OS Support
 
 ZEUS was developed on OSX, and thus supports OSX and Linux.
+
 Windows is currently not supported! This might change in the future.
 
 ## Assets
@@ -667,12 +685,14 @@ After that the 1.0 Release is expected.
 
      Projects can contain sensitive information like encryption keys or passwords.
 
-     Lets search for github commits that include 'remove password': [click](https://github.com/search?utf8=✓&q=remove+password&type=Commits&ref=searchresults)
-     Oops.
+     Lets search for github commits that include 'remove password': [search](https://github.com/search?utf8=✓&q=remove+password&type=Commits&ref=searchresults)
+
+     283,905 results. Oops.
+
      Oh wait, theres more: [click](http://thehackernews.com/2013/01/hundreds-of-ssh-private-keys-exposed.html)
 
      ZEUS 1.0 will feature encrypted storage inside the project data,
-     that be accessed and modified using the interactive shell.
+     that can be accessed and modified using the interactive shell.
 
 - Markdown / HTML Report Generation
 
