@@ -1,6 +1,6 @@
 {
     "MakefileOverview": true,
-    "AutoFormat": true,
+    "AutoFormat": false,
     "FixParseErrors": true,
     "Colors": true,
     "PassCommandsToShell": true,
@@ -19,5 +19,5 @@
     "DisableTimestamps": false,
     "PrintBuiltins": true,
     "StopOnError": true,
-    "DumpScriptOnError": false
+    "DumpScriptOnError": true
 }

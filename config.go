@@ -1,5 +1,5 @@
 /*
- *  ZEUS - A Powerful Build System
+ *  ZEUS - An Electrifying Build System
  *  Copyright (c) 2017 Philipp Mieden <dreadl0ck@protonmail.ch>
  *
  *  This program is free software: you can redistribute it and/or modify
@@ -77,7 +77,7 @@ type config struct {
 func newConfig() *config {
 	return &config{
 		MakefileOverview:    true,
-		AutoFormat:          true,
+		AutoFormat:          false,
 		FixParseErrors:      true,
 		Colors:              true,
 		PassCommandsToShell: true,
@@ -283,8 +283,8 @@ func (c *config) setValue(field, value string) {
 		Log.Error("unknown type: ", f.Kind())
 		return
 	}
-	c.update()
 	c.handle()
+	c.update()
 }
 
 // handle the config by applying updated values
@@ -293,5 +293,10 @@ func (c *config) handle() {
 		Log.Level = logrus.DebugLevel
 	} else {
 		Log.Level = logrus.InfoLevel
+	}
+
+	// enable dumping the script on error when the auto formatter is enabled
+	if c.AutoFormat {
+		c.DumpScriptOnError = true
 	}
 }

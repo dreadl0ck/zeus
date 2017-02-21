@@ -407,7 +407,10 @@ My IDE (VSCode) complains sometimes that the content on disk is newer,
 but most of the time its works ok.
 Please note that for VSCode you have to CMD-S twice before the buffer from the IDE gets written to disk.
 
-You can disable this feature in the config.
+> NOTE:
+> Since this causes trouble with most IDEs and editors, its disabled by default
+> You can enable this feature in the config if you want to try it with your editor
+> When setting the AutoFormat Option to true, the DumpScriptOnError option will also be enabled
 
 
 ## ANSI Color Profiles
@@ -666,6 +669,11 @@ After that the 1.0 Release is expected.
      For each target you can define multiple outputs, which can be used as dependencies for other build targets.
      Targets are skipped if no build is required.
 
+- Parallel Builds
+
+     A new header field will allow to run commands in the background,
+     to speed up builds with lots of targets that dont have dependencies between them.
+
 - Webinterface
 
      The Webinterface will allow to track the build status and display project information,
@@ -743,7 +751,7 @@ If the interactive shell misbehaves after loading project data with keybindings,
 ## License
 
 ```
-ZEUS - A Powerful Build System
+ZEUS - An Electrifying Build System
 Copyright (c) 2017 Philipp Mieden <dreadl0ck@protonmail.ch>
 
 This program is free software: you can redistribute it and/or modify

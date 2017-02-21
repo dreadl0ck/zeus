@@ -1,5 +1,5 @@
 /*
- *  ZEUS - A Powerful Build System
+ *  ZEUS - An Electrifying Build System
  *  Copyright (c) 2017 Philipp Mieden <dreadl0ck@protonmail.ch>
  *
  *  This program is free software: you can redistribute it and/or modify
@@ -206,7 +206,7 @@ func addEvent(path string, op fsnotify.Op, handler func(fsnotify.Event), chain s
 			select {
 			case event := <-watcher.Events:
 
-				Log.WithFields(logrus.Fields{
+				cLog.WithFields(logrus.Fields{
 					"event": event,
 					"path":  path,
 				}).Debug("incoming event")
@@ -218,6 +218,7 @@ func addEvent(path string, op fsnotify.Op, handler func(fsnotify.Event), chain s
 					// example: when updating the config with the config command
 					// revalidating the config is not necessary
 					if disableWriteEvent {
+						cLog.Debug("ignoring WRITE event for path: ", path)
 						disableWriteEvent = false
 						continue
 					}

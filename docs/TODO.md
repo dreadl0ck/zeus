@@ -9,6 +9,7 @@
 
 - add date format config option
 - finish implementing Dependencies
+- add @zeus-async header for parallel builds
 - watch scripts and parse again on WRITE event
 - fix globals.sh generation when migrating makefiles
 - events: add support for filetypes
