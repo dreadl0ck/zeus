@@ -22,7 +22,7 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/chzyer/readline"
+	"github.com/dreadl0ck/readline"
 )
 
 var (

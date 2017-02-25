@@ -19,6 +19,8 @@
 package main
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"fmt"
 	"io"
 	"os"
@@ -30,6 +32,7 @@ import (
 	"sync"
 	"syscall"
 
+	gosxnotifier "github.com/deckarep/gosx-notifier"
 	"github.com/mgutz/ansi"
 )
 
@@ -131,26 +134,6 @@ func handleSignals() {
 	}()
 }
 
-// clean up the mess when we leave
-func clearProcessMap() {
-
-	// l.Println("processMap:", processMap)
-
-	// range processes
-	for name, p := range processMap {
-		if p != nil {
-
-			l.Println(printPrompt() + "killing " + name)
-
-			// kill it
-			err := p.Kill()
-			if err != nil {
-				Log.WithError(err).Debug("failed to kill " + name)
-			}
-		}
-	}
-}
-
 // pad the input string up to the given number of space characters
 func pad(in string, length int) string {
 	if len(in) < length {
@@ -209,7 +192,8 @@ func getTotalCommandCount(c *command) int {
 
 // print the prompt for the interactive shell
 func printPrompt() string {
-	// return color.New(color.FgHiRed, color.Bold).SprintFunc()(zeusPrompt + " » ")
+	colorProfileMutex.Lock()
+	defer colorProfileMutex.Unlock()
 	return cp.colorPrompt + zeusPrompt + " » " + cp.colorText
 }
 
@@ -349,4 +333,52 @@ func validArgType(in string, k reflect.Kind) bool {
 		return true
 	}
 	return false
+}
+
+func showNote(text, subtitle string) {
+
+	note := gosxnotifier.NewNotification(text)
+	note.Title = "ZEUS"
+	note.Subtitle = subtitle
+
+	// optionally, set a group which ensures only one notification is ever shown replacing previous notification of same group id
+	note.Group = "com.zeus"
+
+	// optionally, set a sender icon
+	note.Sender = "com.apple.Terminal"
+
+	// optionally, specifiy a url or bundleid to open should the notification be clicked
+	note.Link = "http://" + hostName + ":" + strconv.Itoa(conf.PortWebPanel)
+
+	// optionally, an app icon
+	// note.AppIcon = "gopher.png"
+
+	// optionally, a content image
+	// note.ContentImage = "gopher.png"
+
+	err := note.Push()
+	if err != nil {
+		Log.WithError(err).Error("error pushing notification")
+	}
+}
+
+// pass the args to the OSX open command
+func open(args ...string) {
+	err := exec.Command("open", args...).Run()
+	if err != nil {
+		Log.WithError(err).Error("failed to open: ", args)
+	}
+}
+
+// generate a 8byte random string
+func randomString() string {
+
+	var rb = make([]byte, 8)
+
+	_, err := rand.Read(rb)
+	if err != nil {
+		Log.WithError(err).Fatal(ErrReadingRandomString)
+	}
+
+	return hex.EncodeToString(rb)
 }

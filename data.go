@@ -81,7 +81,9 @@ func (d *data) update() {
 		Log.WithError(err).Fatal("failed to open zeus data")
 	}
 
+	disableWriteEventMutex.Lock()
 	disableWriteEvent = true
+	disableWriteEventMutex.Unlock()
 
 	_, err = f.Write(b)
 	if err != nil {
@@ -115,6 +117,7 @@ func parseProjectData() (*data, error) {
 // load user events from projectData and create the watchers
 func loadEvents() {
 
+	eventLock.Lock()
 	for _, e := range projectData.Events {
 
 		// skip loading of internal watchers
@@ -122,12 +125,12 @@ func loadEvents() {
 			continue
 		}
 
-		Log.Warn("EVENT: ", e)
+		Log.Debug("EVENT: ", e)
 
 		// validate commandChain
 		if validCommandChain(strings.Fields(e.Chain)) {
 
-			Log.Info("LOADING EVENT: ", e.Chain, " path: ", e.Path)
+			Log.Debug("LOADING EVENT: ", e.Chain, " path: ", e.Path)
 
 			// copy values from struct
 			var (
@@ -139,12 +142,12 @@ func loadEvents() {
 			go func() {
 				err := addEvent(path, op, func(event fsnotify.Event) {
 
-					Log.Warn("event fired, name: ", event.Name, " path: ", path)
+					Log.Debug("event fired, name: ", event.Name, " path: ", path)
 
 					// only fire if the event name matches
 					if event.Name == path {
 
-						Log.Info("event name matches: ", event, " COMMANDCHAIN: ", chain)
+						Log.Debug("event name matches: ", event, " COMMANDCHAIN: ", chain)
 						executeCommandChain(chain)
 					}
 
@@ -155,4 +158,5 @@ func loadEvents() {
 			}()
 		}
 	}
+	eventLock.Unlock()
 }

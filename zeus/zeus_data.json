@@ -1,24 +1,29 @@
 {
-    "BuildNumber": 12,
-    "Deadline": "01-04-2017",
+    "BuildNumber": 15,
+    "Deadline": "",
     "Milestones": [
         {
             "Name": "tests",
             "Date": "2017-03-01T00:00:00Z",
             "Description": "Implement unit tests",
-            "PercentComplete": 0
+            "PercentComplete": 30
         },
         {
             "Name": "webinterface",
             "Date": "2017-03-10T00:00:00Z",
             "Description": "Implement web interface",
-            "PercentComplete": 0
+            "PercentComplete": 30
         }
     ],
     "Aliases": {
         "gs": "git status"
     },
     "Events": {
+        "tests": {
+            "Path": "tests",
+            "Op": 2,
+            "Chain": "clean"
+        },
         "zeus": {
             "Path": "zeus",
             "Op": 2,
@@ -31,5 +36,7 @@
         }
     },
     "Author": "",
-    "KeyBindings": {}
+    "KeyBindings": {
+        "Ctrl-S": "git status"
+    }
 }

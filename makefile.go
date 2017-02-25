@@ -74,8 +74,12 @@ func migrateMakefile() {
 
 	contents, err := ioutil.ReadFile("Makefile")
 	if err != nil {
-		Log.WithError(err).Debug("unable to read Makefile")
-		return
+		if testingMode {
+			contents, err = ioutil.ReadFile("tests/Makefile")
+		} else {
+			Log.WithError(err).Debug("unable to read Makefile")
+			return
+		}
 	}
 
 	// create dir

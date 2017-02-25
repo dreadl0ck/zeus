@@ -30,7 +30,7 @@ import (
 	"github.com/mgutz/ansi"
 
 	rice "github.com/GeertJohan/go.rice"
-	"github.com/chzyer/readline"
+	"github.com/dreadl0ck/readline"
 	prefixed "github.com/x-cray/logrus-prefixed-formatter"
 )
 
@@ -49,9 +49,6 @@ var (
 	commands     = make(map[string]*command, 0)
 	commandMutex = &sync.Mutex{}
 
-	// process instances for all spawned commands, for cleaning up when we leave
-	processMap = make(map[string]*os.Process, 0)
-
 	// readline auto completion
 	completer = newCompleter()
 
@@ -63,6 +60,7 @@ var (
 
 	// project data
 	projectData *data
+	eventLock   = &sync.Mutex{}
 
 	// shell formatter
 	f = newFormatter()
@@ -70,7 +68,6 @@ var (
 	// parser
 	p = newParser()
 
-	eventLock      = &sync.Mutex{}
 	globalsContent []byte
 
 	debug      bool
@@ -80,6 +77,9 @@ var (
 	// total number of commands that will be executed when running the command
 	numCommands    int
 	currentCommand int
+
+	// running a test?
+	testingMode bool
 )
 
 func init() {
@@ -185,11 +185,10 @@ func main() {
 	}
 
 	if conf.LogToFile || conf.LogToFileColor {
-		f, err := logToFile()
+		err := logToFile()
 		if err != nil {
 			cLog.WithError(err).Fatal("failed to set up logging to file")
 		}
-		defer f.Close()
 	}
 
 	// init color profile
@@ -236,16 +235,54 @@ func main() {
 		}
 	}
 
+	// project infos
 	printDeadline()
 	listMilestones()
 
+	// print makefile command overview
 	if conf.MakefileOverview {
-		// print makefile command overview
 		printMakefileCommandOverview()
 	}
 
 	// create commandList
 	findCommands()
+
+	// handle commandline arguments
+	handleArgs()
+
+	// check if interactive mode is enabled in the config
+	if conf.Interactive {
+
+		if conf.WebInterface {
+			go StartWebListener(true)
+		}
+
+		if conf.ProjectNamePrompt {
+			// set shell prompt to project name
+			zeusPrompt = filepath.Base(workingDir)
+		}
+
+		// handle OS Signals
+		// all child processes need to be killed when theres an error
+		handleSignals()
+
+		// start interactive mode and start reading from stdin
+		err = readlineLoop()
+		if err != nil {
+			cLog.WithError(err).Fatal("failed to read user input")
+		}
+	} else {
+		if conf.PrintBuiltins {
+			printBuiltins()
+		}
+		printCommands()
+	}
+}
+
+// handle commandline arguments
+func handleArgs() {
+
+	var cLog = Log.WithField("prefix", "handleArgs")
 
 	if len(os.Args) > 1 {
 
@@ -272,12 +309,6 @@ func main() {
 			handleAliasCommand(os.Args[2:])
 
 		case configCommand:
-
-			if len(os.Args) == 2 {
-				printConfiguration()
-				return
-			}
-
 			handleConfigCommand(os.Args[2:])
 
 		case versionCommand:
@@ -330,33 +361,13 @@ func main() {
 			}
 
 			if !validCommand {
-				cLog.Fatal("unknown command: ", os.Args[1])
+				if !testingMode {
+					cLog.Fatal("unknown command: ", os.Args[1])
+				}
 			}
 		}
-		return
-	}
-
-	// check if interactive mode is enabled in the config
-	if conf.Interactive {
-
-		if conf.ProjectNamePrompt {
-			// set shell prompt to project name
-			zeusPrompt = filepath.Base(workingDir)
+		if !testingMode {
+			os.Exit(0)
 		}
-
-		// handle OS Signals
-		// all child processes need to be killed when theres an error
-		handleSignals()
-
-		// start interactive mode and start reading from stdin
-		err = readlineLoop()
-		if err != nil {
-			cLog.WithError(err).Fatal("failed to read user input")
-		}
-	} else {
-		if conf.PrintBuiltins {
-			printBuiltins()
-		}
-		printCommands()
 	}
 }

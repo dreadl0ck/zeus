@@ -22,7 +22,7 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/chzyer/readline"
+	"github.com/dreadl0ck/readline"
 )
 
 // ErrInvalidAlias means there is a name conflict with an existing command

@@ -19,12 +19,12 @@
 package main
 
 import (
-	ansistrip "c0de/ansistrip"
 	"io"
+	"log"
 	"os"
 	"time"
 
-	"log"
+	"github.com/dreadl0ck/ansistrip"
 )
 
 var (
@@ -37,28 +37,29 @@ var (
 
 	// format for TimeStamp in logfiles
 	timestampFormat = "[Mon Jan 2 15:04:05 2006]"
+	logfileHandle   *os.File
 )
 
 // initialize logging to a file and to stdout
 // returns the logfile handle and an error
-func logToFile() (*os.File, error) {
+func logToFile() (err error) {
 
 	// open logfile
-	f, err := os.OpenFile(pathLogfile, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0700)
+	logfileHandle, err = os.OpenFile(pathLogfile, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0700)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	if conf.LogToFileColor {
 
 		// set logger output to MultiWriter
-		l.SetOutput(io.MultiWriter(f, os.Stdout))
+		l.SetOutput(io.MultiWriter(logfileHandle, os.Stdout))
 	} else {
 		// write into strip ansi writer
-		l.SetOutput(io.MultiWriter(os.Stdout, ansistrip.New(f)))
+		l.SetOutput(io.MultiWriter(os.Stdout, ansistrip.NewAtomic(logfileHandle)))
 	}
 
-	f.WriteString(time.Now().Format(timestampFormat) + "\n")
+	logfileHandle.WriteString(time.Now().Format(timestampFormat) + "\n")
 
-	return f, nil
+	return nil
 }

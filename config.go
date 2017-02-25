@@ -25,6 +25,7 @@ import (
 	"os"
 	"reflect"
 	"strconv"
+	"sync"
 
 	"github.com/Sirupsen/logrus"
 	"github.com/fsnotify/fsnotify"
@@ -46,6 +47,8 @@ var (
 	// path for project config files
 	projectConfigPath = "zeus/zeus_config.json"
 	zeusDir           = "zeus"
+
+	configMutex = &sync.Mutex{}
 )
 
 // config contains configurable parameters
@@ -66,6 +69,8 @@ type config struct {
 	ColorProfile        string
 	HistoryFile         bool
 	HistoryLimit        int
+	PortWebPanel        int
+	PortGlueServer      int
 	ExitOnInterrupt     bool
 	DisableTimestamps   bool
 	PrintBuiltins       bool
@@ -92,6 +97,7 @@ func newConfig() *config {
 		ColorProfile:        "default",
 		HistoryFile:         true,
 		HistoryLimit:        20,
+		PortWebPanel:        8080,
 		ExitOnInterrupt:     true,
 		DisableTimestamps:   false,
 		PrintBuiltins:       true,
@@ -166,6 +172,11 @@ func parseProjectConfig() (*config, error) {
 // handle config shell command
 func handleConfigCommand(args []string) {
 
+	if len(args) < 2 {
+		printConfiguration()
+		return
+	}
+
 	switch args[1] {
 	case "set":
 		if len(args) < 4 {
@@ -187,6 +198,9 @@ func handleConfigCommand(args []string) {
 
 // update config on disk
 func (c *config) update() {
+
+	configMutex.Lock()
+	defer configMutex.Unlock()
 
 	// make it pretty
 	b, err := json.MarshalIndent(conf, "", "    ")
@@ -220,6 +234,9 @@ func (c *config) watch() {
 				Log.WithError(err).Fatal("failed to read config")
 			}
 
+			configMutex.Lock()
+			defer configMutex.Unlock()
+
 			err = json.Unmarshal(b, c)
 			if err != nil {
 				Log.WithError(err).Error("config parse error")
@@ -234,6 +251,9 @@ func (c *config) watch() {
 
 // get type and current vlaue information for a given field on the config struct
 func (c *config) getFieldInfo(field string) string {
+
+	configMutex.Lock()
+	defer configMutex.Unlock()
 
 	f := reflect.Indirect(reflect.ValueOf(c)).FieldByName(field)
 	switch f.Kind() {
@@ -250,8 +270,13 @@ func (c *config) getFieldInfo(field string) string {
 // set a config field to a specified value by its name
 func (c *config) setValue(field, value string) {
 
+	configMutex.Lock()
+
 	// check if the named field exists on the struct
 	f := reflect.Indirect(reflect.ValueOf(c)).FieldByName(field)
+
+	configMutex.Unlock()
+
 	if !f.IsValid() {
 		Log.Error("invalid config field: ", field)
 		return
@@ -289,6 +314,10 @@ func (c *config) setValue(field, value string) {
 
 // handle the config by applying updated values
 func (c *config) handle() {
+
+	configMutex.Lock()
+	defer configMutex.Unlock()
+
 	if c.Debug {
 		Log.Level = logrus.DebugLevel
 	} else {

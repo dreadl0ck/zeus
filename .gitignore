@@ -2,3 +2,4 @@ bin/*
 zeus.log
 error_dump.sh
 zeus/zeus_history
+coverage.out

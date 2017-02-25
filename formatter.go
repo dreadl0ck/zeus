@@ -110,8 +110,10 @@ func (f *formatter) formatPath(path string) error {
 		return nil
 	}
 
+	reader := bytes.NewReader(src)
+
 	// parse script
-	prog, err := syntax.Parse(src, path, f.parseMode)
+	prog, err := syntax.Parse(reader, path, f.parseMode)
 	if err != nil {
 		return err
 	}
@@ -165,8 +167,8 @@ func (f *formatter) formatzeusDir() error {
 			return err
 		}
 
-		conf := fileutil.CouldBeShellFile(info)
-		if conf == fileutil.ConfNotShellFile {
+		conf := fileutil.CouldBeScript(info)
+		if conf == fileutil.ConfNotScript {
 			return ErrNotAShellScript
 		}
 

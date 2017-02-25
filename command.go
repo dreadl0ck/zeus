@@ -32,7 +32,7 @@ import (
 	"time"
 
 	"github.com/Sirupsen/logrus"
-	"github.com/chzyer/readline"
+	"github.com/dreadl0ck/readline"
 	"github.com/mgutz/ansi"
 )
 
@@ -230,7 +230,8 @@ func (c *command) Run(args []string) error {
 	}
 
 	// add to processMap
-	processMap[c.name] = cmd.Process
+	id := processID(randomString())
+	addProcess(id, c.name, cmd.Process)
 
 	// wait for command to finish execution
 	err = cmd.Wait()
@@ -254,7 +255,7 @@ func (c *command) Run(args []string) error {
 	}
 
 	// after command has finished running, remove from processMap
-	delete(processMap, c.name)
+	deleteProcess(id)
 
 	// print stats
 	l.Println(printPrompt()+"["+strconv.Itoa(currentCommand)+"/"+strconv.Itoa(numCommands)+"] finished "+cp.colorPrompt+c.name+cp.colorText+" in"+cp.colorPrompt, time.Now().Sub(start), ansi.Reset)
@@ -293,12 +294,13 @@ func addCommand(path string) error {
 		// job done
 		p.RemoveJob(job)
 
+		commandMutex.Lock()
+
 		// Add the completer.
 		completer.Children = append(completer.Children, cmd.PrefixCompleter)
-
 		// add to command map
-		commandMutex.Lock()
 		commands[cmd.name] = cmd
+
 		commandMutex.Unlock()
 
 		cLog.Debug("added " + cmd.name + " to the command map")
@@ -400,12 +402,14 @@ func (job *parseJob) getCommandChain(parsedCommands [][]string) (commandChain co
 				return
 			}
 
+			commandMutex.Lock()
+
 			// add the completer
 			completer.Children = append(completer.Children, cmd.PrefixCompleter)
 
 			// add to command map
-			commandMutex.Lock()
 			commands[args[0]] = cmd
+
 			commandMutex.Unlock()
 
 			cLog.Debug("added " + cmd.name + " to the command map")

@@ -46,6 +46,8 @@ const (
 	dataCommand       = "data"
 	makefileCommand   = "makefile"
 	authorCommand     = "author"
+	wikiCommand       = "wiki"
+	webCommand        = "web"
 )
 
 var builtins = map[string]string{
@@ -67,6 +69,8 @@ var builtins = map[string]string{
 	authorCommand:     "print or change project author name",
 	keysCommand:       "manage keybindings",
 	builtinsCommand:   "print the builtins overview",
+	webCommand:        "web",
+	wikiCommand:       "wiki",
 }
 
 // executed when running the info command
@@ -157,17 +161,22 @@ func getArgumentString(args []*commandArg) (argStr string) {
 // print the current configuration as JSON to stdout
 func printConfiguration() {
 
+	configMutex.Lock()
+
 	b, err := json.MarshalIndent(conf, "", "	")
 	if err != nil {
 		Log.WithError(err).Fatal("failed to marshal config to JSON")
 	}
 
+	configMutex.Unlock()
 	l.Println(string(b))
-
 }
 
 // print the current project data as JSON to stdout
 func printProjectData() {
+
+	eventLock.Lock()
+	defer eventLock.Unlock()
 
 	// make it pretty
 	b, err := json.MarshalIndent(projectData, "", "	")

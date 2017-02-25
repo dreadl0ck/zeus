@@ -24,9 +24,11 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
+	"sync"
 
-	"github.com/chzyer/readline"
+	"github.com/dreadl0ck/readline"
 	"github.com/mgutz/ansi"
 )
 
@@ -36,7 +38,8 @@ var (
 	ErrUnknownCommand = errors.New("unknown command")
 
 	// global readline instance
-	rl *readline.Instance
+	rl            *readline.Instance
+	readlineMutex = &sync.Mutex{}
 )
 
 // readline loop for interactive mode
@@ -59,15 +62,21 @@ func readlineLoop() error {
 		historyFileName = workingDir + "/zeus/zeus_history"
 	}
 
+	configMutex.Lock()
+	historyLimit := conf.HistoryLimit
+	configMutex.Unlock()
+
+	readlineMutex.Lock()
 	// prepare readline
 	rl, err = readline.NewEx(&readline.Config{
 		Prompt:          printPrompt(),
 		AutoComplete:    completer,
-		HistoryLimit:    conf.HistoryLimit,
+		HistoryLimit:    historyLimit,
 		HistoryFile:     historyFileName,
 		Listener:        listener,
 		InterruptPrompt: "\nBye.",
 	})
+	readlineMutex.Unlock()
 	if err != nil {
 		return err
 	}
@@ -141,6 +150,14 @@ func handleLine(line string) {
 
 	case configCommand:
 		printConfiguration()
+
+	case wikiCommand:
+		go StartWebListener(false)
+		open("http://" + hostName + ":" + strconv.Itoa(conf.PortWebPanel) + "/wiki")
+
+	case webCommand:
+		go StartWebListener(false)
+		open("http://" + hostName + ":" + strconv.Itoa(conf.PortWebPanel))
 
 	case dataCommand:
 		printProjectData()
