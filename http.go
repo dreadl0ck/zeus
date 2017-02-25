@@ -93,8 +93,6 @@ func StartWebListener(openInBrowser bool) {
 		}
 		return
 	}
-
-	webInterfaceRunningMutex.Lock()
 	webInterfaceRunning = true
 	webInterfaceRunningMutex.Unlock()
 

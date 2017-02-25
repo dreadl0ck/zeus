@@ -156,8 +156,7 @@ func handleLine(line string) {
 		open("http://" + hostName + ":" + strconv.Itoa(conf.PortWebPanel) + "/wiki")
 
 	case webCommand:
-		go StartWebListener(false)
-		open("http://" + hostName + ":" + strconv.Itoa(conf.PortWebPanel))
+		go StartWebListener(true)
 
 	case dataCommand:
 		printProjectData()
