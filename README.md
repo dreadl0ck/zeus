@@ -50,7 +50,7 @@ which could lead to enourmous **super coding powers**!
 
 A sneak preview of the dark mode, running in the ZEUS project directory:
 
-![alt text](https://github.com/dreadl0ck/zeus/blob/master/docs/zeus.gif "ZEUS Preview")
+![alt text](https://github.com/dreadl0ck/zeus/blob/master/wiki/docs/zeus.gif "ZEUS Preview")
 
 The Dark Mode does not work in terminals with a black background, because it contains black text colors.
 I recommend using the solarized dark terminal theme, if you want to use the dark mode.
@@ -696,7 +696,7 @@ For shell script formatting the [syntax](https://godoc.org/github.com/mvdan/sh/s
 
 Heres a simple overview of the architecure:
 
-![alt text](https://github.com/dreadl0ck/zeus/blob/master/docs/zeus_overview.jpg "ZEUS Overview")
+![alt text](https://github.com/dreadl0ck/zeus/blob/master/wiki/docs/zeus_overview.jpg "ZEUS Overview")
 
 ## Coming Soon
 
