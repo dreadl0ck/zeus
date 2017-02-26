@@ -124,7 +124,7 @@ func handleSignals() {
 		signalMutex.Lock()
 
 		// kill all spawned procs
-		clearProcessMap()
+		clearProcessMap(sig)
 
 		// return to interactive shell
 		return
@@ -132,7 +132,7 @@ func handleSignals() {
 }
 
 // clean up the mess when we leave
-func clearProcessMap() {
+func clearProcessMap(sig os.Signal) {
 
 	// l.Println("processMap:", processMap)
 
@@ -143,7 +143,12 @@ func clearProcessMap() {
 			l.Println(printPrompt() + "killing " + name)
 
 			// kill it
-			err := p.Kill()
+			var err error
+			if sig == nil {
+				err = p.Kill()
+			} else {
+				err = p.Signal(sig)
+			}
 			if err != nil {
 				Log.WithError(err).Debug("failed to kill " + name)
 			}

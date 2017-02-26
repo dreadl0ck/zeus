@@ -86,7 +86,7 @@ func readlineLoop() error {
 			if err == readline.ErrInterrupt {
 
 				if conf.ExitOnInterrupt {
-					clearProcessMap()
+					clearProcessMap(nil)
 					os.Exit(0)
 				} else {
 					Log.Info("ExitOnInterrupt is disabled, type 'exit' if you want to leave.")
@@ -113,7 +113,7 @@ func handleLine(line string) {
 	switch line {
 	case exitCommand:
 		l.Println(cp.colorText + "Bye.")
-		clearProcessMap()
+		clearProcessMap(nil)
 		os.Exit(0)
 
 	case helpCommand:
