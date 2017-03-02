@@ -1,5 +1,5 @@
 /*
- *  ZEUS - A Powerful Build System
+ *  ZEUS - An Electrifying Build System
  *  Copyright (c) 2017 Philipp Mieden <dreadl0ck@protonmail.ch>
  *
  *  This program is free software: you can redistribute it and/or modify
@@ -24,9 +24,11 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
+	"sync"
 
-	"github.com/chzyer/readline"
+	"github.com/dreadl0ck/readline"
 	"github.com/mgutz/ansi"
 )
 
@@ -36,11 +38,12 @@ var (
 	ErrUnknownCommand = errors.New("unknown command")
 
 	// global readline instance
-	rl *readline.Instance
+	rl            *readline.Instance
+	readlineMutex = &sync.Mutex{}
 )
 
 // readline loop for interactive mode
-// when there's an unkown command it will be passed to the shell
+// when there's an unknown command it will be passed to the shell
 func readlineLoop() error {
 
 	if conf.PrintBuiltins {
@@ -59,15 +62,21 @@ func readlineLoop() error {
 		historyFileName = workingDir + "/zeus/zeus_history"
 	}
 
+	configMutex.Lock()
+	historyLimit := conf.HistoryLimit
+	configMutex.Unlock()
+
+	readlineMutex.Lock()
 	// prepare readline
 	rl, err = readline.NewEx(&readline.Config{
 		Prompt:          printPrompt(),
 		AutoComplete:    completer,
-		HistoryLimit:    conf.HistoryLimit,
+		HistoryLimit:    historyLimit,
 		HistoryFile:     historyFileName,
 		Listener:        listener,
 		InterruptPrompt: "\nBye.",
 	})
+	readlineMutex.Unlock()
 	if err != nil {
 		return err
 	}
@@ -141,6 +150,13 @@ func handleLine(line string) {
 
 	case configCommand:
 		printConfiguration()
+
+	case wikiCommand:
+		go StartWebListener(false)
+		open("http://" + hostName + ":" + strconv.Itoa(conf.PortWebPanel) + "/wiki")
+
+	case webCommand:
+		go StartWebListener(true)
 
 	case dataCommand:
 		printProjectData()

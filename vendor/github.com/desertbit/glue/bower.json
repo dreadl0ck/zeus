@@ -1,0 +1,23 @@
+{
+  "name": "glue",
+  "version": "1.9.1",
+  "homepage": "https://github.com/desertbit/glue",
+  "authors": [
+    "Roland Singer <roland.singer@desertbit.com>"
+  ],
+  "description": "Robust Go and Javascript Socket Library",
+  "main": "[\"client\"]",
+  "keywords": [
+    "[\"socket\"]"
+  ],
+  "license": "GPL3",
+  "ignore": [
+    "**/*",
+    "!client/*",
+    "!client/**/*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ]
+}

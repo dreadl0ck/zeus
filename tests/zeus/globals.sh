@@ -1,0 +1,3 @@
+#!/bin/bash
+GLOBALVAR="TEST"
+

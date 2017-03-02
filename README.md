@@ -50,7 +50,7 @@ which could lead to enourmous **super coding powers**!
 
 A sneak preview of the dark mode, running in the ZEUS project directory:
 
-![alt text](https://github.com/dreadl0ck/zeus/blob/master/docs/zeus.gif "ZEUS Preview")
+![alt text](https://github.com/dreadl0ck/zeus/blob/master/wiki/docs/zeus.gif "ZEUS Preview")
 
 The Dark Mode does not work in terminals with a black background, because it contains black text colors.
 I recommend using the solarized dark terminal theme, if you want to use the dark mode.
@@ -198,7 +198,7 @@ Field                 | Description
 
 All header fields are optional.
 
-The contents between the 2nd and 3rd seperator lines,
+The contents between the 2nd and 3rd separator lines,
 are the manual text for the command.
 
 The manual text can be accessed by using the **help** builtin:
@@ -407,7 +407,10 @@ My IDE (VSCode) complains sometimes that the content on disk is newer,
 but most of the time its works ok.
 Please note that for VSCode you have to CMD-S twice before the buffer from the IDE gets written to disk.
 
-You can disable this feature in the config.
+> NOTE:
+> Since this causes trouble with most IDEs and editors, its disabled by default
+> You can enable this feature in the config if you want to try it with your editor
+> When setting the AutoFormat Option to true, the DumpScriptOnError option will also be enabled
 
 
 ## ANSI Color Profiles
@@ -608,9 +611,47 @@ including empty ZEUS headers.
 
 ## Tests
 
-ZEUS will have automated tests for its core functionality.
+ZEUS has automated tests for its core functionality.
 
-These are not yet implemented, but will be added for the 1.0 release!
+run the tests with:
+
+```
+zeus » test
+```
+
+When there were no errors, the coverage report will be openened in your Browser.
+For Linux you will to open it manually, using the generated html file.
+
+run the test with race detection enabled:
+
+```shell
+zeus » test-race
+```
+
+> NOTE: This is still work in progress.
+
+## Webinterface
+
+The Webinterface will allow to track the build status and display project information,
+execute build commands and much more!
+
+Communication happens live over a websocket.
+
+When **WebInterface** is enabled in the config the server will be started when launching ZEUS.
+Otherwise use the **web** builtin to start the server from the shell.
+
+> NOTE: This is still work in progress
+
+## Markdown Wiki
+
+A Markdown Wiki will be served from the projects **wiki** directory.
+
+All Markdown Documents in the **wiki/docs** folder can be viewed in the browser,
+which makes creating good project docs very easy.
+
+The **wiki/INDEX.md** file will be converted to HTML and inserted in main wiki page.
+
+> NOTE: This is still work in progress
 
 ## OS Support
 
@@ -643,6 +684,7 @@ That means it is independent of any API changes in the used libraries and will w
 ## Internals
 
 For parsing the header fields, golang RE2 regular expressions are used.
+
 On startup two goroutines will be spawned for parsing the scripts concurrently.
 
 ANSI Escape Sequences are from the [ansi](https://github.com/mgutz/ansi) package.
@@ -650,11 +692,11 @@ ANSI Escape Sequences are from the [ansi](https://github.com/mgutz/ansi) package
 The interactive shell uses the [readline](https://github.com/chzyer/readline) library,
 although some modifications were made to make the path completion work.
 
-For shell script formatting the [syntax](https://www.github.com/mvdan/sh/syntax) package is used.
+For shell script formatting the [syntax](https://godoc.org/github.com/mvdan/sh/syntax) package is used.
 
 Heres a simple overview of the architecure:
 
-![alt text](https://github.com/dreadl0ck/zeus/blob/master/docs/zeus_overview.jpg "ZEUS Overview")
+![alt text](https://github.com/dreadl0ck/zeus/blob/master/wiki/docs/zeus_overview.jpg "ZEUS Overview")
 
 ## Coming Soon
 
@@ -666,16 +708,10 @@ After that the 1.0 Release is expected.
      For each target you can define multiple outputs, which can be used as dependencies for other build targets.
      Targets are skipped if no build is required.
 
-- Webinterface
+- Parallel Builds
 
-     The Webinterface will allow to track the build status and display project information,
-     execute build commands and much more!
-
-- Markdown Wiki
-
-     A Markdown Wiki will be served from the projects 'wiki' directory.
-     All Markdown Documents in this folder can be viewed in the browser,
-     which makes creating good project docs very easy.
+     A new header field will allow to run commands in the background,
+     to speed up builds with lots of targets that dont have dependencies between them.
 
 - Zeusfile
 
@@ -731,19 +767,23 @@ If the interactive shell misbehaves after loading project data with keybindings,
     -------------------------------------------------------------------------------
     Language                     files          blank        comment           code
     -------------------------------------------------------------------------------
-    Go                              23            825            828           2945
-    Markdown                         3            239              0            592
-    JSON                             3              0              0            134
-    Bourne Shell                    14             31            126             40
+    Go                              27           1014           1007           3549
+    Markdown                         6            285              0            684
+    JSON                             3              0              0            216
+    SASS                             1             21              1            143
+    Bourne Shell                    24            128            182             59
+    JavaScript                       1             17             21             51
+    HTML                             2              9              2             41
+    make                             1              6              6             10
     -------------------------------------------------------------------------------
-    SUM:                            43           1095            954           3711
+    SUM:                            65           1480           1219           4753
     -------------------------------------------------------------------------------
 
 
 ## License
 
 ```
-ZEUS - A Powerful Build System
+ZEUS - An Electrifying Build System
 Copyright (c) 2017 Philipp Mieden <dreadl0ck@protonmail.ch>
 
 This program is free software: you can redistribute it and/or modify

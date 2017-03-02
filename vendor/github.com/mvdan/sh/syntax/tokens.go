@@ -3,36 +3,41 @@
 
 package syntax
 
-// Token is the set of lexical tokens and reserved words.
-type Token int
+type token uint32
 
-// The list of all possible tokens and reserved words.
+// Modified version of golang.org/x/tools/cmd/stringer that gets the
+// string value from the inline comment of each constant, if there is
+// one. Also removes leading '_'.
+//go:generate stringer -type token
+
+// The list of all possible tokens.
 const (
-	illegalTok Token = iota
+	illegalTok token = iota
 	_EOF
 	_Lit
 	_LitWord
+	_LitRedir
 
 	sglQuote // '
 	dblQuote // "
 	bckQuote // `
 
-	And     // &
-	AndExpr // &&
-	OrExpr  // ||
-	Or      // |
-	pipeAll // |& - bash
+	and     // &
+	andAnd  // &&
+	orOr    // ||
+	or      // |
+	pipeAll // |&
 
 	dollar       // $
-	dollSglQuote // $' - bash
-	dollDblQuote // $" - bash
+	dollSglQuote // $'
+	dollDblQuote // $"
 	dollBrace    // ${
 	dollBrack    // $[
 	dollParen    // $(
 	dollDblParen // $((
 	leftBrack    // [
 	leftParen    // (
-	dblLeftParen // (( - bash
+	dblLeftParen // ((
 
 	rightBrace    // }
 	rightBrack    // ]
@@ -41,67 +46,67 @@ const (
 	semicolon     // ;
 
 	dblSemicolon // ;;
-	semiFall     // ;& - bash
-	dblSemiFall  // ;;& - bash
+	semiFall     // ;&
+	dblSemiFall  // ;;&
 
-	Mul // *
-	Not // !
-	Inc // ++
-	Dec // --
-	Pow // **
-	Eql // ==
-	Neq // !=
-	Leq // <=
-	Geq // >=
+	exclMark // !
+	addAdd   // ++
+	subSub   // --
+	star     // *
+	power    // **
+	equal    // ==
+	nequal   // !=
+	lequal   // <=
+	gequal   // >=
 
-	AddAssgn // +=
-	SubAssgn // -=
-	MulAssgn // *=
-	QuoAssgn // /=
-	RemAssgn // %=
-	AndAssgn // &=
-	OrAssgn  // |=
-	XorAssgn // ^=
-	ShlAssgn // <<=
-	ShrAssgn // >>=
+	addAssgn // +=
+	subAssgn // -=
+	mulAssgn // *=
+	quoAssgn // /=
+	remAssgn // %=
+	andAssgn // &=
+	orAssgn  // |=
+	xorAssgn // ^=
+	shlAssgn // <<=
+	shrAssgn // >>=
 
-	Gtr      // >
-	Shr      // >>
-	Lss      // <
+	rdrOut   // >
+	appOut   // >>
+	rdrIn    // <
 	rdrInOut // <>
 	dplIn    // <&
 	dplOut   // >&
 	clbOut   // >|
-	Shl      // <<
+	hdoc     // <<
 	dashHdoc // <<-
-	wordHdoc // <<< - bash
-	rdrAll   // &> - bash
-	appAll   // &>> - bash
+	wordHdoc // <<<
+	rdrAll   // &>
+	appAll   // &>>
 
-	cmdIn  // <( - bash
-	cmdOut // >( - bash
+	cmdIn  // <(
+	cmdOut // >(
 
-	Add      // +
-	ColAdd   // :+
-	Sub      // -
-	ColSub   // :-
-	Quest    // ?
-	ColQuest // :?
-	Assgn    // =
-	ColAssgn // :=
-	Rem      // %
-	dblRem   // %%
-	Hash     // #
+	plus     // +
+	colPlus  // :+
+	minus    // -
+	colMinus // :-
+	quest    // ?
+	colQuest // :?
+	assgn    // =
+	colAssgn // :=
+	perc     // %
+	dblPerc  // %%
+	hash     // #
 	dblHash  // ##
-	Xor      // ^
-	dblXor   // ^^ - bash
-	Comma    // ,
-	dblComma // ,, - bash
-	Quo      // /
-	dblQuo   // //
-	Colon    // :
+	caret    // ^
+	dblCaret // ^^
+	comma    // ,
+	dblComma // ,,
+	at       // @
+	slash    // /
+	dblSlash // //
+	colon    // :
 
-	tsNot     // !
 	tsExists  // -e
 	tsRegFile // -f
 	tsDirect  // -d
@@ -110,8 +115,12 @@ const (
 	tsNmPipe  // -p
 	tsSocket  // -S
 	tsSmbLink // -L
+	tsSticky  // -k
 	tsGIDSet  // -g
 	tsUIDSet  // -u
+	tsGrpOwn  // -G
+	tsUsrOwn  // -O
+	tsModif   // -N
 	tsRead    // -r
 	tsWrite   // -w
 	tsExec    // -x
@@ -135,16 +144,16 @@ const (
 	tsGtr     // -gt
 
 	globQuest // ?(
-	globMul   // *(
-	globAdd   // +(
+	globStar  // *(
+	globPlus  // +(
 	globAt    // @(
-	globNot   // !(
+	globExcl  // !(
 )
 
-type RedirOperator Token
+type RedirOperator token
 
 const (
-	RdrOut = RedirOperator(Gtr) + iota
+	RdrOut = RedirOperator(rdrOut) + iota
 	AppOut
 	RdrIn
 	RdrInOut
@@ -158,33 +167,33 @@ const (
 	AppAll
 )
 
-type ProcOperator Token
+type ProcOperator token
 
 const (
 	CmdIn = ProcOperator(cmdIn) + iota
 	CmdOut
 )
 
-type GlobOperator Token
+type GlobOperator token
 
 const (
 	GlobQuest = GlobOperator(globQuest) + iota
-	GlobMul
-	GlobAdd
+	GlobStar
+	GlobPlus
 	GlobAt
-	GlobNot
+	GlobExcl
 )
 
-type BinCmdOperator Token
+type BinCmdOperator token
 
 const (
-	AndStmt = BinCmdOperator(AndExpr) + iota
+	AndStmt = BinCmdOperator(andAnd) + iota
 	OrStmt
 	Pipe
 	PipeAll
 )
 
-type CaseOperator Token
+type CaseOperator token
 
 const (
 	DblSemicolon = CaseOperator(dblSemicolon) + iota
@@ -192,13 +201,13 @@ const (
 	DblSemiFall
 )
 
-type ParExpOperator Token
+type ParExpOperator token
 
 const (
-	SubstAdd = ParExpOperator(Add) + iota
-	SubstColAdd
-	SubstSub
-	SubstColSub
+	SubstPlus = ParExpOperator(plus) + iota
+	SubstColPlus
+	SubstMinus
+	SubstColMinus
 	SubstQuest
 	SubstColQuest
 	SubstAssgn
@@ -211,13 +220,63 @@ const (
 	UpperAll
 	LowerFirst
 	LowerAll
+	OtherParamOps
 )
 
-type UnTestOperator Token
+type UnAritOperator token
 
 const (
-	TsNot = UnTestOperator(tsNot) + iota
-	TsExists
+	Not = UnAritOperator(exclMark) + iota
+	Inc
+	Dec
+	Plus  = UnAritOperator(plus)
+	Minus = UnAritOperator(minus)
+)
+
+type BinAritOperator token
+
+const (
+	Add = BinAritOperator(plus)
+	Sub = BinAritOperator(minus)
+	Mul = BinAritOperator(star)
+	Quo = BinAritOperator(slash)
+	Rem = BinAritOperator(perc)
+	Pow = BinAritOperator(power)
+	Eql = BinAritOperator(equal)
+	Gtr = BinAritOperator(rdrOut)
+	Lss = BinAritOperator(rdrIn)
+	Neq = BinAritOperator(nequal)
+	Leq = BinAritOperator(lequal)
+	Geq = BinAritOperator(gequal)
+	And = BinAritOperator(and)
+	Or  = BinAritOperator(or)
+	Xor = BinAritOperator(caret)
+	Shr = BinAritOperator(appOut)
+	Shl = BinAritOperator(hdoc)
+
+	AndArit = BinAritOperator(andAnd)
+	OrArit  = BinAritOperator(orOr)
+	Comma   = BinAritOperator(comma)
+	Quest   = BinAritOperator(quest)
+	Colon   = BinAritOperator(colon)
+
+	Assgn    = BinAritOperator(assgn)
+	AddAssgn = BinAritOperator(addAssgn)
+	SubAssgn = BinAritOperator(subAssgn)
+	MulAssgn = BinAritOperator(mulAssgn)
+	QuoAssgn = BinAritOperator(quoAssgn)
+	RemAssgn = BinAritOperator(remAssgn)
+	AndAssgn = BinAritOperator(andAssgn)
+	OrAssgn  = BinAritOperator(orAssgn)
+	XorAssgn = BinAritOperator(xorAssgn)
+	ShlAssgn = BinAritOperator(shlAssgn)
+	ShrAssgn = BinAritOperator(shrAssgn)
+)
+
+type UnTestOperator token
+
+const (
+	TsExists = UnTestOperator(tsExists) + iota
 	TsRegFile
 	TsDirect
 	TsCharSp
@@ -225,8 +284,12 @@ const (
 	TsNmPipe
 	TsSocket
 	TsSmbLink
+	TsSticky
 	TsGIDSet
 	TsUIDSet
+	TsGrpOwn
+	TsUsrOwn
+	TsModif
 	TsRead
 	TsWrite
 	TsExec
@@ -237,9 +300,10 @@ const (
 	TsOptSet
 	TsVarSet
 	TsRefVar
+	TsNot = UnTestOperator(exclMark)
 )
 
-type BinTestOperator Token
+type BinTestOperator token
 
 const (
 	TsReMatch = BinTestOperator(tsReMatch) + iota
@@ -252,170 +316,23 @@ const (
 	TsGeq
 	TsLss
 	TsGtr
-	AndTest  = BinTestOperator(AndExpr)
-	OrTest   = BinTestOperator(OrExpr)
-	TsAssgn  = BinTestOperator(Assgn)
-	TsEqual  = BinTestOperator(Eql)
-	TsNequal = BinTestOperator(Neq)
-	TsBefore = BinTestOperator(Lss)
-	TsAfter  = BinTestOperator(Gtr)
+	AndTest  = BinTestOperator(andAnd)
+	OrTest   = BinTestOperator(orOr)
+	TsEqual  = BinTestOperator(equal)
+	TsNequal = BinTestOperator(nequal)
+	TsBefore = BinTestOperator(rdrIn)
+	TsAfter  = BinTestOperator(rdrOut)
+	// Deprecated: now parses as TsEqual
+	TsAssgn = BinTestOperator(assgn)
 )
 
-func (o RedirOperator) String() string   { return Token(o).String() }
-func (o ProcOperator) String() string    { return Token(o).String() }
-func (o GlobOperator) String() string    { return Token(o).String() }
-func (o BinCmdOperator) String() string  { return Token(o).String() }
-func (o CaseOperator) String() string    { return Token(o).String() }
-func (o ParExpOperator) String() string  { return Token(o).String() }
-func (o UnTestOperator) String() string  { return Token(o).String() }
-func (o BinTestOperator) String() string { return Token(o).String() }
-
-// Pos is the internal representation of a position within a source
-// file.
-type Pos int
-
-const maxPos = Pos(^uint(0) >> 1)
-
-// Position describes a position within a source file including the line
-// and column location. A Position is valid if the line number is > 0.
-type Position struct {
-	Offset int // byte offset, starting at 0
-	Line   int // line number, starting at 1
-	Column int // column number, starting at 1 (in bytes)
-}
-
-var tokNames = map[Token]string{
-	illegalTok: "illegal",
-	_EOF:       "EOF",
-	_Lit:       "Lit",
-	_LitWord:   "LitWord",
-
-	sglQuote: "'",
-	dblQuote: `"`,
-	bckQuote: "`",
-
-	And:     "&",
-	AndExpr: "&&",
-	OrExpr:  "||",
-	Or:      "|",
-	pipeAll: "|&",
-
-	dollar:       "$",
-	dollSglQuote: "$'",
-	dollDblQuote: `$"`,
-	dollBrace:    "${",
-	dollBrack:    "$[",
-	dollParen:    "$(",
-	dollDblParen: "$((",
-	leftBrack:    "[",
-	leftParen:    "(",
-	dblLeftParen: "((",
-
-	rightBrace:    "}",
-	rightBrack:    "]",
-	rightParen:    ")",
-	dblRightParen: "))",
-	semicolon:     ";",
-
-	dblSemicolon: ";;",
-	semiFall:     ";&",
-	dblSemiFall:  ";;&",
-
-	Gtr:      ">",
-	Shr:      ">>",
-	Lss:      "<",
-	rdrInOut: "<>",
-	dplIn:    "<&",
-	dplOut:   ">&",
-	clbOut:   ">|",
-	Shl:      "<<",
-	dashHdoc: "<<-",
-	wordHdoc: "<<<",
-	rdrAll:   "&>",
-	appAll:   "&>>",
-
-	cmdIn:  "<(",
-	cmdOut: ">(",
-
-	Add:      "+",
-	ColAdd:   ":+",
-	Sub:      "-",
-	ColSub:   ":-",
-	Quest:    "?",
-	ColQuest: ":?",
-	Assgn:    "=",
-	ColAssgn: ":=",
-	Rem:      "%",
-	dblRem:   "%%",
-	Hash:     "#",
-	dblHash:  "##",
-	Xor:      "^",
-	dblXor:   "^^",
-	Comma:    ",",
-	dblComma: ",,",
-	Quo:      "/",
-	dblQuo:   "//",
-	Colon:    ":",
-
-	Mul: "*",
-	Not: "!",
-	Inc: "++",
-	Dec: "--",
-	Pow: "**",
-	Eql: "==",
-	Neq: "!=",
-	Leq: "<=",
-	Geq: ">=",
-
-	AddAssgn: "+=",
-	SubAssgn: "-=",
-	MulAssgn: "*=",
-	QuoAssgn: "/=",
-	RemAssgn: "%=",
-	AndAssgn: "&=",
-	OrAssgn:  "|=",
-	XorAssgn: "^=",
-	ShlAssgn: "<<=",
-	ShrAssgn: ">>=",
-
-	tsNot:     "!",
-	tsExists:  "-e",
-	tsRegFile: "-f",
-	tsDirect:  "-d",
-	tsCharSp:  "-c",
-	tsBlckSp:  "-b",
-	tsNmPipe:  "-p",
-	tsSocket:  "-S",
-	tsSmbLink: "-L",
-	tsGIDSet:  "-g",
-	tsUIDSet:  "-u",
-	tsRead:    "-r",
-	tsWrite:   "-w",
-	tsExec:    "-x",
-	tsNoEmpty: "-s",
-	tsFdTerm:  "-t",
-	tsEmpStr:  "-z",
-	tsNempStr: "-n",
-	tsOptSet:  "-o",
-	tsVarSet:  "-v",
-	tsRefVar:  "-R",
-
-	tsReMatch: "=~",
-	tsNewer:   "-nt",
-	tsOlder:   "-ot",
-	tsDevIno:  "-ef",
-	tsEql:     "-eq",
-	tsNeq:     "-ne",
-	tsLeq:     "-le",
-	tsGeq:     "-ge",
-	tsLss:     "-lt",
-	tsGtr:     "-gt",
-
-	globQuest: "?(",
-	globMul:   "*(",
-	globAdd:   "+(",
-	globAt:    "@(",
-	globNot:   "!(",
-}
-
-func (t Token) String() string { return tokNames[t] }
+func (o RedirOperator) String() string   { return token(o).String() }
+func (o ProcOperator) String() string    { return token(o).String() }
+func (o GlobOperator) String() string    { return token(o).String() }
+func (o BinCmdOperator) String() string  { return token(o).String() }
+func (o CaseOperator) String() string    { return token(o).String() }
+func (o ParExpOperator) String() string  { return token(o).String() }
+func (o UnAritOperator) String() string  { return token(o).String() }
+func (o BinAritOperator) String() string { return token(o).String() }
+func (o UnTestOperator) String() string  { return token(o).String() }
+func (o BinTestOperator) String() string { return token(o).String() }

@@ -1,5 +1,5 @@
 /*
- *  ZEUS - A Powerful Build System
+ *  ZEUS - An Electrifying Build System
  *  Copyright (c) 2017 Philipp Mieden <dreadl0ck@protonmail.ch>
  *
  *  This program is free software: you can redistribute it and/or modify
@@ -88,7 +88,7 @@ func sanitizeFile(path string) {
 }
 
 // sanitize the given header field and correct typos
-// multiple or no occurence of @, # and : should be handled
+// multiple or no occurrence of @, # and : should be handled
 func sanitizeField(line, field string) string {
 	return "# @" + field + ": " + string(invalidzeusHeaderField.ReplaceAll([]byte(line), []byte("")))
 }

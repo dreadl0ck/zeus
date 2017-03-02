@@ -1,5 +1,5 @@
 /*
- *  ZEUS - A Powerful Build System
+ *  ZEUS - An Electrifying Build System
  *  Copyright (c) 2017 Philipp Mieden <dreadl0ck@protonmail.ch>
  *
  *  This program is free software: you can redistribute it and/or modify
@@ -22,6 +22,7 @@ import (
 	"errors"
 	"os"
 	"strings"
+	"sync"
 
 	"github.com/Sirupsen/logrus"
 	"github.com/fsnotify/fsnotify"
@@ -29,7 +30,8 @@ import (
 
 var (
 	// ignore the the write event when updating the config using the shell command
-	disableWriteEvent = false
+	disableWriteEvent      = false
+	disableWriteEventMutex = &sync.Mutex{}
 
 	// ErrInvalidEventType means the given event type string is invalid
 	ErrInvalidEventType = errors.New("invalid fsnotify event type. available types are: WRITE | REMOVE | RENAME | CHMOD")
@@ -206,10 +208,10 @@ func addEvent(path string, op fsnotify.Op, handler func(fsnotify.Event), chain s
 			select {
 			case event := <-watcher.Events:
 
-				Log.WithFields(logrus.Fields{
-					"event": event,
-					"path":  path,
-				}).Debug("incoming event")
+				// cLog.WithFields(logrus.Fields{
+				// 	"event": event,
+				// 	"path":  path,
+				// }).Debug("incoming event")
 
 				// check operation type
 				if event.Op == op {
@@ -217,10 +219,14 @@ func addEvent(path string, op fsnotify.Op, handler func(fsnotify.Event), chain s
 					// check if write event was disabled.
 					// example: when updating the config with the config command
 					// revalidating the config is not necessary
+					disableWriteEventMutex.Lock()
 					if disableWriteEvent {
 						disableWriteEvent = false
+						disableWriteEventMutex.Unlock()
+						// cLog.Debug("ignoring WRITE event for path: ", path)
 						continue
 					}
+					disableWriteEventMutex.Unlock()
 
 					// fire handler
 					handler(event)

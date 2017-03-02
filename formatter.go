@@ -1,5 +1,5 @@
 /*
- *  ZEUS - A Powerful Build System
+ *  ZEUS - An Electrifying Build System
  *  Copyright (c) 2017 Philipp Mieden <dreadl0ck@protonmail.ch>
  *
  *  This program is free software: you can redistribute it and/or modify
@@ -29,6 +29,7 @@ import (
 	"time"
 
 	"github.com/fsnotify/fsnotify"
+	"github.com/mvdan/sh/fileutil"
 	"github.com/mvdan/sh/syntax"
 )
 
@@ -38,14 +39,6 @@ var (
 
 	// ErrNoDirectory means its not a directory
 	ErrNoDirectory = errors.New("not a directory")
-)
-
-type shellConfidence int
-
-const (
-	notShellFile shellConfidence = iota
-	ifValidShebang
-	isShellFile
 )
 
 // generic formatter type
@@ -85,30 +78,11 @@ func newFormatter() *formatter {
 	}
 }
 
-// check if its a valid script
-func isValidScript(info os.FileInfo) shellConfidence {
-
-	name := info.Name()
-
-	switch {
-	case info.IsDir(), name[0] == '.', !info.Mode().IsRegular():
-		return notShellFile
-	case f.shellFile.MatchString(name):
-		return isShellFile
-	case strings.Contains(name, "."):
-		return notShellFile // different extension
-	case info.Size() < 8:
-		return notShellFile // cannot possibly hold valid shebang
-	default:
-		return ifValidShebang
-	}
-}
-
 // format a single shell file on disk
 func (f *formatter) formatPath(path string) error {
 
 	var cLog = Log.WithField("prefix", "formatPath")
-	cLog.Debug(path)
+	cLog.Debug("formatting: ", path)
 
 	// open file at path
 	file, err := os.OpenFile(path, f.openMode, 0)
@@ -125,14 +99,21 @@ func (f *formatter) formatPath(path string) error {
 		return err
 	}
 
-	// check bang
+	// no data - no formatting
+	if len(f.readBuf.Bytes()) == 0 {
+		return nil
+	}
+
+	// check shebang
 	src := f.readBuf.Bytes()
 	if !f.validShebang.Match(src[:32]) {
 		return nil
 	}
 
-	// parse
-	prog, err := syntax.Parse(src, path, f.parseMode)
+	reader := bytes.NewReader(src)
+
+	// parse script
+	prog, err := syntax.Parse(reader, path, f.parseMode)
 	if err != nil {
 		return err
 	}
@@ -140,12 +121,12 @@ func (f *formatter) formatPath(path string) error {
 	// flush buffer
 	f.writeBuf.Reset()
 
-	// format
+	// format buffer contents
 	f.printConfig.Fprint(&f.writeBuf, prog)
 	res := f.writeBuf.Bytes()
 
-	// check if there were changes and input
-	if !bytes.Equal(src, res) && len(res) > 0 {
+	// check if there were changes
+	if !bytes.Equal(src, res) {
 
 		// truncate file
 		if err := empty(file); err != nil {
@@ -160,7 +141,7 @@ func (f *formatter) formatPath(path string) error {
 	return nil
 }
 
-// walk the zeus directoy and run formatPath on all files
+// walk the zeus directory and run formatPath on all files
 func (f *formatter) formatzeusDir() error {
 
 	var cLog = Log.WithField("prefix", "formatzeusDir")
@@ -186,8 +167,8 @@ func (f *formatter) formatzeusDir() error {
 			return err
 		}
 
-		conf := isValidScript(info)
-		if conf == notShellFile {
+		conf := fileutil.CouldBeScript(info)
+		if conf == fileutil.ConfNotScript {
 			return ErrNotAShellScript
 		}
 
@@ -235,11 +216,16 @@ func (f *formatter) watchzeusDir() {
 		// check if its a valid script
 		if strings.HasSuffix(event.Name, f.fileExtension) {
 
+			// ignore further WRITE events while formatting a script
+			disableWriteEvent = true
+
 			// format script
 			err := f.formatPath(event.Name)
 			if err != nil {
 				Log.WithError(err).Error("failed to format file")
 			}
+
+			disableWriteEvent = false
 		}
 
 	}, "")

@@ -1,6 +1,6 @@
 {
     "MakefileOverview": true,
-    "AutoFormat": true,
+    "AutoFormat": false,
     "FixParseErrors": true,
     "Colors": true,
     "PassCommandsToShell": true,
@@ -15,9 +15,11 @@
     "ColorProfile": "default",
     "HistoryFile": true,
     "HistoryLimit": 20,
+    "PortWebPanel": 8080,
+    "PortGlueServer": 0,
     "ExitOnInterrupt": true,
     "DisableTimestamps": false,
     "PrintBuiltins": true,
     "StopOnError": true,
-    "DumpScriptOnError": false
+    "DumpScriptOnError": true
 }

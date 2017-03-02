@@ -1,5 +1,5 @@
 /*
- *  ZEUS - A Powerful Build System
+ *  ZEUS - An Electrifying Build System
  *  Copyright (c) 2017 Philipp Mieden <dreadl0ck@protonmail.ch>
  *
  *  This program is free software: you can redistribute it and/or modify
@@ -21,6 +21,7 @@ package main
 import (
 	"errors"
 	"path/filepath"
+	"sync"
 
 	"github.com/mgutz/ansi"
 )
@@ -30,7 +31,9 @@ var (
 	cp *colorProfile
 
 	// ErrUnknownColorProfile means the color profile does not exist
-	ErrUnknownColorProfile = errors.New("unkown color profile")
+	ErrUnknownColorProfile = errors.New("unknown color profile")
+
+	colorProfileMutex = &sync.Mutex{}
 )
 
 type colorProfile struct {
@@ -86,6 +89,8 @@ func handleColorsCommand(args []string) {
 
 	profile := args[1]
 
+	colorProfileMutex.Lock()
+
 	switch profile {
 	case "dark":
 		cp = darkProfile()
@@ -95,15 +100,22 @@ func handleColorsCommand(args []string) {
 		cp = defaultProfile()
 	default:
 		Log.Error(ErrUnknownColorProfile)
+		colorProfileMutex.Unlock()
 		return
 	}
+	colorProfileMutex.Unlock()
 	Log.Info("color profile set to: ", profile)
 
+	configMutex.Lock()
 	conf.ColorProfile = profile
+	configMutex.Unlock()
+
 	conf.update()
 
+	readlineMutex.Lock()
 	if rl != nil {
 		rl.SetPrompt(printPrompt())
+		readlineMutex.Unlock()
 		clearScreen()
 
 		l.Println(cp.colorText + asciiArt + ansi.Reset + "\n")

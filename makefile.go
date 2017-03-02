@@ -1,5 +1,5 @@
 /*
- *  ZEUS - A Powerful Build System
+ *  ZEUS - An Electrifying Build System
  *  Copyright (c) 2017 Philipp Mieden <dreadl0ck@protonmail.ch>
  *
  *  This program is free software: you can redistribute it and/or modify
@@ -74,8 +74,12 @@ func migrateMakefile() {
 
 	contents, err := ioutil.ReadFile("Makefile")
 	if err != nil {
-		Log.WithError(err).Debug("unable to read Makefile")
-		return
+		if testingMode {
+			contents, err = ioutil.ReadFile("tests/Makefile")
+		} else {
+			Log.WithError(err).Debug("unable to read Makefile")
+			return
+		}
 	}
 
 	// create dir
@@ -97,7 +101,7 @@ func migrateMakefile() {
 				continue
 			}
 
-			// match everything preceeded by whitespace
+			// match everything preceded by whitespace
 			if makeTargetBody.Match(line) {
 
 				// trim whitespace
