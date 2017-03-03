@@ -72,7 +72,7 @@ func cleanup() {
 	}
 
 	// kill all spawned processes
-	clearProcessMap()
+	clearProcessMap(nil)
 
 	// close readline
 	if rl != nil {
@@ -104,9 +104,9 @@ func printProcessMap() {
 }
 
 // clean up the mess
-func clearProcessMap() {
+func clearProcessMap(sig os.Signal) {
 
-	// printProcessMap()
+	// l.Println("processMap:", processMap)
 
 	// range processes
 	for id, p := range processMap {
@@ -115,7 +115,12 @@ func clearProcessMap() {
 			Log.Info("killing "+id+" PID:", p.Proc.Pid)
 
 			// kill it
-			err := p.Proc.Kill()
+			var err error
+			if sig == nil {
+				err = p.Proc.Kill()
+			} else {
+				err = p.Proc.Signal(sig)
+			}
 			if err != nil {
 				Log.WithError(err).Error("failed to kill "+id+" PID:", p.Proc.Pid)
 			}
