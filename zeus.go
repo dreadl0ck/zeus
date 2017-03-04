@@ -335,6 +335,7 @@ func handleArgs() {
 			handleMakefileCommand(os.Args[1:])
 
 		default:
+			handleSignals()
 
 			// check if the command exists
 			if cmd, ok := commands[os.Args[1]]; ok {

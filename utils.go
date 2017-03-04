@@ -127,7 +127,7 @@ func handleSignals() {
 		signalMutex.Lock()
 
 		// kill all spawned procs
-		clearProcessMap()
+		clearProcessMap(sig)
 
 		// return to interactive shell
 		return
