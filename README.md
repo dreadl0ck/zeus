@@ -619,8 +619,9 @@ run the tests with:
 zeus » test
 ```
 
-When there were no errors, the coverage report will be openened in your Browser.
-For Linux you will to open it manually, using the generated html file.
+When there were no errors, on macOS the coverage report will be openened in your Browser.
+
+On Linux you will need to open it manually, using the generated html file.
 
 run the test with race detection enabled:
 
