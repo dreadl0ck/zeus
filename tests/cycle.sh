@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # ---------------------------------------------------------------------- #
-# @zeus--chain: cycle2 arg1 arg2
+# @zeus-chain:
 # @zeus-help: produce a cycle by calling the cycle command
 # @zeus-args: bla:String
 # ---------------------------------------------------------------------- #

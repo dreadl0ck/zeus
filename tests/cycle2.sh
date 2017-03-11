@@ -1,6 +1,5 @@
 #!/bin/bash
 
-
 # ---------------------------------------------------------------------- #
 # @zeus-chain: cycle arg1
 # @zeus-help: produce a cycle by calling the cycle command

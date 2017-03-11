@@ -43,6 +43,9 @@ var (
 
 	// ErrDuplicateArgumentNames means the name for an argument was reused
 	ErrDuplicateArgumentNames = errors.New("duplicate argument name")
+
+	// ErrInvalidHeaderType means the header field type does not exist
+	ErrInvalidHeaderType = errors.New("invalid header field type")
 )
 
 // parser handles parsing of the script headers
@@ -57,15 +60,19 @@ type parser struct {
 	// path to interpreter
 	interpreter string
 
-	// identifier for shell scripts
-	shebang string
+	// identifier for script type
+	bang string
+
+	// comment identifier
+	comment string
 
 	// available header fields
-	zeusFieldChain       string
-	zeusFieldHelp        string
-	zeusFieldArgs        string
-	zeusFieldBuildNumber string
-	zeusFieldDependency  string
+	zeusFieldChain        string
+	zeusFieldHelp         string
+	zeusFieldArgs         string
+	zeusFieldBuildNumber  string
+	zeusFieldDependencies string
+	zeusFieldOutputs      string
 
 	// separator for build chain commands
 	separator string
@@ -87,13 +94,15 @@ func newParser() *parser {
 	return &parser{
 		language:    "bash",
 		interpreter: "/bin/bash",
-		shebang:     "#!/bin/bash",
+		bang:        "#!/bin/bash",
+		comment:     "#",
 
-		zeusFieldChain:       "zeus-chain",
-		zeusFieldHelp:        "zeus-help",
-		zeusFieldArgs:        "zeus-args",
-		zeusFieldBuildNumber: "zeus-build-number",
-		zeusFieldDependency:  "zeus-dependency",
+		zeusFieldChain:        "zeus-chain",
+		zeusFieldHelp:         "zeus-help",
+		zeusFieldArgs:         "zeus-args",
+		zeusFieldBuildNumber:  "zeus-build-number",
+		zeusFieldDependencies: "zeus-deps",
+		zeusFieldOutputs:      "zeus-outputs",
 
 		separator:      "->",
 		jobs:           map[string]*parseJob{},
@@ -109,7 +118,8 @@ type commandData struct {
 	parsedCommands [][]string
 	manual         string
 	buildNumber    bool
-	dependency     string
+	dependencies   []string
+	outputs        []string
 }
 
 // argument types
@@ -163,7 +173,7 @@ func (p *parser) parseScript(path string, job *parseJob) (*commandData, error) {
 
 		if c == 0 {
 			// first line. make sure theres a shebang
-			if line != p.shebang {
+			if line != p.bang {
 				if conf.FixParseErrors {
 					sanitizeFile(path)
 					return p.parseScript(path, job)
@@ -173,7 +183,7 @@ func (p *parser) parseScript(path string, job *parseJob) (*commandData, error) {
 		}
 
 		// check if its a comment. only comments can be used as header fields
-		if strings.HasPrefix(line, "#") {
+		if strings.HasPrefix(line, p.comment) {
 
 			if separatorCount > 1 {
 
@@ -286,10 +296,29 @@ func (p *parser) parseScript(path string, job *parseJob) (*commandData, error) {
 			case strings.Contains(line, p.zeusFieldBuildNumber):
 				d.buildNumber = true
 
-			case strings.Contains(line, p.zeusFieldDependency):
-				d.dependency = strings.TrimSpace(trimZeusPrefix(line))
+			case strings.Contains(line, p.zeusFieldDependencies):
+				for _, dep := range strings.Split(strings.TrimSpace(trimZeusPrefix(line)), ",") {
+					d.dependencies = append(d.dependencies, dep)
+				}
+
+			case strings.Contains(line, p.zeusFieldOutputs):
+				for _, output := range strings.Split(strings.TrimSpace(trimZeusPrefix(line)), ",") {
+					d.outputs = append(d.outputs, output)
+				}
 
 			default:
+
+				// check if line might be a zeus header field
+				if strings.HasPrefix(line, p.comment+" @") {
+					// check if its a header field that does not exist
+					if !validHeaderType(line) {
+						Log.WithError(ErrInvalidHeaderType).WithFields(logrus.Fields{
+							"line": line,
+							"file": path,
+						}).Fatal("invalid header field type")
+					}
+				}
+
 				continue
 			}
 		}
@@ -307,6 +336,27 @@ func (p *parser) parseScript(path string, job *parseJob) (*commandData, error) {
 	}
 
 	return d, nil
+}
+
+func validHeaderType(line string) bool {
+
+	slice := strings.Split(line, ":")
+	if len(slice) == 0 {
+		// not a zeus header field - ignore
+		return true
+	}
+
+	fieldType := strings.TrimPrefix(slice[0], p.comment+" @")
+
+	Log.Info("checking type: ", fieldType)
+
+	switch fieldType {
+	case p.zeusFieldArgs, p.zeusFieldBuildNumber, p.zeusFieldChain, p.zeusFieldDependencies, p.zeusFieldHelp, p.zeusFieldOutputs:
+		return true
+	default:
+		return false
+	}
+
 }
 
 // parse the command chain string

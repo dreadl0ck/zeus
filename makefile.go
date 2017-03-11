@@ -171,7 +171,7 @@ func migrateMakefile() {
 			}
 			defer file.Close()
 
-			file.WriteString(p.shebang + "\n\n")
+			file.WriteString(p.bang + "\n\n")
 			file.WriteString("# -------------------------------------------------------------------------- #" + "\n")
 			file.WriteString("# @zeus-chain: " + strings.Join(args[1:], " -> ") + "\n")
 			file.WriteString("# @zeus-args: " + "\n")

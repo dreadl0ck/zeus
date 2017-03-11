@@ -7,13 +7,16 @@
           \/    \/           \/   /\\/\ //\
                 An Electrifying Build System
 
-- finish implementing Dependencies
-- add @zeus-async header for parallel builds
+- add support for running shell commands on events
+- improve tests
 - add zeus create < commandname > to bootstrap single command
-- extract core into an importable package
 - add date format config option
 - watch scripts and parse again on WRITE event
 - events: add support for filetypes
+- Zeusfile
+
+- add @zeus-async header for parallel builds
+- extract core into an importable package
 - arguments: accept name=val syntax
 
 - add option to include encrypted data, example: crypto keys, passwords, infos etc
@@ -29,7 +32,6 @@
 # <content>
 ```
 
-- Zeusfile
 - markdown reports
 - support more scripting languages
 - use go-fuzz for tests

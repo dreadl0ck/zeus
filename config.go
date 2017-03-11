@@ -45,8 +45,8 @@ var (
 	globalConfigPath = os.Getenv("HOME") + "/.zeus_config.json"
 
 	// path for project config files
-	projectConfigPath = "zeus/zeus_config.json"
 	zeusDir           = "zeus"
+	projectConfigPath string
 
 	configMutex = &sync.Mutex{}
 )
@@ -143,6 +143,7 @@ func parseGlobalConfig() (*config, error) {
 // parse the local project JSON config
 func parseProjectConfig() (*config, error) {
 
+	projectConfigPath = zeusDir + "/zeus_config.json"
 	var c = new(config)
 
 	stat, err := os.Stat(projectConfigPath)

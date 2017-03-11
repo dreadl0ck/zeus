@@ -49,6 +49,9 @@ var (
 	// ErrInvalidArgumentType means the argument type does not match the expected type
 	ErrInvalidArgumentType = errors.New("invalid argument type")
 
+	// ErrInvalidDependency means the named dependency command does not exist
+	ErrInvalidDependency = errors.New("invalid dependency")
+
 	lineErr = regexp.MustCompile("line\\s[1-9]+")
 )
 
@@ -84,24 +87,74 @@ type command struct {
 	// buildNumber
 	buildNumber bool
 
-	// dependency means that the command will only be executed if the named file does NOT exist
-	// if the file exists the dependency is complete and the command will be skipped
-	dependency string
+	// if the command depends on other command(s)
+	// add them here and they will be executed prior to execution of the current command
+	// if their named output files to not exist
+	dependencies []string
+
+	// output file(s) of the command
+	// if the file exists the command will not be executed
+	outputs []string
 }
 
 // Run executes the command
 func (c *command) Run(args []string) error {
 
-	// check if theres a dependency set for the current command
-	if c.dependency != "" {
-		_, err := os.Stat(c.dependency)
-		if err == nil {
-			// file exists, skip it
-			Log.WithFields(logrus.Fields{
-				"commandName": c.name,
-				"dependency":  c.dependency,
-			}).Info("skipping command because its dependency exists")
-			return nil
+	if len(c.outputs) != 0 {
+		// check if named outputs exist
+		for _, output := range c.outputs {
+
+			Log.Info("checking", output)
+
+			_, err := os.Stat(output)
+			if err == nil {
+				// file exists, skip it
+				Log.WithFields(logrus.Fields{
+					"commandName": c.name,
+					"output":      output,
+				}).Info("skipping command because its output exists")
+				return nil
+			}
+		}
+	}
+
+	// check if there are dependencies for the current command
+	if len(c.dependencies) != 0 {
+
+		for _, dep := range c.dependencies {
+
+			var (
+				cmd *command
+				ok  bool
+			)
+
+			if cmd, ok = commands[dep]; !ok {
+				return ErrInvalidDependency
+			}
+
+			if len(cmd.outputs) != 0 {
+
+				var outputMissing bool
+
+				// check if all named outputs exist
+				for _, output := range cmd.outputs {
+					_, err := os.Stat(output)
+					if err != nil {
+						outputMissing = true
+					}
+				}
+
+				// there is at least one output missing
+				// execute the command
+				if outputMissing {
+					// @TODO: handle args
+					err := cmd.Run([]string{})
+					if err != nil {
+						Log.WithError(err).Error("failed to execute dependency command")
+						return err
+					}
+				}
+			}
 		}
 	}
 
@@ -349,7 +402,8 @@ func (job *parseJob) newCommand(path string) (*command, error) {
 		commandChain:    commandChain,
 		PrefixCompleter: readline.PcItem(name),
 		buildNumber:     d.buildNumber,
-		dependency:      d.dependency,
+		dependencies:    d.dependencies,
+		outputs:         d.outputs,
 	}, nil
 }
 
@@ -486,25 +540,35 @@ func findCommands() {
 	// walk zeus directory and initialize commands
 	err := filepath.Walk(zeusDir, func(path string, info os.FileInfo, err error) error {
 
-		// check if its a valid script
-		if strings.HasSuffix(path, f.fileExtension) {
+		// ignore self
+		if path != zeusDir {
 
-			// check for globals script
-			// the globals script wont be parsed for zeus header fields
-			if strings.HasPrefix(strings.TrimPrefix(path, zeusDir+"/"), "globals") {
-
-				g, err := ioutil.ReadFile("zeus/globals.sh")
-				if err != nil {
-					l.Fatal(err)
-				}
-
-				// add newline to prevent parse errors
-				globalsContent = append(g, []byte("\n")...)
-				return nil
+			// ignore sub directories
+			if info.IsDir() {
+				return filepath.SkipDir
 			}
 
-			scripts = append(scripts, path)
+			// check if its a valid script
+			if strings.HasSuffix(path, f.fileExtension) {
+
+				// check for globals script
+				// the globals script wont be parsed for zeus header fields
+				if strings.HasPrefix(strings.TrimPrefix(path, zeusDir+"/"), "globals") {
+
+					g, err := ioutil.ReadFile(zeusDir + "/globals.sh")
+					if err != nil {
+						l.Fatal(err)
+					}
+
+					// add newline to prevent parse errors
+					globalsContent = append(g, []byte("\n")...)
+					return nil
+				}
+
+				scripts = append(scripts, path)
+			}
 		}
+
 		return nil
 	})
 	if err != nil {

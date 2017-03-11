@@ -108,6 +108,8 @@ and stops if executing line returned an error code != 0.
 
 This Behaviour can be disabled in the config by using the **StopOnError** option.
 
+Signals to the ZEUS shell will be passed to the scripts, that means handling signals inside the scripts is possible.
+
 ***Terminology***
 
 Command Prompts:
@@ -191,10 +193,12 @@ A simple ZEUS header could look like this:
 
 Field                 | Description
 --------------------- | ------------------------------------------------------------------------
-*@zeus-chain*        | command chain to be executed prior to execution of the current script
-*@zeus-args*         | typed arguments for this script
-*@zeus-help*         | one line help text for command overview
-*@zeus-build-number* | increase build number when this field is present
+*@zeus-chain*         | command chain to be executed prior to execution of the current script
+*@zeus-args*          | typed arguments for this script
+*@zeus-help*          | one line help text for command overview
+*@zeus-deps*          | dependencies for the command
+*@zeus-outputs*       | output files of the command
+*@zeus-build-number*  | increase build number when this field is present
 
 All header fields are optional.
 
@@ -681,6 +685,24 @@ You can find all assets in the **assets** directory.
 ZEUS is vendored with [godep](https://github.com/tools/godep)
 That means it is independent of any API changes in the used libraries and will work seamlessly in the future!
 
+## Dependencies
+
+For each target you can define multiple outputs files with the *@zeus-outputs* header.
+When all of them exist, the command will not be executed again.
+
+example:
+
+```shell
+# @zeus-outputs: bin/file1, bin/file2
+```
+
+The *@zeus-deps* header allows to specficy multiple commands, which output files must ALL exist, prior to execution of the current command. If this is not the case, the dependency command will be executed prior to execution of current command.
+
+example:
+
+```shell
+# @zeus-deps: command1, command2, ...
+```
 
 ## Internals
 
@@ -704,10 +726,6 @@ Heres a simple overview of the architecure:
 The listed features will be implemented over the next weeks.
 After that the 1.0 Release is expected.
 
-- Dependencies
-
-     For each target you can define multiple outputs, which can be used as dependencies for other build targets.
-     Targets are skipped if no build is required.
 
 - Parallel Builds
 

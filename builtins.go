@@ -191,7 +191,7 @@ func printProjectData() {
 func listGlobals() {
 
 	if len(globalsContent) > 0 {
-		c, err := ioutil.ReadFile("zeus/globals.sh")
+		c, err := ioutil.ReadFile(zeusDir + "/globals.sh")
 		if err != nil {
 			l.Fatal("failed to read globals: ", err)
 		}

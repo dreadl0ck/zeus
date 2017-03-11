@@ -27,9 +27,16 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
+// Test main entrypoint
+// must be executed prior to other tests
+// because it handles command and config parsing
 func TestMain(t *testing.T) {
 
+	// switch to testing mode
 	testingMode = true
+
+	// parse tests dir on startup
+	zeusDir = "tests"
 
 	Convey("When Starting main", t, func() {
 
@@ -137,7 +144,14 @@ func TestEvents(t *testing.T) {
 	Convey("Testing events", t, func() {
 		handleLine("events")
 		handleLine("events asdfasd")
-		handleLine("events add WRITE tests clean")
+
+		Log.Info("adding event for tests dir")
+		handleLine("events add WRITE tests error")
+
+		// event creation is async. wait a little bit.
+		time.Sleep(100 * time.Millisecond)
+
+		Log.Info("removing event for tests dir")
 		handleLine("events remove tests")
 	})
 }
@@ -193,11 +207,12 @@ func TestCompleters(t *testing.T) {
 
 func TestMakefileMigration(t *testing.T) {
 	Convey("Testing makefile migration", t, func() {
-		os.Remove("test/zeus")
+		os.Remove("tests/zeus")
 		zeusDir = "tests/zeus"
 		migrateMakefile()
 		zeusDir = "zeus"
-		os.Remove("test/zeus")
+		os.Remove("tests/zeus")
+		zeusDir = "tests"
 	})
 }
 
@@ -230,4 +245,20 @@ func TestBootstrap(t *testing.T) {
 
 func TestParser(t *testing.T) {
 
+}
+
+func TestDependencies(t *testing.T) {
+	Convey("Testing Dependencies", t, func() {
+
+		// create bin/dependency1
+		handleLine("dependency1")
+		_, err := os.Stat("bin/dependency1")
+		So(err, ShouldBeNil)
+
+		// create bin/dependency2
+		handleLine("dependency2")
+		_, err = os.Stat("bin/dependency2")
+		So(err, ShouldBeNil)
+
+	})
 }

@@ -93,6 +93,10 @@ func handleEventsCommand(args []string) {
 		}
 
 		chain := strings.Join(args[4:], " ")
+		if !validCommandChain(args[4:]) {
+			Log.Error("invalid commandchain: ", chain)
+			return
+		}
 
 		go func() {
 			err := addEvent(args[3], op, func(event fsnotify.Event) {
@@ -157,9 +161,23 @@ func removeEvent(path string) {
 	eventLock.Lock()
 	defer eventLock.Unlock()
 
+	// check if event exists
 	if e, ok := projectData.Events[path]; ok {
-		delete(projectData.Events, path)
+
+		Log.Info("stopping handler")
+
+		if e.stopChan == nil {
+			Log.Error("the stopChan for the event is <nil>")
+			return
+		}
+
+		// stop event handler
 		e.stopChan <- true
+
+		Log.Info("deleting event")
+
+		// delete event
+		delete(projectData.Events, path)
 
 		Log.Info("removed event with name ", path)
 		return

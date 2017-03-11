@@ -35,9 +35,9 @@ func bootstrapFile(name string) {
 	}
 
 	cLog.Info("creating file: ", name)
-	f, err := os.Create("zeus/" + name)
+	f, err := os.Create(zeusDir + "/" + name)
 	if err != nil {
-		cLog.WithError(err).Fatal("failed to create file: ", "zeus/"+name)
+		cLog.WithError(err).Fatal("failed to create file: ", zeusDir+"/"+name)
 	}
 	defer f.Close()
 
@@ -50,7 +50,7 @@ func bootstrapFile(name string) {
 // useful when starting from scratch
 func bootstrapCommand() {
 
-	err := os.Mkdir("zeus", 0700)
+	err := os.Mkdir(zeusDir, 0700)
 	if err != nil {
 		Log.WithError(err).Fatal("failed to create zeus directory")
 	}

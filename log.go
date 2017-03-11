@@ -33,7 +33,7 @@ var (
 	l = log.New(os.Stdout, "", 0)
 
 	// path to the zeus logfile
-	pathLogfile = "zeus/zeus.log"
+	pathLogfile string
 
 	// format for TimeStamp in logfiles
 	timestampFormat = "[Mon Jan 2 15:04:05 2006]"
@@ -43,6 +43,8 @@ var (
 // initialize logging to a file and to stdout
 // returns the logfile handle and an error
 func logToFile() (err error) {
+
+	pathLogfile = zeusDir + "/zeus.log"
 
 	// open logfile
 	logfileHandle, err = os.OpenFile(pathLogfile, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0700)

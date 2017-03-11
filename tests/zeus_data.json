@@ -1,0 +1,17 @@
+{
+    "BuildNumber": 0,
+    "Deadline": "",
+    "Milestones": [],
+    "Aliases": {},
+    "Events": {
+        "tests/zeus_config.json": {
+            "Path": "tests/zeus_config.json",
+            "Op": 2,
+            "Chain": ""
+        }
+    },
+    "Author": "",
+    "KeyBindings": {
+        "Ctrl-S": "git status"
+    }
+}

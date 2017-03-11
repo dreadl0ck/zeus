@@ -30,7 +30,7 @@ import (
 
 var (
 	// path for the project data JSON
-	projectDataPath = "zeus/zeus_data.json"
+	projectDataPath string
 )
 
 // zeus project data written to disk
@@ -94,6 +94,7 @@ func (d *data) update() {
 // parse the project data JSON
 func parseProjectData() (*data, error) {
 
+	projectDataPath = zeusDir + "/zeus_data.json"
 	var d = new(data)
 
 	_, err := os.Stat(projectDataPath)
@@ -108,7 +109,8 @@ func parseProjectData() (*data, error) {
 
 	err = json.Unmarshal(contents, d)
 	if err != nil {
-		Log.WithError(err).Fatal("failed to unmarshal zeus data - invalid JSON")
+		Log.WithError(err).Error("failed to unmarshal zeus data - invalid JSON")
+		return nil, err
 	}
 
 	return d, nil

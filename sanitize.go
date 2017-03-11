@@ -49,9 +49,9 @@ func sanitizeFile(path string) {
 	for c, line := range strings.Split(string(contents), "\n") {
 
 		if c == 0 {
-			if line != p.shebang {
-				cLog.Info("adding missing shebang")
-				buffer.WriteString(p.shebang + "\n")
+			if line != p.bang {
+				cLog.Info("adding missing bang")
+				buffer.WriteString(p.bang + "\n")
 				continue
 			}
 		}
