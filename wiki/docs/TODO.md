@@ -7,15 +7,18 @@
           \/    \/           \/   /\\/\ //\
                 An Electrifying Build System
 
-- add support for running shell commands on events
+- remove logfile, generate reports
 - improve tests
+
 - add zeus create < commandname > to bootstrap single command
 - add date format config option
+
 - watch scripts and parse again on WRITE event
 - events: add support for filetypes
-- Zeusfile
 
+- Zeusfile
 - add @zeus-async header for parallel builds
+
 - extract core into an importable package
 - arguments: accept name=val syntax
 
@@ -32,6 +35,5 @@
 # <content>
 ```
 
-- markdown reports
 - support more scripting languages
 - use go-fuzz for tests

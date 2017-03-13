@@ -89,6 +89,7 @@ func dumpScript(script string) {
 }
 
 // print the current script to stdout
+// adds line numbers
 func printScript(script string) {
 
 	fmt.Println(" |---------------------------------------------------------------------------------------------|")
@@ -142,7 +143,7 @@ func pad(in string, length int) string {
 	return in
 }
 
-// create a readable string from commandChain commands
+// create a readable string from a commandChain
 // example: (clean -> build -> install)
 func formatcommandChain(commands commandChain) string {
 

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # ---------------------------------------------------------------------- #
-# @zeus-chain: clean -> configure
+# @zeus-chain: clean -> configure -> build zeus
 # @zeus-help: start the dev mode
 # ---------------------------------------------------------------------- #
 # zeus development mode script
@@ -9,4 +9,4 @@
 # ---------------------------------------------------------------------- #
 
 rm -f rice-box.go
-godep go install
+go install

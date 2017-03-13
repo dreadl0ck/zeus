@@ -104,7 +104,7 @@ func (c *command) Run(args []string) error {
 		// check if named outputs exist
 		for _, output := range c.outputs {
 
-			Log.Info("checking", output)
+			Log.Debug("checking output: ", output)
 
 			_, err := os.Stat(output)
 			if err == nil {
@@ -123,12 +123,23 @@ func (c *command) Run(args []string) error {
 
 		for _, dep := range c.dependencies {
 
+			numCommands++
+
 			var (
 				cmd *command
 				ok  bool
+				err error
 			)
 
-			if cmd, ok = commands[dep]; !ok {
+			// handle args
+			fields := strings.Fields(dep)
+			if len(fields) == 0 {
+				Log.Error("empty fields")
+				return ErrInvalidDependency
+			}
+
+			// look up command name
+			if cmd, ok = commands[fields[0]]; !ok {
 				return ErrInvalidDependency
 			}
 
@@ -147,8 +158,13 @@ func (c *command) Run(args []string) error {
 				// there is at least one output missing
 				// execute the command
 				if outputMissing {
-					// @TODO: handle args
-					err := cmd.Run([]string{})
+
+					// pass args if there are any
+					if len(fields) > 1 {
+						err = cmd.Run(fields[1:])
+					} else {
+						err = cmd.Run([]string{})
+					}
 					if err != nil {
 						Log.WithError(err).Error("failed to execute dependency command")
 						return err
@@ -212,52 +228,57 @@ func (c *command) Run(args []string) error {
 		script string
 	)
 
+	// read the contents of this commands script
+	target, err := ioutil.ReadFile(c.path)
+	if err != nil {
+		l.Fatal(err)
+	}
+
+	Log.Debug("injecting args into script: ", args, " cmd: ", c.name)
+
+	// parse arguments and add them to the script
+	var argBuf bytes.Buffer
+	for i, a := range args {
+		if i < len(c.args) {
+			if !validArgType(a, c.args[i].argType) {
+				cLog.WithError(ErrInvalidArgumentType).WithFields(logrus.Fields{
+					"value":   a,
+					"argName": c.args[i].name,
+				}).Error("expected type: ", c.args[i].argType.String())
+				return ErrInvalidArgumentType
+			}
+			argBuf.WriteString(c.args[i].name + "=" + a + "\n")
+		}
+	}
+
 	// prepend projectGlobals if not empty
 	if len(globalsContent) > 0 {
-
-		// read the contents of this commands script
-		target, err := ioutil.ReadFile(c.path)
-		if err != nil {
-			l.Fatal(err)
-		}
-
-		// parse arguments and add them to the script
-		var argBuf bytes.Buffer
-		for i, a := range args {
-			if i < len(c.args) {
-				if !validArgType(a, c.args[i].argType) {
-					cLog.WithError(ErrInvalidArgumentType).WithFields(logrus.Fields{
-						"value":   a,
-						"argName": c.args[i].name,
-					}).Error("expected type: ", c.args[i].argType.String())
-					return ErrInvalidArgumentType
-				}
-				argBuf.WriteString(c.args[i].name + "=" + a + "\n")
-			}
-		}
 
 		// add the globals, append argument buffer and then append script contents
 		script = string(append(append(globalsContent, argBuf.Bytes()...), target...))
 
-		if conf.Debug {
-			printScript(script)
-		}
-
 		// create command instance and pass new script to bash
 		if conf.StopOnError {
-			cmd = exec.Command("/bin/bash", []string{"-e", "-c", script}...)
+			cmd = exec.Command(p.interpreter, []string{"-e", "-c", script}...)
 		} else {
-			cmd = exec.Command("/bin/bash", "-c", script)
+			cmd = exec.Command(p.interpreter, "-c", script)
 		}
 	} else {
+
+		// add argument buffer and then append script contents
+		script = string(append(argBuf.Bytes(), target...))
 
 		// create command instance
 		// no globals - only execute target script
 		if conf.StopOnError {
-			cmd = exec.Command(c.path, append([]string{"-e"}, args...)...)
+			cmd = exec.Command(p.interpreter, []string{"-e", "-c", script}...)
 		} else {
-			cmd = exec.Command(c.path, args...)
+			cmd = exec.Command(p.interpreter, "-c", script)
 		}
+	}
+
+	if conf.Debug {
+		printScript(script)
 	}
 
 	// set up environment

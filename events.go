@@ -43,10 +43,26 @@ var (
 // Event represents a watched path, along with an an action
 // that will be performed when an operation of the specified type occurs
 type Event struct {
-	Path     string
-	Op       fsnotify.Op
-	Chain    string
-	handler  func(fsnotify.Event)
+
+	// Event Name
+	Name string
+
+	// Event ID
+	ID string
+
+	// Path to watch
+	Path string
+
+	// Operation type
+	Op fsnotify.Op
+
+	// Command to be executed upon event
+	Command string
+
+	// custom event handler func
+	handler func(fsnotify.Event)
+
+	// shutdown chan
 	stopChan chan bool
 }
 
@@ -78,6 +94,11 @@ func handleEventsCommand(args []string) {
 			return
 		}
 
+		var name = "custom event"
+		if len(args) > 5 {
+			name = strings.Join(args[5:], " ")
+		}
+
 		// check if event type is valid
 		op, err := getEventType(args[2])
 		if err != nil {
@@ -93,24 +114,34 @@ func handleEventsCommand(args []string) {
 		}
 
 		chain := strings.Join(args[4:], " ")
-		if !validCommandChain(args[4:]) {
-			Log.Error("invalid commandchain: ", chain)
-			return
+		if validCommandChain(args[4:]) {
+			Log.Info("adding command chain")
+		} else {
+			Log.Info("adding shell command")
 		}
+
+		fields := args[4:]
 
 		go func() {
 			err := addEvent(args[3], op, func(event fsnotify.Event) {
 
-				Log.Warn("event fired, name: ", event.Name, " path: ", args[3])
+				Log.Debug("event fired, name: ", event.Name, " path: ", args[3])
 
-				// only fire if the event name matches
-				if event.Name == args[3] {
+				if validCommandChain(fields) {
+					executeCommandChain(chain)
+				} else {
 
-					Log.Info("event name matches: ", event, " COMMANDCHAIN: ", chain)
-					executeCommand(chain)
+					Log.Debug("passing chain to shell")
+
+					// its a shell command
+					if len(fields) > 1 {
+						passCommandToShell(fields[0], fields[1:])
+					} else {
+						passCommandToShell(fields[0], []string{})
+					}
 				}
 
-			}, chain)
+			}, name, chain)
 			if err != nil {
 				Log.Error("failed to watch path: ", args[3])
 			}
@@ -141,17 +172,12 @@ func getEventType(event string) (fsnotify.Op, error) {
 
 // list all currently registered events
 func listEvents() {
-	c := 0
-	for path, e := range projectData.Events {
 
-		if e.Chain == "" {
-			// internal watcher for config and formatter
-			l.Println("#", c, "op:", e.Op, "path:", path)
-		} else {
-			// user defined event
-			l.Println("#", c, "op:", e.Op, "path:", path, "chain:", e.Chain)
-		}
-		c++
+	w := 20
+
+	l.Println(cp.colorPrompt + pad("name", w) + pad("ID", w) + pad("operation", w) + pad("command", w) + pad("path", w))
+	for path, e := range projectData.Events {
+		l.Println(cp.colorText + pad(e.Name, w) + pad(e.ID, w) + pad(e.Op.String(), w) + pad(e.Command, w) + pad(path, w))
 	}
 }
 
@@ -180,6 +206,9 @@ func removeEvent(path string) {
 		delete(projectData.Events, path)
 
 		Log.Info("removed event with name ", path)
+
+		// update project data
+		projectData.update()
 		return
 	}
 
@@ -188,7 +217,7 @@ func removeEvent(path string) {
 
 // addEvent adds a watcher for path and register a handler that will fire if operation op occurs
 // the chain parameter contains the associated buildChain for user defined events
-func addEvent(path string, op fsnotify.Op, handler func(fsnotify.Event), chain string) error {
+func addEvent(path string, op fsnotify.Op, handler func(fsnotify.Event), name, command string) error {
 
 	var (
 		cLog = Log.WithField("prefix", "addEvent")
@@ -196,10 +225,12 @@ func addEvent(path string, op fsnotify.Op, handler func(fsnotify.Event), chain s
 		// create event
 		e = &Event{
 			Path:     path,
+			Name:     name,
+			ID:       randomString(),
 			Op:       op,
 			handler:  handler,
 			stopChan: make(chan bool, 1),
-			Chain:    chain,
+			Command:  command,
 		}
 	)
 

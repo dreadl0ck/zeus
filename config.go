@@ -29,6 +29,7 @@ import (
 
 	"github.com/Sirupsen/logrus"
 	"github.com/fsnotify/fsnotify"
+	prefixed "github.com/x-cray/logrus-prefixed-formatter"
 )
 
 var (
@@ -222,29 +223,28 @@ func (c *config) update() {
 	}
 }
 
-// watch and reload on changes
+// watch and reload config on changes
 func (c *config) watch() {
+
+	Log.Debug("watching config at " + projectConfigPath)
 
 	err := addEvent(projectConfigPath, fsnotify.Write, func(event fsnotify.Event) {
 
-		// check if the event name is correct because watching the zeus dir will also result in an event for zeus/config.json
-		if event.Name == projectConfigPath {
+		Log.Debug("config watcher event: ", event.Name)
 
-			b, err := ioutil.ReadFile(projectConfigPath)
-			if err != nil {
-				Log.WithError(err).Fatal("failed to read config")
-			}
-
-			configMutex.Lock()
-			defer configMutex.Unlock()
-
-			err = json.Unmarshal(b, c)
-			if err != nil {
-				Log.WithError(err).Error("config parse error")
-				return
-			}
+		b, err := ioutil.ReadFile(projectConfigPath)
+		if err != nil {
+			Log.WithError(err).Fatal("failed to read config")
 		}
-	}, "")
+
+		configMutex.Lock()
+		defer configMutex.Unlock()
+
+		err = json.Unmarshal(b, c)
+		if err != nil {
+			Log.WithError(err).Error("config parse error")
+		}
+	}, "config event", "internal")
 	if err != nil {
 		Log.WithError(err).Fatal("projectConfig watcher failed")
 	}
@@ -328,5 +328,14 @@ func (c *config) handle() {
 	// enable dumping the script on error when the auto formatter is enabled
 	if c.AutoFormat {
 		c.DumpScriptOnError = true
+	}
+
+	// disable colors if requested
+	if !c.Colors {
+		Log.Formatter = &prefixed.TextFormatter{
+			DisableColors: true,
+		}
+	} else {
+		Log.Formatter = &prefixed.TextFormatter{}
 	}
 }

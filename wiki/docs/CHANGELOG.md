@@ -7,6 +7,12 @@
           \/    \/           \/   /\\/\ //\
                 An Electrifying Build System
 
+## 13.03.17
+
+- improved UI
+- improved events
+- implemented dependencies & outputs
+
 ## 22.02.17
 
 - updated godeps

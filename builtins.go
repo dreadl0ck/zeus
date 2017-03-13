@@ -104,7 +104,7 @@ func printBuiltins() {
 	width := 15
 	l.Println(cp.colorText + "builtins:")
 	for builtin, description := range builtins {
-		l.Println(cp.colorCommandName + pad(builtin, width) + cp.colorText + " (" + description + ")")
+		l.Println(cp.colorCommandName + pad(builtin, width) + cp.colorText + description)
 	}
 	l.Println("")
 }
@@ -134,14 +134,9 @@ func printCommands() {
 
 		// check if there are arguments
 		if len(cmd.args) != 0 {
-			l.Println(cp.colorText + "├~» " + cp.colorCommandName + pad(cmd.name+" "+getArgumentString(cmd.args), 20) + cp.colorText)
+			l.Print(cp.colorText + "├~» " + cp.colorCommandName + pad(cmd.name+" "+getArgumentString(cmd.args), 20) + cp.colorCommandChain + formatcommandChain(cmd.commandChain) + cp.colorText)
 		} else {
-			l.Println(cp.colorText + "├~» " + cp.colorCommandName + pad(cmd.name, 20) + cp.colorText)
-		}
-
-		// print command chain if there is one
-		if len(cmd.commandChain) > 0 {
-			l.Println(cp.colorText + "├──── " + pad("chain:", 18) + cp.colorCommandChain + formatcommandChain(cmd.commandChain) + cp.colorText)
+			l.Print(cp.colorText + "├~» " + cp.colorCommandName + pad(cmd.name, 20) + cp.colorCommandChain + formatcommandChain(cmd.commandChain) + cp.colorText)
 		}
 
 		// print help section

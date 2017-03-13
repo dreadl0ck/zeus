@@ -22,9 +22,9 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"os"
-
 	"strings"
 
+	"github.com/Sirupsen/logrus"
 	"github.com/fsnotify/fsnotify"
 )
 
@@ -127,38 +127,46 @@ func loadEvents() {
 			continue
 		}
 
-		Log.Debug("EVENT: ", e)
+		Log.WithFields(logrus.Fields{
+			"command": e.Command,
+		}).Debug("EVENT: ", e)
 
-		// validate commandChain
-		if validCommandChain(strings.Fields(e.Chain)) {
+		fields := strings.Fields(e.Command)
 
-			Log.Debug("LOADING EVENT: ", e.Chain, " path: ", e.Path)
+		Log.Debug("LOADING EVENT: ", e.Command, " path: ", e.Path)
 
-			// copy values from struct
-			var (
-				path  = e.Path
-				op    = e.Op
-				chain = e.Chain
-			)
+		// copy values from struct
+		var (
+			path    = e.Path
+			op      = e.Op
+			command = e.Command
+		)
 
-			go func() {
-				err := addEvent(path, op, func(event fsnotify.Event) {
+		go func() {
+			err := addEvent(path, op, func(event fsnotify.Event) {
 
-					Log.Debug("event fired, name: ", event.Name, " path: ", path)
+				Log.Debug("event fired, name: ", event.Name, " path: ", path)
 
-					// only fire if the event name matches
-					if event.Name == path {
+				// validate commandChain
+				if validCommandChain(fields) {
+					executeCommandChain(command)
+				} else {
 
-						Log.Debug("event name matches: ", event, " COMMANDCHAIN: ", chain)
-						executeCommandChain(chain)
+					Log.Debug("passing chain to shell")
+
+					// its a shell command
+					if len(fields) > 1 {
+						passCommandToShell(fields[0], fields[1:])
+					} else {
+						passCommandToShell(fields[0], []string{})
 					}
-
-				}, chain)
-				if err != nil {
-					Log.Error("failed to watch path: ", path)
 				}
-			}()
-		}
+
+			}, e.Name, command)
+			if err != nil {
+				Log.Error("failed to watch path: ", path)
+			}
+		}()
 	}
 	eventLock.Unlock()
 }

@@ -53,7 +53,6 @@ func logToFile() (err error) {
 	}
 
 	if conf.LogToFileColor {
-
 		// set logger output to MultiWriter
 		l.SetOutput(io.MultiWriter(logfileHandle, os.Stdout))
 	} else {

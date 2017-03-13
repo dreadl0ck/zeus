@@ -3,7 +3,7 @@
 # ---------------------------------------------------------------------- #
 # @zeus-help: test script for dependencies
 # @zeus-outputs: bin/dependency2
-# @zeus-deps: dependency1
+# @zeus-deps: dependency1 test-arg
 # ---------------------------------------------------------------------- #
 # zeus dependency2 script
 # 

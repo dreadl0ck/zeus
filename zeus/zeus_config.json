@@ -6,7 +6,7 @@
     "PassCommandsToShell": true,
     "WebInterface": true,
     "Interactive": true,
-    "LogToFileColor": false,
+    "LogToFileColor": true,
     "LogToFile": true,
     "Debug": false,
     "RecursionDepth": 1,

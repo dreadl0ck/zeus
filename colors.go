@@ -62,10 +62,10 @@ func darkProfile() *colorProfile {
 func lightProfile() *colorProfile {
 	return &colorProfile{
 		colorText:          ansi.Black,
-		colorPrompt:        ansi.White,
+		colorPrompt:        ansi.Green,
 		colorCommandOutput: ansi.Black,
-		colorCommandName:   ansi.White,
-		colorCommandChain:  ansi.White,
+		colorCommandName:   ansi.Blue,
+		colorCommandChain:  ansi.Green,
 	}
 }
 
@@ -104,6 +104,7 @@ func handleColorsCommand(args []string) {
 		return
 	}
 	colorProfileMutex.Unlock()
+
 	Log.Info("color profile set to: ", profile)
 
 	configMutex.Lock()

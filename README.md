@@ -698,10 +698,12 @@ example:
 
 The *@zeus-deps* header allows to specficy multiple commands, which output files must ALL exist, prior to execution of the current command. If this is not the case, the dependency command will be executed prior to execution of current command.
 
+Since Dependencies are normal ZEUS commands, they can have arguments.
+
 example:
 
 ```shell
-# @zeus-deps: command1, command2, ...
+# @zeus-deps: command1 <arg1> <arg2>, command2, ...
 ```
 
 ## Internals
@@ -726,6 +728,11 @@ Heres a simple overview of the architecure:
 The listed features will be implemented over the next weeks.
 After that the 1.0 Release is expected.
 
+- Markdown / HTML Report Generation
+
+     A generated Markdown build report that can be converted to HTML,
+     which allows adding nice fonts and syntax highlighting for dumped output.
+     I think this is especially interesting for archiving unit test results.
 
 - Parallel Builds
 
@@ -751,11 +758,6 @@ After that the 1.0 Release is expected.
      ZEUS 1.0 will feature encrypted storage inside the project data,
      that can be accessed and modified using the interactive shell.
 
-- Markdown / HTML Report Generation
-
-     A generated Markdown build report that can be converted to HTML,
-     which allows adding nice fonts and syntax highlighting for dumped output.
-     I think this is especially interesting for archiving unit test results.
 
 - Support for more Scripting Languages
 
@@ -767,12 +769,7 @@ After that the 1.0 Release is expected.
 
 ## Bugs
 
-Path tab completion is still buggy, the reason for this seems to be an issue in the readline library.
-When using path completion at the moment, press tab and select and starting path.
-After selection, the completer will insert a trailing space character. This behaviour is wrong and needs to fixed.
-
-To go deeper into a directory structure, hit delete then tab again and select a file/directory.
-Dont start typing the leading characters of the file / dirname, this leads to invalid paths.
+Multilevel Path tab completion is still broken, the reason for this seems to be an issue in the readline library.
 
 Also the Keybindings should be used with care, this is not stable yet.
 I observed them firing after being loaded from the project data.
@@ -783,25 +780,11 @@ If the interactive shell misbehaves after loading project data with keybindings,
 
 ## Project Stats
 
-    -------------------------------------------------------------------------------
-    Language                     files          blank        comment           code
-    -------------------------------------------------------------------------------
-    Go                              27           1014           1007           3549
-    Markdown                         6            285              0            684
-    JSON                             3              0              0            216
-    SASS                             1             21              1            143
-    Bourne Shell                    24            128            182             59
-    JavaScript                       1             17             21             51
-    HTML                             2              9              2             41
-    make                             1              6              6             10
-    -------------------------------------------------------------------------------
-    SUM:                            65           1480           1219           4753
-    -------------------------------------------------------------------------------
 
 
 ## License
 
-```
+```LICENSE
 ZEUS - An Electrifying Build System
 Copyright (c) 2017 Philipp Mieden <dreadl0ck@protonmail.ch>
 
