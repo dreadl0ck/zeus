@@ -94,11 +94,6 @@ func handleEventsCommand(args []string) {
 			return
 		}
 
-		var name = "custom event"
-		if len(args) > 5 {
-			name = strings.Join(args[5:], " ")
-		}
-
 		// check if event type is valid
 		op, err := getEventType(args[2])
 		if err != nil {
@@ -141,7 +136,7 @@ func handleEventsCommand(args []string) {
 					}
 				}
 
-			}, name, chain)
+			}, "custom event", chain)
 			if err != nil {
 				Log.Error("failed to watch path: ", args[3])
 			}
@@ -176,47 +171,44 @@ func listEvents() {
 	w := 20
 
 	l.Println(cp.colorPrompt + pad("name", w) + pad("ID", w) + pad("operation", w) + pad("command", w) + pad("path", w))
-	for path, e := range projectData.Events {
-		l.Println(cp.colorText + pad(e.Name, w) + pad(e.ID, w) + pad(e.Op.String(), w) + pad(e.Command, w) + pad(path, w))
+	for _, e := range projectData.Events {
+		l.Println(cp.colorText + pad(e.Name, w) + pad(e.ID, w) + pad(e.Op.String(), w) + pad(e.Command, w) + pad(e.Path, w))
 	}
 }
 
 // remove the event for the given path
-func removeEvent(path string) {
+func removeEvent(id string) {
 
 	eventLock.Lock()
 	defer eventLock.Unlock()
 
 	// check if event exists
-	if e, ok := projectData.Events[path]; ok {
+	if e, ok := projectData.Events[id]; ok {
 
 		Log.Info("stopping handler")
 
-		if e.stopChan == nil {
-			Log.Error("the stopChan for the event is <nil>")
-			return
+		if e.stopChan != nil {
+			// stop event handler
+			e.stopChan <- true
 		}
-
-		// stop event handler
-		e.stopChan <- true
 
 		Log.Info("deleting event")
 
 		// delete event
-		delete(projectData.Events, path)
+		delete(projectData.Events, id)
 
-		Log.Info("removed event with name ", path)
+		Log.Info("removed event with name ", e.Name)
 
 		// update project data
 		projectData.update()
 		return
 	}
 
-	Log.Error("event with name ", path, " does not exist")
+	Log.Error("event with ID ", id, " does not exist")
 }
 
 // addEvent adds a watcher for path and register a handler that will fire if operation op occurs
-// the chain parameter contains the associated buildChain for user defined events
+// the command parameter contains the associated shell command / buildChain for user defined events
 func addEvent(path string, op fsnotify.Op, handler func(fsnotify.Event), name, command string) error {
 
 	var (
@@ -234,11 +226,11 @@ func addEvent(path string, op fsnotify.Op, handler func(fsnotify.Event), name, c
 		}
 	)
 
-	Log.WithField("path", path).Debug("adding event")
+	Log.WithField("path", path).Warn("############ adding event")
 
 	// add to events
 	eventLock.Lock()
-	projectData.Events[path] = e
+	projectData.Events[e.ID] = e
 	projectData.update()
 	eventLock.Unlock()
 
@@ -272,7 +264,7 @@ func addEvent(path string, op fsnotify.Op, handler func(fsnotify.Event), name, c
 					if disableWriteEvent {
 						disableWriteEvent = false
 						disableWriteEventMutex.Unlock()
-						// cLog.Debug("ignoring WRITE event for path: ", path)
+						cLog.Debug("ignoring WRITE event for path: ", path)
 						continue
 					}
 					disableWriteEventMutex.Unlock()

@@ -89,6 +89,10 @@ func (d *data) update() {
 	if err != nil {
 		Log.WithError(err).Fatal("failed to write zeus data")
 	}
+
+	disableWriteEventMutex.Lock()
+	disableWriteEvent = false
+	disableWriteEventMutex.Unlock()
 }
 
 // parse the project data JSON
@@ -122,8 +126,9 @@ func loadEvents() {
 	eventLock.Lock()
 	for _, e := range projectData.Events {
 
-		// skip loading of internal watchers
+		// skip loading of internal watchers from project data
 		if e.Path == zeusDir || e.Path == projectConfigPath {
+			delete(projectData.Events, e.ID)
 			continue
 		}
 
@@ -133,7 +138,7 @@ func loadEvents() {
 
 		fields := strings.Fields(e.Command)
 
-		Log.Debug("LOADING EVENT: ", e.Command, " path: ", e.Path)
+		Log.Warn("LOADING EVENT: ", e.Command, " path: ", e.Path)
 
 		// copy values from struct
 		var (
@@ -143,6 +148,7 @@ func loadEvents() {
 		)
 
 		go func() {
+
 			err := addEvent(path, op, func(event fsnotify.Event) {
 
 				Log.Debug("event fired, name: ", event.Name, " path: ", path)

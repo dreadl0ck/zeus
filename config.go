@@ -223,6 +223,39 @@ func (c *config) update() {
 	}
 }
 
+// remove config event
+func cleanConfigEvent() {
+	var id string
+	eventLock.Lock()
+	for _, e := range projectData.Events {
+		if e.Name == "config event" {
+			id = e.ID
+		}
+	}
+	eventLock.Unlock()
+
+	if id != "" {
+		removeEvent(id)
+	}
+}
+
+// remove formatter event
+func cleanFormatterEvent() {
+
+	var id string
+	eventLock.Lock()
+	for _, e := range projectData.Events {
+		if e.Name == "formatter event" {
+			id = e.ID
+		}
+	}
+	eventLock.Unlock()
+
+	if id != "" {
+		removeEvent(id)
+	}
+}
+
 // watch and reload config on changes
 func (c *config) watch() {
 
@@ -230,7 +263,7 @@ func (c *config) watch() {
 
 	err := addEvent(projectConfigPath, fsnotify.Write, func(event fsnotify.Event) {
 
-		Log.Debug("config watcher event: ", event.Name)
+		Log.Info("config watcher event: ", event.Name)
 
 		b, err := ioutil.ReadFile(projectConfigPath)
 		if err != nil {
@@ -238,12 +271,14 @@ func (c *config) watch() {
 		}
 
 		configMutex.Lock()
-		defer configMutex.Unlock()
-
 		err = json.Unmarshal(b, c)
 		if err != nil {
 			Log.WithError(err).Error("config parse error")
 		}
+		configMutex.Unlock()
+
+		// handle updated values
+		c.handle()
 	}, "config event", "internal")
 	if err != nil {
 		Log.WithError(err).Fatal("projectConfig watcher failed")
@@ -337,5 +372,9 @@ func (c *config) handle() {
 		}
 	} else {
 		Log.Formatter = &prefixed.TextFormatter{}
+	}
+
+	if !c.AutoFormat {
+		cleanFormatterEvent()
 	}
 }

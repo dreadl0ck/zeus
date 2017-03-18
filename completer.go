@@ -98,14 +98,14 @@ func newCompleter() *readline.PrefixCompleter {
 			readline.PcItem("status"),
 			readline.PcItem("commit"),
 		),
-		readline.PcItem("exit"),
-		readline.PcItem("help"),
-		readline.PcItem("info"),
-		readline.PcItem("clear"),
-		readline.PcItem("format"),
-		readline.PcItem("globals"),
-		readline.PcItem("version"),
-		readline.PcItem("config",
+		readline.PcItem(exitCommand),
+		readline.PcItem(helpCommand),
+		readline.PcItem(infoCommand),
+		readline.PcItem(clearCommand),
+		readline.PcItem(formatCommand),
+		readline.PcItem(globalsCommand),
+		readline.PcItem(versionCommand),
+		readline.PcItem(configCommand,
 			readline.PcItem("set",
 				configItems()...,
 			),
@@ -113,7 +113,7 @@ func newCompleter() *readline.PrefixCompleter {
 				configItems()...,
 			),
 		),
-		readline.PcItem("events",
+		readline.PcItem(eventsCommand,
 			readline.PcItem("add",
 				readline.PcItem("WRITE",
 					readline.PcItemDynamic(fileCompleter),
@@ -129,37 +129,37 @@ func newCompleter() *readline.PrefixCompleter {
 				),
 			),
 			readline.PcItem("remove",
-				readline.PcItemDynamic(fileCompleter),
+				readline.PcItemDynamic(eventIDCompleter),
 			),
 		),
-		readline.PcItem("milestones",
+		readline.PcItem(milestonesCommand,
 			readline.PcItem("set"),
 			readline.PcItem("remove"),
 			readline.PcItem("add"),
 		),
-		readline.PcItem("deadline",
+		readline.PcItem(deadlineCommand,
 			readline.PcItem("set"),
 			readline.PcItem("remove"),
 		),
-		readline.PcItem("makefile",
+		readline.PcItem(makefileCommand,
 			readline.PcItem("migrate"),
 		),
-		readline.PcItem("data"),
-		readline.PcItem("alias",
+		readline.PcItem(dataCommand),
+		readline.PcItem(aliasCommand,
 			readline.PcItem("set"),
 			readline.PcItem("remove"),
 		),
-		readline.PcItem("colors",
+		readline.PcItem(colorsCommand,
 			readline.PcItem("dark"),
 			readline.PcItem("light"),
 			readline.PcItem("default"),
 		),
-		readline.PcItem("author",
+		readline.PcItem(authorCommand,
 			readline.PcItem("set"),
 			readline.PcItem("remove"),
 		),
-		readline.PcItem("builtins"),
-		readline.PcItem("keys",
+		readline.PcItem(builtinsCommand),
+		readline.PcItem(keysCommand,
 			readline.PcItem("set",
 				keyKombItems()...,
 			),
@@ -189,6 +189,15 @@ func newCompleter() *readline.PrefixCompleter {
 
 	c.Dynamic = true
 	return c
+}
+
+func eventIDCompleter(path string) (res []string) {
+	eventLock.Lock()
+	defer eventLock.Unlock()
+	for _, e := range projectData.Events {
+		res = append(res, e.ID)
+	}
+	return
 }
 
 /*

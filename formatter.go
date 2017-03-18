@@ -211,6 +211,16 @@ func (f *formatter) formatCommand() {
 // watch the zeus dir changes and run format on write event
 func (f *formatter) watchzeusDir() {
 
+	// dont add a new watcher when the event exists
+	eventLock.Lock()
+	for _, e := range projectData.Events {
+		if e.Name == "formatter event" {
+			eventLock.Unlock()
+			return
+		}
+	}
+	eventLock.Unlock()
+
 	err := addEvent(zeusDir, fsnotify.Write, func(event fsnotify.Event) {
 
 		// check if its a valid script

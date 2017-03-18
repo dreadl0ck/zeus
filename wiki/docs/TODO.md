@@ -7,14 +7,15 @@
           \/    \/           \/   /\\/\ //\
                 An Electrifying Build System
 
+- JSON ignores keys that do not exists. Parse JSON and throw an error when theres an unknown key.
+- watch scripts and parse again on WRITE event to make changing the headers possible without restart
+- events: add support for filetypes
+
 - remove logfile, generate reports
-- improve tests
+- improve tests and add more assertions
 
 - add zeus create < commandname > to bootstrap single command
 - add date format config option
-
-- watch scripts and parse again on WRITE event
-- events: add support for filetypes
 
 - Zeusfile
 - add @zeus-async header for parallel builds

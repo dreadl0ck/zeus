@@ -1,26 +1,12 @@
 {
-    "BuildNumber": 73,
+    "BuildNumber": 28,
     "Deadline": "",
     "Milestones": [],
     "Aliases": {},
     "Events": {
-        "bin": {
+        "6db64fb30e3840b5": {
             "Name": "config event",
-            "ID": "2346a65d55eff1fe",
-            "Path": "bin",
-            "Op": 2,
-            "Command": "git status"
-        },
-        "zeus": {
-            "Name": "formatter event",
-            "ID": "c1f367821b1cb983",
-            "Path": "zeus",
-            "Op": 2,
-            "Command": "internal"
-        },
-        "zeus/zeus_config.json": {
-            "Name": "config event",
-            "ID": "c0a5ae0886fa734e",
+            "ID": "6db64fb30e3840b5",
             "Path": "zeus/zeus_config.json",
             "Op": 2,
             "Command": "internal"

@@ -4,7 +4,7 @@
     "FixParseErrors": true,
     "Colors": true,
     "PassCommandsToShell": true,
-    "WebInterface": true,
+    "WebInterface": false,
     "Interactive": true,
     "LogToFileColor": true,
     "LogToFile": true,

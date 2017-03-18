@@ -120,6 +120,19 @@ func main() {
 
 	clearScreen()
 
+	// look for project data
+	projectData, err = parseProjectData()
+	if err != nil {
+		cLog.WithError(err).Debug("error looking for project data")
+		projectData = newData()
+	}
+
+	cleanConfigEvent()
+	cleanFormatterEvent()
+
+	// load persisted events from project data
+	loadEvents()
+
 	// look for project config
 	conf, err = parseProjectConfig()
 	if err != nil {
@@ -135,16 +148,6 @@ func main() {
 			conf.update()
 		}
 	}
-
-	// look for project data
-	projectData, err = parseProjectData()
-	if err != nil {
-		cLog.WithError(err).Debug("error looking for project data")
-		projectData = newData()
-	}
-
-	// load persisted events from project data
-	loadEvents()
 
 	// validate aliases
 	for name := range projectData.Aliases {
