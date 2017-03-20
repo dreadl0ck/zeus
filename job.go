@@ -22,23 +22,31 @@ package main
 // it keeps track of all parsed commands to prevent cycles
 // parseJobs can run concurrently
 type parseJob struct {
-	path     string
+
+	// path for script to parse
+	path string
+
+	// command array with arguments
 	commands [][]string
+
+	// log parse errors to stdout
+	silent bool
 }
 
 // newJob returns a new parseJob for the given path
-func newJob(path string) *parseJob {
+func newJob(path string, silent bool) *parseJob {
 	return &parseJob{
 		path:     path,
 		commands: make([][]string, 0),
+		silent:   silent,
 	}
 }
 
 // AddJob adds a job to the parser
 // thread safe
-func (p *parser) AddJob(path string) (job *parseJob) {
+func (p *parser) AddJob(path string, silent bool) (job *parseJob) {
 
-	job = newJob(path)
+	job = newJob(path, silent)
 
 	Log.Debug("adding job: ", job.path)
 

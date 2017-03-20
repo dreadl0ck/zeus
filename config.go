@@ -24,7 +24,9 @@ import (
 	"io/ioutil"
 	"os"
 	"reflect"
+	"regexp"
 	"strconv"
+	"strings"
 	"sync"
 
 	"github.com/Sirupsen/logrus"
@@ -48,6 +50,9 @@ var (
 	// path for project config files
 	zeusDir           = "zeus"
 	projectConfigPath string
+
+	// regex for matching first level JSON keys from config file contents
+	jsonField = regexp.MustCompile("\\s\"(\\s)*[A-Z]?(.|\\s)*\":")
 
 	configMutex = &sync.Mutex{}
 )
@@ -126,7 +131,7 @@ func parseGlobalConfig() (*config, error) {
 		return nil, ErrConfigFileIsADirectory
 	}
 
-	contents, err := ioutil.ReadFile(globalConfigPath)
+	contents, err := validateConfigJSON(globalConfigPath)
 	if err != nil {
 		return nil, err
 	}
@@ -141,10 +146,44 @@ func parseGlobalConfig() (*config, error) {
 	return c, nil
 }
 
+// check for unknown fields in the config
+// since JSON simply ignores them
+func validateConfigJSON(path string) ([]byte, error) {
+
+	c, err := ioutil.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+
+	var (
+		items      = configItems()
+		foundField bool
+	)
+
+	for i, line := range strings.Split(string(c), "\n") {
+		field := jsonField.FindString(line)
+		if field != "" {
+			field = strings.TrimSuffix(strings.TrimPrefix(strings.TrimSpace(field), "\""), "\":")
+			for _, item := range items {
+				if field == strings.TrimSpace(string(item.GetName())) {
+					foundField = true
+				}
+			}
+			if !foundField {
+				Log.Warn("line "+strconv.Itoa(i)+": unknown config field: ", field)
+			}
+			foundField = false
+		}
+	}
+
+	return c, nil
+}
+
 // parse the local project JSON config
 func parseProjectConfig() (*config, error) {
 
 	projectConfigPath = zeusDir + "/zeus_config.json"
+
 	var c = new(config)
 
 	stat, err := os.Stat(projectConfigPath)
@@ -156,7 +195,7 @@ func parseProjectConfig() (*config, error) {
 		return nil, ErrConfigFileIsADirectory
 	}
 
-	contents, err := ioutil.ReadFile(projectConfigPath)
+	contents, err := validateConfigJSON(projectConfigPath)
 	if err != nil {
 		return nil, err
 	}
@@ -265,7 +304,7 @@ func (c *config) watch() {
 
 		Log.Info("config watcher event: ", event.Name)
 
-		b, err := ioutil.ReadFile(projectConfigPath)
+		b, err := validateConfigJSON(projectConfigPath)
 		if err != nil {
 			Log.WithError(err).Fatal("failed to read config")
 		}
@@ -279,7 +318,7 @@ func (c *config) watch() {
 
 		// handle updated values
 		c.handle()
-	}, "config event", "internal")
+	}, "config event", ".json", "internal")
 	if err != nil {
 		Log.WithError(err).Fatal("projectConfig watcher failed")
 	}

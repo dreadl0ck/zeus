@@ -7,6 +7,11 @@
           \/    \/           \/   /\\/\ //\
                 An Electrifying Build System
 
+## 20.03.17
+
+- warn about unknown config fields
+- added filetypes for events
+
 ## 13.03.17
 
 - improved UI

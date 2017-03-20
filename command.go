@@ -348,7 +348,7 @@ func addCommand(path string) error {
 		cLog = Log.WithField("prefix", "addCommand")
 
 		// create parse job
-		job         = p.AddJob(path)
+		job         = p.AddJob(path, false)
 		commandName = strings.TrimSuffix(filepath.Base(path), f.fileExtension)
 	)
 
@@ -394,11 +394,11 @@ func (job *parseJob) newCommand(path string) (*command, error) {
 	// parse the script
 	d, err := p.parseScript(path, job)
 	if err != nil {
-
-		cLog.WithFields(logrus.Fields{
-			"path": path,
-		}).Error("Parse error")
-
+		if !job.silent {
+			cLog.WithFields(logrus.Fields{
+				"path": path,
+			}).Error("Parse error")
+		}
 		return nil, err
 	}
 
@@ -473,7 +473,9 @@ func (job *parseJob) getCommandChain(parsedCommands [][]string) (commandChain co
 			// add new command
 			cmd, err = job.newCommand(zeusDir + "/" + args[0] + f.fileExtension)
 			if err != nil {
-				cLog.WithError(err).Error("failed to create command")
+				if !job.silent {
+					cLog.WithError(err).Error("failed to create command")
+				}
 				return
 			}
 
@@ -527,7 +529,7 @@ func executeCommandChain(chain string) {
 
 	var (
 		cLog = Log.WithField("prefix", "executeCommandChain")
-		job  = p.AddJob(chain)
+		job  = p.AddJob(chain, false)
 	)
 
 	commandList := parseCommandChain(chain)

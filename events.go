@@ -56,6 +56,10 @@ type Event struct {
 	// Operation type
 	Op fsnotify.Op
 
+	// optional File Type Extension
+	// if empty the event will be fired for all file types
+	FileExtension string
+
 	// Command to be executed upon event
 	Command string
 
@@ -68,7 +72,7 @@ type Event struct {
 
 func printEventsUsageErr() {
 	Log.Error(ErrInvalidUsage)
-	Log.Info("usage: events [add <type> <path> <commandChain>] [remove <path>]")
+	Log.Info("usage: events [add <optype> <path> <filetype> <commandChain>] [remove <path>]")
 }
 
 // handle events command
@@ -108,25 +112,38 @@ func handleEventsCommand(args []string) {
 			return
 		}
 
-		chain := strings.Join(args[4:], " ")
-		if validCommandChain(args[4:]) {
+		var (
+			fields   []string
+			filetype string
+		)
+
+		if strings.HasPrefix(args[4], ".") {
+			fields = args[5:]
+			filetype = args[4]
+		} else {
+			fields = args[4:]
+		}
+
+		if filetype != "" && len(fields) == 0 {
+			Log.Error("no command supplied")
+			return
+		}
+
+		if validCommandChain(fields, true) {
 			Log.Info("adding command chain")
 		} else {
 			Log.Info("adding shell command")
 		}
 
-		fields := args[4:]
-
+		chain := strings.Join(fields, " ")
 		go func() {
 			err := addEvent(args[3], op, func(event fsnotify.Event) {
 
 				Log.Debug("event fired, name: ", event.Name, " path: ", args[3])
 
-				if validCommandChain(fields) {
+				if validCommandChain(fields, true) {
 					executeCommandChain(chain)
 				} else {
-
-					Log.Debug("passing chain to shell")
 
 					// its a shell command
 					if len(fields) > 1 {
@@ -136,7 +153,7 @@ func handleEventsCommand(args []string) {
 					}
 				}
 
-			}, "custom event", chain)
+			}, "custom event", filetype, chain)
 			if err != nil {
 				Log.Error("failed to watch path: ", args[3])
 			}
@@ -170,9 +187,9 @@ func listEvents() {
 
 	w := 20
 
-	l.Println(cp.colorPrompt + pad("name", w) + pad("ID", w) + pad("operation", w) + pad("command", w) + pad("path", w))
+	l.Println(cp.colorPrompt + pad("name", w) + pad("ID", w) + pad("operation", w) + pad("command", w) + pad("filetype", w) + pad("path", w))
 	for _, e := range projectData.Events {
-		l.Println(cp.colorText + pad(e.Name, w) + pad(e.ID, w) + pad(e.Op.String(), w) + pad(e.Command, w) + pad(e.Path, w))
+		l.Println(cp.colorText + pad(e.Name, w) + pad(e.ID, w) + pad(e.Op.String(), w) + pad(e.Command, w) + pad(e.FileExtension, w) + pad(e.Path, w))
 	}
 }
 
@@ -209,24 +226,25 @@ func removeEvent(id string) {
 
 // addEvent adds a watcher for path and register a handler that will fire if operation op occurs
 // the command parameter contains the associated shell command / buildChain for user defined events
-func addEvent(path string, op fsnotify.Op, handler func(fsnotify.Event), name, command string) error {
+func addEvent(path string, op fsnotify.Op, handler func(fsnotify.Event), name, filetype, command string) error {
 
 	var (
 		cLog = Log.WithField("prefix", "addEvent")
 
 		// create event
 		e = &Event{
-			Path:     path,
-			Name:     name,
-			ID:       randomString(),
-			Op:       op,
-			handler:  handler,
-			stopChan: make(chan bool, 1),
-			Command:  command,
+			Path:          path,
+			Name:          name,
+			ID:            randomString(),
+			Op:            op,
+			handler:       handler,
+			stopChan:      make(chan bool, 1),
+			Command:       command,
+			FileExtension: filetype,
 		}
 	)
 
-	Log.WithField("path", path).Warn("############ adding event")
+	Log.WithField("path", path).Info("adding event")
 
 	// add to events
 	eventLock.Lock()
@@ -256,6 +274,13 @@ func addEvent(path string, op fsnotify.Op, handler func(fsnotify.Event), name, c
 
 				// check operation type
 				if event.Op == op {
+
+					if filetype != "" {
+						if !strings.HasSuffix(event.Name, filetype) {
+							Log.Debug("ignoring event because file type does not match: ", event.Name)
+							continue
+						}
+					}
 
 					// check if write event was disabled.
 					// example: when updating the config with the config command

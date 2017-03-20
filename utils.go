@@ -273,11 +273,11 @@ func isEndTag(s string) bool {
 }
 
 // check if its a valid command chain
-func validCommandChain(args []string) bool {
+func validCommandChain(args []string, silent bool) bool {
 
 	var (
 		chain       = strings.Join(args, " ")
-		job         = p.AddJob(chain)
+		job         = p.AddJob(chain, silent)
 		commandList = parseCommandChain(chain)
 	)
 
@@ -285,7 +285,9 @@ func validCommandChain(args []string) bool {
 
 	_, err := job.getCommandChain(commandList)
 	if err != nil {
-		Log.WithError(err).Error("failed to get command chain")
+		if !silent {
+			Log.WithError(err).Error("failed to get command chain")
+		}
 		return false
 	}
 

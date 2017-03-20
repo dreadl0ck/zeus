@@ -285,17 +285,26 @@ Events for the following filesystem operations can be created: WRITE | REMOVE | 
 When an operation of the specified type occurs on the watched file (or on any file inside a directory),
 a custom command is executed. This can be a ZEUS or any shell command.
 
+Events can be bound to a specific file type, by supplying the filetype before the command:
+
 ```shell
-zeus » events add WRITE TODO.md say hello
+zeus » events add WRITE docs/ .md say hello
+```
+
+Filetypes feature completion, just specify the directory and hit tab to see a list of filetypes inside the directory.
+
+Example for a simple WRITE event on a single file:
+
+```shell
+zeus » events add WRITE TODO.md say updated TODO
 ```
 
 Running *events* without params will print the current events:
 
 ```shell
 zeus » events
-0 op: WRITE path: zeus
-1 op: WRITE path: zeus/zeus_config.json
-2 op: WRITE path: TODO.md chain: say hello
+custom event        a63d8659d6243630    WRITE               say wiki updated    .md               wiki/
+config event        58c41a66bf6efde4    WRITE               internal            .json               zeus/zeus_config.json
 ```
 
 Note that you can also see the internal ZEUS events used for watching the config file,
@@ -549,7 +558,9 @@ If there are any global variables declared in your Makefile, they will be extrac
 The configfile allows customization of the behaviour,
 when a ZEUS instance is running in interactive mode this file is being watched and parsed when a WRITE event occurs.
 
-The builtin *config* command is recommended for editing the config,
+To prevent errors by typos ZEUS will warn you about about unknown config fields.
+
+However, the builtin *config* command is recommended for editing the config,
 it features tab completion for all config fields, actions and values.
 
     Usage:
@@ -623,11 +634,11 @@ run the tests with:
 zeus » test
 ```
 
-When there were no errors, on macOS the coverage report will be openened in your Browser.
+Without failed assertions, on macOS the coverage report will be openened in your Browser.
 
 On Linux you will need to open it manually, using the generated html file.
 
-run the test with race detection enabled:
+To run the test with race detection enabled:
 
 ```shell
 zeus » test-race
@@ -780,7 +791,20 @@ If the interactive shell misbehaves after loading project data with keybindings,
 
 ## Project Stats
 
-
+    -------------------------------------------------------------------------------
+    Language                     files          blank        comment           code
+    -------------------------------------------------------------------------------
+    Go                              27           1116           1065           3895
+    Markdown                         6            301              0            690
+    JSON                             5              0              0            236
+    SASS                             1             21              1            143
+    Bourne Shell                    27             55            212             70
+    JavaScript                       1             17             21             51
+    HTML                             2              9              2             41
+    make                             1              6              6             10
+    -------------------------------------------------------------------------------
+    SUM:                            70           1525           1307           5136
+    -------------------------------------------------------------------------------
 
 ## License
 

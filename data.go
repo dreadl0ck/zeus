@@ -140,6 +140,9 @@ func loadEvents() {
 
 		Log.Warn("LOADING EVENT: ", e.Command, " path: ", e.Path)
 
+		// addEvent will create a new eventID so we need to clean up the entry for the previous one
+		delete(projectData.Events, e.ID)
+
 		// copy values from struct
 		var (
 			path    = e.Path
@@ -154,7 +157,7 @@ func loadEvents() {
 				Log.Debug("event fired, name: ", event.Name, " path: ", path)
 
 				// validate commandChain
-				if validCommandChain(fields) {
+				if validCommandChain(fields, false) {
 					executeCommandChain(command)
 				} else {
 
@@ -168,7 +171,7 @@ func loadEvents() {
 					}
 				}
 
-			}, e.Name, command)
+			}, e.Name, e.FileExtension, command)
 			if err != nil {
 				Log.Error("failed to watch path: ", path)
 			}

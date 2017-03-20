@@ -238,7 +238,7 @@ func (f *formatter) watchzeusDir() {
 			disableWriteEvent = false
 		}
 
-	}, "formatter event", "internal")
+	}, "formatter event", "", "internal")
 	if err != nil {
 		Log.Error("failed to watch path: ", zeusDir)
 	}

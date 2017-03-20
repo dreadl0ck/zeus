@@ -4,9 +4,9 @@
     "Milestones": [],
     "Aliases": {},
     "Events": {
-        "165ccb0927465c48": {
+        "ff72b0c904655567": {
             "Name": "config event",
-            "ID": "165ccb0927465c48",
+            "ID": "ff72b0c904655567",
             "Path": "tests/zeus_config.json",
             "Op": 2,
             "Command": "internal"

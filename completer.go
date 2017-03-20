@@ -33,6 +33,14 @@ var (
 
 	// regex to match a command with a trailing UNIX path
 	shellCommandWithPath = regexp.MustCompile("([a-z]*\\s*)*(([a-z]*[A-Z]*[0-9]*(_|-)*)*/*)*")
+
+	// completer for the the events add subcommand
+	addEventCompleter = readline.PcItemDynamic(fileCompleter,
+		readline.PcItemDynamic(fileTypeCompleter,
+			readline.PcItemDynamic(commandCompleter),
+		),
+		readline.PcItemDynamic(commandCompleter),
+	)
 )
 
 // assemble and return all items for config item completion
@@ -58,6 +66,10 @@ func configItems() []readline.PrefixCompleterInterface {
 		readline.PcItem("ExitOnInterrupt", readline.PcItem("true"), readline.PcItem("false")),
 		readline.PcItem("DisableTimestamps", readline.PcItem("true"), readline.PcItem("false")),
 		readline.PcItem("PrintBuiltins", readline.PcItem("true"), readline.PcItem("false")),
+		readline.PcItem("DumpScriptOnError", readline.PcItem("true"), readline.PcItem("false")),
+		readline.PcItem("StopOnError", readline.PcItem("true"), readline.PcItem("false")),
+		readline.PcItem("PortWebPanel"),
+		readline.PcItem("PortGlueServer"),
 	}
 }
 
@@ -116,16 +128,16 @@ func newCompleter() *readline.PrefixCompleter {
 		readline.PcItem(eventsCommand,
 			readline.PcItem("add",
 				readline.PcItem("WRITE",
-					readline.PcItemDynamic(fileCompleter),
+					addEventCompleter,
 				),
 				readline.PcItem("REMOVE",
-					readline.PcItemDynamic(fileCompleter),
+					addEventCompleter,
 				),
 				readline.PcItem("CHMOD",
-					readline.PcItemDynamic(fileCompleter),
+					addEventCompleter,
 				),
 				readline.PcItem("RENAME",
-					readline.PcItemDynamic(fileCompleter),
+					addEventCompleter,
 				),
 			),
 			readline.PcItem("remove",
@@ -191,6 +203,11 @@ func newCompleter() *readline.PrefixCompleter {
 	return c
 }
 
+/*
+ *	Custom Completers
+ */
+
+// complete eventIDs for removing events
 func eventIDCompleter(path string) (res []string) {
 	eventLock.Lock()
 	defer eventLock.Unlock()
@@ -200,9 +217,71 @@ func eventIDCompleter(path string) (res []string) {
 	return
 }
 
-/*
- *	Custom Completers
- */
+// complete available commands
+func commandCompleter(path string) (res []string) {
+	commandMutex.Lock()
+	defer commandMutex.Unlock()
+	for name := range commands {
+		res = append(res, name)
+	}
+	return
+}
+
+// complete available filetypes for the event target directory
+func fileTypeCompleter(path string) (res []string) {
+
+	var (
+		fields = strings.Fields(path)
+		dir    string
+	)
+
+	if len(fields) > 2 {
+		dir = fields[3]
+	} else {
+		return
+	}
+
+	files, err := ioutil.ReadDir(dir)
+	if err != nil {
+		Log.Error(err)
+		return res
+	}
+
+	for _, f := range files {
+		res = append(res, getFileExtension(f.Name()))
+	}
+
+	// remove duplicates
+	var (
+		out []string
+		ok  bool
+	)
+
+	for _, path := range res {
+		for _, name := range out {
+			if path == name {
+				ok = true
+			}
+		}
+		if !ok && path != "" {
+			out = append(out, path)
+		}
+		ok = false
+	}
+
+	return out
+}
+
+func getFileExtension(path string) string {
+	base := filepath.Base(path)
+	if strings.Contains(base, ".") {
+		slice := strings.Split(base, ".")
+		if len(slice) > 1 {
+			return "." + slice[1]
+		}
+	}
+	return ""
+}
 
 func directoryCompleter(path string) []string {
 
