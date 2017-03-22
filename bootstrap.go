@@ -62,3 +62,52 @@ func bootstrapCommand() {
 	bootstrapFile("install.sh")
 	bootstrapFile("bench.sh")
 }
+
+func printCreateCommandUsageErr() {
+	l.Println("usage:")
+	l.Println("zeus create <command>")
+}
+
+func handleCreateCommand(args []string) {
+
+	if len(args) < 2 {
+		printCreateCommandUsageErr()
+		return
+	}
+
+	filename := zeusDir + "/" + args[1] + f.fileExtension
+
+	_, err := os.Stat(filename)
+	if err == nil {
+		l.Println("file " + filename + " exists!")
+		return
+	}
+
+	f, err := os.Create(filename)
+	if err != nil {
+		l.Println("failed to create file: ", err)
+		return
+	}
+	defer f.Close()
+
+	f.WriteString(`#!/bin/bash
+
+# ---------------------------------------------------------------------- #
+# @zeus-chain: 
+# @zeus-help: 
+# @zeus-args: 
+# ---------------------------------------------------------------------- #
+#
+# ---------------------------------------------------------------------- #
+
+echo "implement me!"
+`)
+
+	l.Println("created zeus command at " + filename)
+
+	// parse new command
+	err = addCommand(filename)
+	if err != nil {
+		Log.WithError(err).Error("failed to add command")
+	}
+}

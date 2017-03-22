@@ -9,15 +9,12 @@
 
 - keep eventID when reloading events
 - watch scripts and parse again on WRITE event to make changing the headers possible without restarting the interactive shell
-- remove logfile, generate reports
-- improve tests and add more assertions
-
-- add zeus create < commandname > to bootstrap single command
 - add date format config option
 
+- remove logfile, generate reports
+- improve tests and add more assertions
 - Zeusfile
 - add @zeus-async header for parallel builds
-
 - extract core into an importable package
 - arguments: accept name=val syntax
 

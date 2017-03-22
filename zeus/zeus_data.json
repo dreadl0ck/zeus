@@ -1,12 +1,12 @@
 {
-    "BuildNumber": 1,
+    "BuildNumber": 2,
     "Deadline": "",
     "Milestones": [],
     "Aliases": {},
     "Events": {
-        "9a84b4926e2a42cc": {
+        "6572069fc1d0d8c3": {
             "Name": "config event",
-            "ID": "9a84b4926e2a42cc",
+            "ID": "6572069fc1d0d8c3",
             "Path": "zeus/zeus_config.json",
             "Op": 2,
             "FileExtension": ".json",

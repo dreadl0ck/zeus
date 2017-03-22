@@ -20,6 +20,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"io/ioutil"
 	"os"
 	"strings"
@@ -31,6 +32,9 @@ import (
 var (
 	// path for the project data JSON
 	projectDataPath string
+
+	// ErrEmptyZeusData occurs when the zeus_data file is empty
+	ErrEmptyZeusData = errors.New("zeus data file is empty")
 )
 
 // zeus project data written to disk
@@ -111,9 +115,13 @@ func parseProjectData() (*data, error) {
 		return nil, err
 	}
 
+	if len(contents) == 0 {
+		return nil, ErrEmptyZeusData
+	}
+
 	err = json.Unmarshal(contents, d)
 	if err != nil {
-		Log.WithError(err).Error("failed to unmarshal zeus data - invalid JSON")
+		Log.WithError(err).Error("failed to unmarshal zeus data - invalid JSON: " + string(contents))
 		return nil, err
 	}
 

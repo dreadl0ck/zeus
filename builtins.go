@@ -48,6 +48,7 @@ const (
 	authorCommand     = "author"
 	wikiCommand       = "wiki"
 	webCommand        = "web"
+	createCommand     = "create"
 )
 
 var builtins = map[string]string{
@@ -71,6 +72,7 @@ var builtins = map[string]string{
 	builtinsCommand:   "print the builtins overview",
 	webCommand:        "web",
 	wikiCommand:       "wiki",
+	createCommand:     "create",
 }
 
 // executed when running the info command

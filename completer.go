@@ -125,6 +125,7 @@ func newCompleter() *readline.PrefixCompleter {
 				configItems()...,
 			),
 		),
+		readline.PcItem(createCommand),
 		readline.PcItem(eventsCommand,
 			readline.PcItem("add",
 				readline.PcItem("WRITE",

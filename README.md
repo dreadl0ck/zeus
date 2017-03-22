@@ -624,6 +624,21 @@ $ zeus bootstrap
 This will create the **zeus** folder, and bootstrap the basic commands (build, clean, run, install, test, bench),
 including empty ZEUS headers.
 
+Bootsrapping single commands is also possible with the **create** builtin:
+
+```shell
+$ zeus create newCommand
+...
+```
+
+or in the interactive shell:
+
+```shell
+zeus » create newCommand
+```
+
+This will create a new file at **zeus/newCommand.sh** and bootstrap an empty header.
+
 ## Tests
 
 ZEUS has automated tests for its core functionality.
