@@ -24,11 +24,6 @@ import (
 	"time"
 )
 
-var (
-	// german date format
-	dateFormat = "02-01-2006"
-)
-
 // milestone represents a project milestone
 type milestone struct {
 	Name            string
@@ -112,7 +107,7 @@ func addMilestone(args []string) {
 	}
 
 	// check if date is valid
-	t, err := time.Parse(dateFormat, args[1])
+	t, err := time.Parse(conf.DateFormat, args[1])
 	if err != nil {
 		Log.WithError(err).Error("failed to parse date")
 		return
@@ -185,9 +180,9 @@ func listMilestones() {
 		l.Println(cp.colorText + "Milestones:")
 		for i, m := range projectData.Milestones {
 			if len(m.Description) > 0 {
-				l.Println("#", i, getStatusBar(m.PercentComplete), "name:", m.Name, "date:", cp.colorPrompt+m.Date.Format(dateFormat)+cp.colorText, "description:", m.Description)
+				l.Println("#", i, getStatusBar(m.PercentComplete), "name:", m.Name, "date:", cp.colorPrompt+m.Date.Format(conf.DateFormat)+cp.colorText, "description:", m.Description)
 			} else {
-				l.Println("#", i, getStatusBar(m.PercentComplete), "name:", m.Name, "date:", cp.colorPrompt+m.Date.Format(dateFormat)+cp.colorText)
+				l.Println("#", i, getStatusBar(m.PercentComplete), "name:", m.Name, "date:", cp.colorPrompt+m.Date.Format(conf.DateFormat)+cp.colorText)
 			}
 		}
 		l.Println("")

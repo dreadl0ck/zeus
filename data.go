@@ -160,7 +160,7 @@ func loadEvents() {
 
 		go func() {
 
-			err := addEvent(path, op, func(event fsnotify.Event) {
+			err := addEvent(newEvent(path, op, e.Name, e.FileExtension, "", command, func(event fsnotify.Event) {
 
 				Log.Debug("event fired, name: ", event.Name, " path: ", path)
 
@@ -178,8 +178,7 @@ func loadEvents() {
 						passCommandToShell(fields[0], []string{})
 					}
 				}
-
-			}, e.Name, e.FileExtension, command)
+			}))
 			if err != nil {
 				Log.Error("failed to watch path: ", path)
 			}

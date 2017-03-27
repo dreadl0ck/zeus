@@ -27,6 +27,7 @@ func printDeadlineUsageErr() {
 
 // handle deadline shell command
 func handleDeadlineCommand(args []string) {
+
 	if len(args) < 2 {
 		printDeadline()
 		return
@@ -58,13 +59,13 @@ func addDeadline(args []string) {
 	}
 
 	// check if date is valid
-	t, err := time.Parse(dateFormat, args[0])
+	t, err := time.Parse(conf.DateFormat, args[0])
 	if err != nil {
 		Log.WithError(err).Error("failed to parse date")
 		return
 	}
 
-	projectData.Deadline = t.Format(dateFormat)
+	projectData.Deadline = t.Format(conf.DateFormat)
 	projectData.update()
 	Log.Info("added deadline for ", args[0])
 }

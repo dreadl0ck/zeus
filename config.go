@@ -82,6 +82,7 @@ type config struct {
 	PrintBuiltins       bool
 	StopOnError         bool
 	DumpScriptOnError   bool
+	DateFormat          string
 }
 
 // newConfig returns the default configuration in case there is no config file
@@ -109,6 +110,8 @@ func newConfig() *config {
 		PrintBuiltins:       true,
 		StopOnError:         true,
 		DumpScriptOnError:   true,
+		// german date format
+		DateFormat: "02-01-2006",
 	}
 }
 
@@ -263,7 +266,8 @@ func (c *config) update() {
 }
 
 // remove config event
-func cleanConfigEvent() {
+func cleanConfigEvent() string {
+
 	var id string
 	eventLock.Lock()
 	for _, e := range projectData.Events {
@@ -276,10 +280,12 @@ func cleanConfigEvent() {
 	if id != "" {
 		removeEvent(id)
 	}
+
+	return id
 }
 
 // remove formatter event
-func cleanFormatterEvent() {
+func cleanFormatterEvent() string {
 
 	var id string
 	eventLock.Lock()
@@ -293,14 +299,16 @@ func cleanFormatterEvent() {
 	if id != "" {
 		removeEvent(id)
 	}
+
+	return id
 }
 
 // watch and reload config on changes
-func (c *config) watch() {
+func (c *config) watch(eventID string) {
 
 	Log.Debug("watching config at " + projectConfigPath)
 
-	err := addEvent(projectConfigPath, fsnotify.Write, func(event fsnotify.Event) {
+	err := addEvent(newEvent(projectConfigPath, fsnotify.Write, "config event", ".json", eventID, "internal", func(event fsnotify.Event) {
 
 		Log.Info("config watcher event: ", event.Name)
 
@@ -318,7 +326,7 @@ func (c *config) watch() {
 
 		// handle updated values
 		c.handle()
-	}, "config event", ".json", "internal")
+	}))
 	if err != nil {
 		Log.WithError(err).Fatal("projectConfig watcher failed")
 	}

@@ -127,8 +127,10 @@ func main() {
 		projectData = newData()
 	}
 
-	cleanConfigEvent()
-	cleanFormatterEvent()
+	var (
+		configEventID    = cleanConfigEvent()
+		formatterEventID = cleanFormatterEvent()
+	)
 
 	// load persisted events from project data
 	loadEvents()
@@ -230,11 +232,11 @@ func main() {
 	if conf.Interactive {
 
 		// watch config for changes
-		go conf.watch()
+		go conf.watch(configEventID)
 
 		if conf.AutoFormat {
 			// watch zeus directory for changes
-			go f.watchzeusDir()
+			go f.watchzeusDir(formatterEventID)
 		}
 	}
 

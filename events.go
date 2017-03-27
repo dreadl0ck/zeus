@@ -137,7 +137,7 @@ func handleEventsCommand(args []string) {
 
 		chain := strings.Join(fields, " ")
 		go func() {
-			err := addEvent(args[3], op, func(event fsnotify.Event) {
+			e := newEvent(args[3], op, "custom event", filetype, "", chain, func(event fsnotify.Event) {
 
 				Log.Debug("event fired, name: ", event.Name, " path: ", args[3])
 
@@ -152,12 +152,11 @@ func handleEventsCommand(args []string) {
 						passCommandToShell(fields[0], []string{})
 					}
 				}
-
-			}, "custom event", filetype, chain)
+			})
+			err := addEvent(e)
 			if err != nil {
 				Log.Error("failed to watch path: ", args[3])
 			}
-
 		}()
 
 	default:
@@ -224,27 +223,34 @@ func removeEvent(id string) {
 	Log.Error("event with ID ", id, " does not exist")
 }
 
+func newEvent(path string, op fsnotify.Op, name, filetype, id, command string, handler func(fsnotify.Event)) *Event {
+
+	if id == "" {
+		id = randomString()
+	}
+
+	// create event
+	return &Event{
+		Path:          path,
+		Name:          name,
+		ID:            id,
+		Op:            op,
+		handler:       handler,
+		stopChan:      make(chan bool, 1),
+		Command:       command,
+		FileExtension: filetype,
+	}
+}
+
 // addEvent adds a watcher for path and register a handler that will fire if operation op occurs
 // the command parameter contains the associated shell command / buildChain for user defined events
-func addEvent(path string, op fsnotify.Op, handler func(fsnotify.Event), name, filetype, command string) error {
+func addEvent(e *Event) error {
 
 	var (
 		cLog = Log.WithField("prefix", "addEvent")
-
-		// create event
-		e = &Event{
-			Path:          path,
-			Name:          name,
-			ID:            randomString(),
-			Op:            op,
-			handler:       handler,
-			stopChan:      make(chan bool, 1),
-			Command:       command,
-			FileExtension: filetype,
-		}
 	)
 
-	Log.WithField("path", path).Info("adding event")
+	Log.WithField("path", e.Path).Info("adding event")
 
 	// add to events
 	eventLock.Lock()
@@ -273,10 +279,10 @@ func addEvent(path string, op fsnotify.Op, handler func(fsnotify.Event), name, f
 				// }).Debug("incoming event")
 
 				// check operation type
-				if event.Op == op {
+				if event.Op == e.Op {
 
-					if filetype != "" {
-						if !strings.HasSuffix(event.Name, filetype) {
+					if e.FileExtension != "" {
+						if !strings.HasSuffix(event.Name, e.FileExtension) {
 							Log.Debug("ignoring event because file type does not match: ", event.Name)
 							continue
 						}
@@ -289,13 +295,13 @@ func addEvent(path string, op fsnotify.Op, handler func(fsnotify.Event), name, f
 					if disableWriteEvent {
 						disableWriteEvent = false
 						disableWriteEventMutex.Unlock()
-						cLog.Debug("ignoring WRITE event for path: ", path)
+						cLog.Debug("ignoring WRITE event for path: ", e.Path)
 						continue
 					}
 					disableWriteEventMutex.Unlock()
 
 					// fire handler
-					handler(event)
+					e.handler(event)
 				}
 			case err := <-watcher.Errors:
 				cLog.WithError(err).Fatal("watcher failed")
@@ -308,11 +314,11 @@ func addEvent(path string, op fsnotify.Op, handler func(fsnotify.Event), name, f
 	}()
 
 	// add path to watcher
-	err = watcher.Add(path)
+	err = watcher.Add(e.Path)
 	if err != nil {
 		cLog.WithFields(logrus.Fields{
 			"error": err,
-			"path":  path,
+			"path":  e.Path,
 		}).Error("failed to add path to watcher")
 		e.stopChan <- true
 		return err

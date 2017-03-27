@@ -209,7 +209,7 @@ func (f *formatter) formatCommand() {
 }
 
 // watch the zeus dir changes and run format on write event
-func (f *formatter) watchzeusDir() {
+func (f *formatter) watchzeusDir(eventID string) {
 
 	// dont add a new watcher when the event exists
 	eventLock.Lock()
@@ -221,7 +221,7 @@ func (f *formatter) watchzeusDir() {
 	}
 	eventLock.Unlock()
 
-	err := addEvent(zeusDir, fsnotify.Write, func(event fsnotify.Event) {
+	err := addEvent(newEvent(zeusDir, fsnotify.Write, "formatter event", "", eventID, "internal", func(event fsnotify.Event) {
 
 		// check if its a valid script
 		if strings.HasSuffix(event.Name, f.fileExtension) {
@@ -237,8 +237,7 @@ func (f *formatter) watchzeusDir() {
 
 			disableWriteEvent = false
 		}
-
-	}, "formatter event", "", "internal")
+	}))
 	if err != nil {
 		Log.Error("failed to watch path: ", zeusDir)
 	}
