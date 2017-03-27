@@ -21,5 +21,6 @@
     "DisableTimestamps": false,
     "PrintBuiltins": true,
     "StopOnError": true,
-    "DumpScriptOnError": true
+    "DumpScriptOnError": true,
+    "DateFormat": "02-01-2006"
 }

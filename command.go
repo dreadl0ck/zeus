@@ -49,6 +49,9 @@ var (
 	// ErrInvalidArgumentType means the argument type does not match the expected type
 	ErrInvalidArgumentType = errors.New("invalid argument type")
 
+	// ErrInvalidArgumentLabel means the argument label does not match the expected label
+	ErrInvalidArgumentLabel = errors.New("invalid argument label")
+
 	// ErrInvalidDependency means the named dependency command does not exist
 	ErrInvalidDependency = errors.New("invalid dependency")
 
@@ -185,7 +188,7 @@ func (c *command) Run(args []string) error {
 		"name":   c.name,
 		"args":   args,
 		"params": c.params,
-	}).Debug("")
+	}).Debug("running command")
 
 	// check if parameters are set on the command
 	// in this case ignore the arguments from the commandline and pass the predefined ones
@@ -240,6 +243,16 @@ func (c *command) Run(args []string) error {
 	var argBuf bytes.Buffer
 	for i, a := range args {
 		if i < len(c.args) {
+
+			// handle argument labels
+			if strings.Contains(a, "=") {
+				if !strings.HasPrefix(a, c.args[i].name+"=") {
+					Log.Error("expected label: " + c.args[i].name + ", got: " + a)
+					return ErrInvalidArgumentLabel
+				}
+				a = strings.TrimPrefix(a, c.args[i].name+"=")
+			}
+
 			if !validArgType(a, c.args[i].argType) {
 				cLog.WithError(ErrInvalidArgumentType).WithFields(logrus.Fields{
 					"value":   a,

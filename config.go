@@ -310,7 +310,7 @@ func (c *config) watch(eventID string) {
 
 	err := addEvent(newEvent(projectConfigPath, fsnotify.Write, "config event", ".json", eventID, "internal", func(event fsnotify.Event) {
 
-		Log.Info("config watcher event: ", event.Name)
+		Log.Debug("config watcher event: ", event.Name)
 
 		b, err := validateConfigJSON(projectConfigPath)
 		if err != nil {
@@ -344,6 +344,8 @@ func (c *config) getFieldInfo(field string) string {
 		return "field type: " + f.Kind().String() + ", value: " + strconv.FormatBool(f.Bool())
 	case reflect.Int:
 		return "field type: " + f.Kind().String() + ", value: " + strconv.Itoa(int(f.Int()))
+	case reflect.String:
+		return "field type: " + f.Kind().String() + ", value: " + f.String()
 	default:
 		Log.Error(f.Kind())
 		return "unknown field"
@@ -386,6 +388,9 @@ func (c *config) setValue(field, value string) {
 
 		f.SetInt(i)
 
+		Log.Info("set config field ", field, " to ", value)
+	case reflect.String:
+		f.SetString(f.String())
 		Log.Info("set config field ", field, " to ", value)
 	default:
 		Log.Error("unknown type: ", f.Kind())

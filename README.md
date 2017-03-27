@@ -463,9 +463,15 @@ zeus » help
 
 ## Typed Command Arguments
 
-Command argument are typed by default.
+Command arguments are typed by default.
 This prevents mixing up args, which is important,
 because ZEUS expects arguments in the order they are declared.
+
+Note that you can also pass arguments in the name=val format:
+
+```
+zeus » build name=testbuild
+```
 
 When a command has parameters, these are mandatory.
 

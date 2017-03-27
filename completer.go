@@ -47,7 +47,6 @@ var (
 func configItems() []readline.PrefixCompleterInterface {
 	return []readline.PrefixCompleterInterface{
 		readline.PcItem("MakefileOverview", readline.PcItem("true"), readline.PcItem("false")),
-		readline.PcItem("Report", readline.PcItem("true"), readline.PcItem("false")),
 		readline.PcItem("AutoFormat", readline.PcItem("true"), readline.PcItem("false")),
 		readline.PcItem("FixParseErrors", readline.PcItem("true"), readline.PcItem("false")),
 		readline.PcItem("Colors", readline.PcItem("true"), readline.PcItem("false")),
@@ -70,6 +69,7 @@ func configItems() []readline.PrefixCompleterInterface {
 		readline.PcItem("StopOnError", readline.PcItem("true"), readline.PcItem("false")),
 		readline.PcItem("PortWebPanel"),
 		readline.PcItem("PortGlueServer"),
+		readline.PcItem("DateFormat"),
 	}
 }
 

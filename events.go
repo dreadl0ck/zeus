@@ -223,17 +223,19 @@ func removeEvent(id string) {
 	Log.Error("event with ID ", id, " does not exist")
 }
 
-func newEvent(path string, op fsnotify.Op, name, filetype, id, command string, handler func(fsnotify.Event)) *Event {
+// create a new event
+// if the supplied eventID is empty it will be generated
+func newEvent(path string, op fsnotify.Op, name, filetype, eventID, command string, handler func(fsnotify.Event)) *Event {
 
-	if id == "" {
-		id = randomString()
+	if eventID == "" {
+		eventID = randomString()
 	}
 
 	// create event
 	return &Event{
 		Path:          path,
 		Name:          name,
-		ID:            id,
+		ID:            eventID,
 		Op:            op,
 		handler:       handler,
 		stopChan:      make(chan bool, 1),
@@ -242,14 +244,11 @@ func newEvent(path string, op fsnotify.Op, name, filetype, id, command string, h
 	}
 }
 
-// addEvent adds a watcher for path and register a handler that will fire if operation op occurs
-// the command parameter contains the associated shell command / buildChain for user defined events
+// addEvent takes an event, registers it, creates a watcher for the events path
+// and registers a handler that will fire if operation op occurs
 func addEvent(e *Event) error {
 
-	var (
-		cLog = Log.WithField("prefix", "addEvent")
-	)
-
+	var cLog = Log.WithField("prefix", "addEvent")
 	Log.WithField("path", e.Path).Info("adding event")
 
 	// add to events

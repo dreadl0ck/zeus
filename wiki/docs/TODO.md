@@ -7,9 +7,6 @@
           \/    \/           \/   /\\/\ //\
                 An Electrifying Build System
 
-- command arguments: accept name=val syntax
-- naming refactoring: targets?
-
 - watch scripts and parse again on WRITE event to make changing the headers possible without restarting the interactive shell
 - remove logfile, generate reports
 
