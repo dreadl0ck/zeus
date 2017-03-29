@@ -7,13 +7,12 @@
           \/    \/           \/   /\\/\ //\
                 An Electrifying Build System
 
-- watch scripts and parse again on WRITE event to make changing the headers possible without restarting the interactive shell
+- switch to YAML for config file and project data
+- improve parse error feedback
+- fix readline bug
 - remove logfile, generate reports
-
-- improve tests and add more assertions
-- Zeusfile
+- improve tests
+- add Zeusfile
 - add @zeus-async header for parallel builds
-- extract core into an importable package
-
-- add option to include encrypted data, example: crypto keys, passwords, infos etc
+- add encrypted storage
 - support more scripting languages

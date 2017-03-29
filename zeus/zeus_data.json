@@ -1,5 +1,5 @@
 {
-    "BuildNumber": 24,
+    "BuildNumber": 31,
     "Deadline": "",
     "Milestones": [],
     "Aliases": {},
@@ -10,6 +10,14 @@
             "Path": "zeus/zeus_config.json",
             "Op": 2,
             "FileExtension": ".json",
+            "Command": "internal"
+        },
+        "d7a9d75f545dc18a": {
+            "Name": "header watcher",
+            "ID": "d7a9d75f545dc18a",
+            "Path": "zeus",
+            "Op": 2,
+            "FileExtension": ".sh",
             "Command": "internal"
         }
     },

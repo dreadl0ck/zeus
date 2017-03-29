@@ -153,14 +153,16 @@ func loadEvents() {
 
 		// copy values from struct
 		var (
-			path    = e.Path
-			op      = e.Op
-			command = e.Command
+			path          = e.Path
+			op            = e.Op
+			command       = e.Command
+			name          = e.Name
+			fileExtension = e.FileExtension
 		)
 
 		go func() {
 
-			err := addEvent(newEvent(path, op, e.Name, e.FileExtension, "", command, func(event fsnotify.Event) {
+			err := addEvent(newEvent(path, op, name, fileExtension, "", command, func(event fsnotify.Event) {
 
 				Log.Debug("event fired, name: ", event.Name, " path: ", path)
 

@@ -163,28 +163,33 @@ func TestEvents(t *testing.T) {
 			eventLock.Lock()
 			defer eventLock.Unlock()
 
-			So(len(projectData.Events), ShouldEqual, 1)
+			// there should be only the config and header watcher events
+			So(len(projectData.Events), ShouldEqual, 2)
 		}()
 
 		handleLine("events asdfasd")
 
 		Log.Info("adding event for tests dir")
 
-		handleLine("events add WRITE tests error")
+		handleLine("events add WRITE tests .xyz error")
 
 		// event creation is async. wait a little bit.
 		time.Sleep(100 * time.Millisecond)
 
 		var id string
 
-		eventLock.Lock()
-		So(len(projectData.Events), ShouldEqual, 2)
+		func() {
+			eventLock.Lock()
+			defer eventLock.Unlock()
+
+			So(len(projectData.Events), ShouldEqual, 3)
+		}()
+
 		for eID, e := range projectData.Events {
 			if e.Path == "tests" {
 				id = eID
 			}
 		}
-		eventLock.Unlock()
 
 		Log.Info("removing event for tests dir")
 
@@ -196,7 +201,7 @@ func TestEvents(t *testing.T) {
 			eventLock.Lock()
 			defer eventLock.Unlock()
 
-			So(len(projectData.Events), ShouldEqual, 1)
+			So(len(projectData.Events), ShouldEqual, 2)
 		}()
 	})
 }
@@ -217,7 +222,7 @@ func TestShell(t *testing.T) {
 		}
 
 		for _, cmd := range commands {
-			Log.Warn("BUILTIN: ", cmd)
+			Log.Info("testing builtin: ", cmd)
 			handleLine(cmd)
 		}
 	})

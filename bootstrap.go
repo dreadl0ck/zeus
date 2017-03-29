@@ -106,7 +106,7 @@ echo "implement me!"
 	l.Println("created zeus command at " + filename)
 
 	// parse new command
-	err = addCommand(filename)
+	err = addCommand(filename, true)
 	if err != nil {
 		Log.WithError(err).Error("failed to add command")
 	}

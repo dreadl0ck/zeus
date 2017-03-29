@@ -201,19 +201,15 @@ func removeEvent(id string) {
 	// check if event exists
 	if e, ok := projectData.Events[id]; ok {
 
-		Log.Info("stopping handler")
-
 		if e.stopChan != nil {
 			// stop event handler
 			e.stopChan <- true
 		}
 
-		Log.Info("deleting event")
-
 		// delete event
 		delete(projectData.Events, id)
 
-		Log.Info("removed event with name ", e.Name)
+		Log.Debug("removed event with name ", e.Name)
 
 		// update project data
 		projectData.update()
@@ -249,7 +245,7 @@ func newEvent(path string, op fsnotify.Op, name, filetype, eventID, command stri
 func addEvent(e *Event) error {
 
 	var cLog = Log.WithField("prefix", "addEvent")
-	Log.WithField("path", e.Path).Info("adding event")
+	Log.WithField("path", e.Path).Debug("adding event")
 
 	// add to events
 	eventLock.Lock()

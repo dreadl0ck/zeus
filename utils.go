@@ -33,6 +33,7 @@ import (
 	"syscall"
 
 	gosxnotifier "github.com/deckarep/gosx-notifier"
+	"github.com/fsnotify/fsnotify"
 	"github.com/mgutz/ansi"
 )
 
@@ -350,7 +351,7 @@ func showNote(text, subtitle string) {
 	// optionally, set a sender icon
 	note.Sender = "com.apple.Terminal"
 
-	// optionally, specifiy a url or bundleid to open should the notification be clicked
+	// optionally, specify a url or bundleid to open should the notification be clicked
 	note.Link = "http://" + hostName + ":" + strconv.Itoa(conf.PortWebPanel)
 
 	// optionally, an app icon
@@ -384,4 +385,19 @@ func randomString() string {
 	}
 
 	return hex.EncodeToString(rb)
+}
+
+func watchHeaders() {
+	err := addEvent(newEvent(zeusDir, fsnotify.Write, "header watcher", f.fileExtension, "", "internal", func(e fsnotify.Event) {
+
+		Log.Debug("change event: ", e.Name)
+
+		err := addCommand(e.Name, true)
+		if err != nil {
+			Log.WithError(err).Error("failed to parse command")
+		}
+	}))
+	if err != nil {
+		Log.WithError(err).Error("failed to watch script headers")
+	}
 }

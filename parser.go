@@ -255,7 +255,7 @@ func (p *parser) parseScript(path string, job *parseJob) (*commandData, error) {
 						case argTypeInt:
 							k = reflect.Int
 						default:
-							cLog.Fatal("invalid or missing argument type: ", slice[1])
+							return nil, errors.New("invalid or missing argument type: " + slice[1])
 						}
 
 						// append to commandData args
@@ -265,7 +265,7 @@ func (p *parser) parseScript(path string, job *parseJob) (*commandData, error) {
 						})
 					} else {
 						if !conf.AllowUntypedArgs {
-							cLog.Fatal("untyped arguments are not allowed: ", s)
+							return nil, errors.New("untyped arguments are not allowed: " + s)
 						}
 					}
 				}

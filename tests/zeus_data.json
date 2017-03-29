@@ -4,9 +4,17 @@
     "Milestones": [],
     "Aliases": {},
     "Events": {
-        "fbeaa5c778a9c1f8": {
+        "72119632227ab8e7": {
+            "Name": "header watcher",
+            "ID": "72119632227ab8e7",
+            "Path": "tests",
+            "Op": 2,
+            "FileExtension": ".sh",
+            "Command": "internal"
+        },
+        "b9f917121ba439b3": {
             "Name": "config event",
-            "ID": "fbeaa5c778a9c1f8",
+            "ID": "b9f917121ba439b3",
             "Path": "tests/zeus_config.json",
             "Op": 2,
             "FileExtension": ".json",

@@ -355,43 +355,47 @@ func (c *command) Run(args []string) error {
  */
 
 // addCommand parses the script at path, adds it to the commandMap and sets up the shell completer
-func addCommand(path string) error {
+// if force is set to true the command will parsed again even when it already has been parsed
+func addCommand(path string, force bool) error {
 
 	var (
 		cLog = Log.WithField("prefix", "addCommand")
 
 		// create parse job
-		job         = p.AddJob(path, false)
-		commandName = strings.TrimSuffix(filepath.Base(path), f.fileExtension)
+		job = p.AddJob(path, false)
 	)
 
-	commandMutex.Lock()
-	_, ok := commands[commandName]
-	commandMutex.Unlock()
+	if !force {
 
-	if !ok {
-
-		// create new command instance
-		cmd, err := job.newCommand(path)
-		if err != nil {
-			cLog.WithError(err).Error("failed to create command")
-			return err
-		}
-
-		// job done
-		p.RemoveJob(job)
-
+		commandName := strings.TrimSuffix(filepath.Base(path), f.fileExtension)
 		commandMutex.Lock()
-
-		// Add the completer.
-		completer.Children = append(completer.Children, cmd.PrefixCompleter)
-		// add to command map
-		commands[cmd.name] = cmd
-
+		_, ok := commands[commandName]
 		commandMutex.Unlock()
 
-		cLog.Debug("added " + cmd.name + " to the command map")
+		if ok {
+			return nil
+		}
 	}
+
+	// create new command instance
+	cmd, err := job.newCommand(path)
+	if err != nil {
+		return err
+	}
+
+	// job done
+	p.RemoveJob(job)
+
+	commandMutex.Lock()
+
+	// Add the completer.
+	completer.Children = append(completer.Children, cmd.PrefixCompleter)
+	// add to command map
+	commands[cmd.name] = cmd
+
+	commandMutex.Unlock()
+
+	cLog.Debug("added " + cmd.name + " to the command map")
 
 	return nil
 }
@@ -410,7 +414,7 @@ func (job *parseJob) newCommand(path string) (*command, error) {
 		if !job.silent {
 			cLog.WithFields(logrus.Fields{
 				"path": path,
-			}).Error("Parse error")
+			}).Debug("Parse error")
 		}
 		return nil, err
 	}
@@ -418,7 +422,7 @@ func (job *parseJob) newCommand(path string) (*command, error) {
 	// get build chain
 	commandChain, err := job.getCommandChain(d.parsedCommands)
 	if err != nil {
-		cLog.WithError(err).Fatal("failed to parse command chain")
+		return nil, err
 	}
 
 	// get name for command
@@ -487,9 +491,9 @@ func (job *parseJob) getCommandChain(parsedCommands [][]string) (commandChain co
 			cmd, err = job.newCommand(zeusDir + "/" + args[0] + f.fileExtension)
 			if err != nil {
 				if !job.silent {
-					cLog.WithError(err).Error("failed to create command")
+					cLog.WithError(err).Debug("failed to create command")
 				}
-				return
+				return commandChain, err
 			}
 
 			commandMutex.Lock()
@@ -571,9 +575,12 @@ func findCommands() {
 		start   = time.Now()
 		scripts []string
 		wg      sync.WaitGroup
+		// keep track of scripts that couldn't be parsed
+		parseErrors      = make(map[string]error, 0)
+		parseErrorsMutex = &sync.Mutex{}
 	)
 
-	// walk zeus directory and initialize commands
+	// walk zeus directory and initialize scripts
 	err := filepath.Walk(zeusDir, func(path string, info os.FileInfo, err error) error {
 
 		// ignore self
@@ -616,9 +623,12 @@ func findCommands() {
 	// first half
 	go func() {
 		for _, path := range scripts[:len(scripts)/2] {
-			err := addCommand(path)
+			err := addCommand(path, false)
 			if err != nil {
-				Log.WithError(err).Error("failed to add command")
+				Log.WithError(err).Debug("failed to add command")
+				parseErrorsMutex.Lock()
+				parseErrors[path] = err
+				parseErrorsMutex.Unlock()
 			}
 		}
 		wg.Done()
@@ -626,12 +636,20 @@ func findCommands() {
 
 	wg.Add(1)
 
+	if conf.Debug {
+		time.Sleep(500 * time.Millisecond)
+		l.Println("--------------------------------------------------------------------------")
+	}
+
 	// second half
 	go func() {
 		for _, path := range scripts[len(scripts)/2:] {
-			err := addCommand(path)
+			err := addCommand(path, false)
 			if err != nil {
-				Log.WithError(err).Error("failed to add command")
+				Log.WithError(err).Debug("failed to add command")
+				parseErrorsMutex.Lock()
+				parseErrors[path] = err
+				parseErrorsMutex.Unlock()
 			}
 		}
 		wg.Done()
@@ -639,12 +657,19 @@ func findCommands() {
 
 	wg.Wait()
 
+	for path, err := range parseErrors {
+		Log.WithError(err).Error("failed to parse: ", path)
+	}
+	if len(parseErrors) > 0 {
+		println()
+	}
+
 	l.Println(cp.colorText+"initialized "+cp.colorPrompt, len(commands), cp.colorText+" commands in: "+cp.colorPrompt, time.Now().Sub(start), ansi.Reset+"\n")
 
 	// check if custom command conflicts with builtin name
 	for _, name := range builtins {
 		if _, ok := commands[name]; ok {
-			cLog.Fatal("command ", name, " conflicts with a builtin command. Please choose a different name.")
+			cLog.Error("command ", name, " conflicts with a builtin command. Please choose a different name.")
 		}
 	}
 

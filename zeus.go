@@ -267,6 +267,8 @@ func main() {
 			zeusPrompt = filepath.Base(workingDir)
 		}
 
+		go watchHeaders()
+
 		// handle OS Signals
 		// all child processes need to be killed when theres an error
 		handleSignals()
