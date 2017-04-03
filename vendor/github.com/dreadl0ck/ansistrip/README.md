@@ -19,7 +19,7 @@
 
 ```
 ZEUS - A Powerful Build System
-Copyright (c) 2017 Philipp Mieden <dreadl0ck@protonmail.ch>
+Copyright (c) 2017 Philipp Mieden <dreadl0ck [at] protonmail [dot] ch>
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -39,7 +39,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 You have ideas, feedback, bugs, security issues, pull requests, questions etc?
 
-Contact me: dreadl0ck@protonmail.ch
+Contact me: dreadl0ck [at] protonmail [dot] ch
 
 ```pgp
 -----BEGIN PGP PUBLIC KEY BLOCK-----
