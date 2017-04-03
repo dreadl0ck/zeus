@@ -1,6 +1,6 @@
 /*
  *  ZEUS - An Electrifying Build System
- *  Copyright (c) 2017 Philipp Mieden <dreadl0ck@protonmail.ch>
+ *  Copyright (c) 2017 Philipp Mieden <dreadl0ck [at] protonmail [dot] ch>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -46,9 +46,13 @@ func bootstrapFile(name string) {
 	return
 }
 
+func printBootstrapCommandUsageErr() {
+	l.Println("usage: zeus bootstrap <file | dir>")
+}
+
 // bootstrap basic zeus scripts
 // useful when starting from scratch
-func bootstrapCommand() {
+func runBootstrapDirCommand() {
 
 	err := os.Mkdir(zeusDir, 0700)
 	if err != nil {
@@ -61,6 +65,42 @@ func bootstrapCommand() {
 	bootstrapFile("test.sh")
 	bootstrapFile("install.sh")
 	bootstrapFile("bench.sh")
+}
+
+// bootstrap basic zeus scripts
+// useful when starting from scratch
+func runBootstrapFileCommand() {
+
+	f, err := os.Create("Zeusfile.yml")
+	if err != nil {
+		Log.WithError(err).Fatal("failed to create Zeusfile")
+	}
+	defer f.Close()
+
+	f.WriteString(`############
+# ZEUSFILE #
+############
+
+# globals for all build commands
+globals: |
+    version=0.1
+
+# all commands
+commands: 
+    build:
+        chain: clean
+        help: build project
+        buildNumber: true
+        run: 
+	clean:
+        help: clean up to prepare for build
+        run: rm -rf bin/*
+    install:
+        chain: clean
+        help: install to $PATH
+        manual: Install the application to the default system location
+        run:
+`)
 }
 
 func printCreateCommandUsageErr() {

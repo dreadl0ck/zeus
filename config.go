@@ -1,6 +1,6 @@
 /*
  *  ZEUS - An Electrifying Build System
- *  Copyright (c) 2017 Philipp Mieden <dreadl0ck@protonmail.ch>
+ *  Copyright (c) 2017 Philipp Mieden <dreadl0ck [at] protonmail [dot] ch>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -19,7 +19,6 @@
 package main
 
 import (
-	"encoding/json"
 	"errors"
 	"io/ioutil"
 	"os"
@@ -29,9 +28,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/Sirupsen/logrus"
 	"github.com/fsnotify/fsnotify"
-	prefixed "github.com/x-cray/logrus-prefixed-formatter"
+	"gopkg.in/yaml.v2"
 )
 
 var (
@@ -45,44 +43,44 @@ var (
 	ErrInvalidLocalConfig = errors.New("local configuration file is invalid")
 
 	// path for global config file
-	globalConfigPath = os.Getenv("HOME") + "/.zeus_config.json"
+	globalConfigPath = os.Getenv("HOME") + "/.zeus_config.yml"
 
 	// path for project config files
 	zeusDir           = "zeus"
 	projectConfigPath string
 
-	// regex for matching first level JSON keys from config file contents
-	jsonField = regexp.MustCompile("\\s\"(\\s)*[A-Z]?(.|\\s)*\":")
+	// regex for matching top level YAML keys from config file contents
+	yamlField = regexp.MustCompile("(\\s)*[a-z]?(.|\\s)*:")
 
 	configMutex = &sync.Mutex{}
 )
 
 // config contains configurable parameters
 type config struct {
-	MakefileOverview    bool
-	AutoFormat          bool
-	FixParseErrors      bool
-	Colors              bool
-	PassCommandsToShell bool
-	WebInterface        bool
-	Interactive         bool
-	LogToFileColor      bool
-	LogToFile           bool
-	Debug               bool
-	RecursionDepth      int
-	ProjectNamePrompt   bool
-	AllowUntypedArgs    bool
-	ColorProfile        string
-	HistoryFile         bool
-	HistoryLimit        int
-	PortWebPanel        int
-	PortGlueServer      int
-	ExitOnInterrupt     bool
-	DisableTimestamps   bool
-	PrintBuiltins       bool
-	StopOnError         bool
-	DumpScriptOnError   bool
-	DateFormat          string
+	MakefileOverview    bool   `yaml:"MakefileOverview"`
+	AutoFormat          bool   `yaml:"AutoFormat"`
+	FixParseErrors      bool   `yaml:"FixParseErrors"`
+	Colors              bool   `yaml:"Colors"`
+	PassCommandsToShell bool   `yaml:"PassCommandsToShell"`
+	WebInterface        bool   `yaml:"WebInterface"`
+	Interactive         bool   `yaml:"Interactive"`
+	LogToFileColor      bool   `yaml:"LogToFileColor"`
+	LogToFile           bool   `yaml:"LogToFile"`
+	Debug               bool   `yaml:"Debug"`
+	RecursionDepth      int    `yaml:"RecursionDepth"`
+	ProjectNamePrompt   bool   `yaml:"ProjectNamePrompt"`
+	AllowUntypedArgs    bool   `yaml:"AllowUntypedArgs"`
+	ColorProfile        string `yaml:"ColorProfile"`
+	HistoryFile         bool   `yaml:"HistoryFile"`
+	HistoryLimit        int    `yaml:"HistoryLimit"`
+	PortWebPanel        int    `yaml:"PortWebPanel"`
+	PortGlueServer      int    `yaml:"PortGlueServer"`
+	ExitOnInterrupt     bool   `yaml:"ExitOnInterrupt"`
+	DisableTimestamps   bool   `yaml:"DisableTimestamps"`
+	PrintBuiltins       bool   `yaml:"PrintBuiltins"`
+	StopOnError         bool   `yaml:"StopOnError"`
+	DumpScriptOnError   bool   `yaml:"DumpScriptOnError"`
+	DateFormat          string `yaml:"DateFormat"`
 }
 
 // newConfig returns the default configuration in case there is no config file
@@ -134,14 +132,14 @@ func parseGlobalConfig() (*config, error) {
 		return nil, ErrConfigFileIsADirectory
 	}
 
-	contents, err := validateConfigJSON(globalConfigPath)
+	contents, err := validateConfig(globalConfigPath)
 	if err != nil {
 		return nil, err
 	}
 
-	err = json.Unmarshal(contents, c)
+	err = yaml.Unmarshal(contents, c)
 	if err != nil {
-		Log.WithError(err).Fatal("failed to unmarshal confg - invalid JSON")
+		Log.WithError(err).Fatal("failed to unmarshal confg - invalid YAML")
 	}
 
 	c.handle()
@@ -150,8 +148,8 @@ func parseGlobalConfig() (*config, error) {
 }
 
 // check for unknown fields in the config
-// since JSON simply ignores them
-func validateConfigJSON(path string) ([]byte, error) {
+// since YAML simply ignores them and intializes them with their default values
+func validateConfig(path string) ([]byte, error) {
 
 	c, err := ioutil.ReadFile(path)
 	if err != nil {
@@ -164,9 +162,9 @@ func validateConfigJSON(path string) ([]byte, error) {
 	)
 
 	for i, line := range strings.Split(string(c), "\n") {
-		field := jsonField.FindString(line)
+		field := yamlField.FindString(line)
 		if field != "" {
-			field = strings.TrimSuffix(strings.TrimPrefix(strings.TrimSpace(field), "\""), "\":")
+			field = strings.TrimSuffix(strings.TrimSpace(field), ":")
 			for _, item := range items {
 				if field == strings.TrimSpace(string(item.GetName())) {
 					foundField = true
@@ -182,10 +180,10 @@ func validateConfigJSON(path string) ([]byte, error) {
 	return c, nil
 }
 
-// parse the local project JSON config
+// parse the local project YAML config
 func parseProjectConfig() (*config, error) {
 
-	projectConfigPath = zeusDir + "/zeus_config.json"
+	projectConfigPath = zeusDir + "/zeus_config.yml"
 
 	var c = new(config)
 
@@ -198,14 +196,14 @@ func parseProjectConfig() (*config, error) {
 		return nil, ErrConfigFileIsADirectory
 	}
 
-	contents, err := validateConfigJSON(projectConfigPath)
+	contents, err := validateConfig(projectConfigPath)
 	if err != nil {
 		return nil, err
 	}
 
-	err = json.Unmarshal(contents, c)
+	err = yaml.Unmarshal(contents, c)
 	if err != nil {
-		Log.WithError(err).Fatal("failed to unmarshal confg - invalid JSON")
+		Log.WithError(err).Fatal("failed to unmarshal confg - invalid YAML")
 	}
 
 	c.handle()
@@ -247,9 +245,16 @@ func (c *config) update() {
 	defer configMutex.Unlock()
 
 	// make it pretty
-	b, err := json.MarshalIndent(conf, "", "    ")
+	b, err := yaml.Marshal(conf)
 	if err != nil {
 		Log.WithError(err).Fatal("failed to marshal config")
+	}
+
+	if _, err := os.Stat(zeusDir); err != nil {
+		err = os.Mkdir(zeusDir, 0700)
+		if err != nil {
+			Log.WithError(err).Fatal("failed to create zeusDir")
+		}
 	}
 
 	// open the config file write only and truncate if it exists
@@ -265,36 +270,17 @@ func (c *config) update() {
 	}
 }
 
-// remove config event
-func cleanConfigEvent() string {
-
-	var id string
-	eventLock.Lock()
-	for _, e := range projectData.Events {
-		if e.Name == "config event" {
-			id = e.ID
-		}
-	}
-	eventLock.Unlock()
-
-	if id != "" {
-		removeEvent(id)
-	}
-
-	return id
-}
-
 // remove formatter event
 func cleanFormatterEvent() string {
 
 	var id string
-	eventLock.Lock()
+	projectDataMutex.Lock()
 	for _, e := range projectData.Events {
-		if e.Name == "formatter event" {
+		if e.Name == "formatter watcher" {
 			id = e.ID
 		}
 	}
-	eventLock.Unlock()
+	projectDataMutex.Unlock()
 
 	if id != "" {
 		removeEvent(id)
@@ -306,19 +292,29 @@ func cleanFormatterEvent() string {
 // watch and reload config on changes
 func (c *config) watch(eventID string) {
 
+	// dont add a new watcher when the event exists
+	projectDataMutex.Lock()
+	for _, e := range projectData.Events {
+		if e.Name == "config watcher" {
+			projectDataMutex.Unlock()
+			return
+		}
+	}
+	projectDataMutex.Unlock()
+
 	Log.Debug("watching config at " + projectConfigPath)
 
-	err := addEvent(newEvent(projectConfigPath, fsnotify.Write, "config event", ".json", eventID, "internal", func(event fsnotify.Event) {
+	err := addEvent(newEvent(projectConfigPath, fsnotify.Write, "config watcher", ".yml", eventID, "internal", func(event fsnotify.Event) {
 
 		Log.Debug("config watcher event: ", event.Name)
 
-		b, err := validateConfigJSON(projectConfigPath)
+		b, err := validateConfig(projectConfigPath)
 		if err != nil {
 			Log.WithError(err).Fatal("failed to read config")
 		}
 
 		configMutex.Lock()
-		err = json.Unmarshal(b, c)
+		err = yaml.Unmarshal(b, c)
 		if err != nil {
 			Log.WithError(err).Error("config parse error")
 		}
@@ -406,27 +402,46 @@ func (c *config) handle() {
 	configMutex.Lock()
 	defer configMutex.Unlock()
 
-	if c.Debug {
-		Log.Level = logrus.DebugLevel
-	} else {
-		Log.Level = logrus.InfoLevel
-	}
+	// this produces a data race
+	// if c.Debug {
+	// 	Log.Level = logrus.DebugLevel
+	// } else {
+	// 	Log.Level = logrus.InfoLevel
+	// }
 
 	// enable dumping the script on error when the auto formatter is enabled
 	if c.AutoFormat {
 		c.DumpScriptOnError = true
 	}
 
-	// disable colors if requested
-	if !c.Colors {
-		Log.Formatter = &prefixed.TextFormatter{
-			DisableColors: true,
-		}
-	} else {
-		Log.Formatter = &prefixed.TextFormatter{}
-	}
+	// this produces a data race
+	// Log.Lock()
+	// Log = logrus.New()
+
+	// // disable colors if requested
+	// if !c.Colors {
+	// 	Log.Formatter = &prefixed.TextFormatter{
+	// 		DisableColors: true,
+	// 	}
+	// } else {
+	// 	Log.Formatter = &prefixed.TextFormatter{}
+	// }
 
 	if !c.AutoFormat {
 		cleanFormatterEvent()
 	}
+}
+
+// print the current configuration as JSON to stdout
+func printConfiguration() {
+
+	configMutex.Lock()
+
+	b, err := yaml.Marshal(conf)
+	if err != nil {
+		Log.WithError(err).Fatal("failed to marshal config to JSON")
+	}
+
+	configMutex.Unlock()
+	l.Println(string(b))
 }

@@ -1,6 +1,6 @@
 /*
  *  ZEUS - An Electrifying Build System
- *  Copyright (c) 2017 Philipp Mieden <dreadl0ck@protonmail.ch>
+ *  Copyright (c) 2017 Philipp Mieden <dreadl0ck [at] protonmail [dot] ch>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -108,11 +108,14 @@ func clearProcessMap(sig os.Signal) {
 
 	// l.Println("processMap:", processMap)
 
+	processMapMutex.Lock()
+	defer processMapMutex.Unlock()
+
 	// range processes
 	for id, p := range processMap {
 		if p.Proc != nil {
 
-			Log.Info("killing "+id+" PID:", p.Proc.Pid)
+			Log.Debug("killing "+id+" PID:", p.Proc.Pid)
 
 			// kill it
 			var err error
@@ -122,7 +125,7 @@ func clearProcessMap(sig os.Signal) {
 				err = p.Proc.Signal(sig)
 			}
 			if err != nil {
-				Log.WithError(err).Error("failed to kill "+id+" PID:", p.Proc.Pid)
+				Log.WithError(err).Debug("failed to kill "+id+" PID:", p.Proc.Pid)
 			}
 		}
 	}

@@ -1,6 +1,6 @@
 /*
  *  ZEUS - An Electrifying Build System
- *  Copyright (c) 2017 Philipp Mieden <dreadl0ck@protonmail.ch>
+ *  Copyright (c) 2017 Philipp Mieden <dreadl0ck [at] protonmail [dot] ch>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -81,7 +81,7 @@ type parser struct {
 	jobs map[string]*parseJob
 
 	// locking for map access
-	mutex *sync.Mutex
+	mutex sync.Mutex
 	// inputChannel chan string
 
 	// limit for recursion level
@@ -106,20 +106,36 @@ func newParser() *parser {
 
 		separator:      "->",
 		jobs:           map[string]*parseJob{},
-		mutex:          &sync.Mutex{},
+		mutex:          sync.Mutex{},
 		recursionDepth: 1,
 	}
 }
 
 // commandData represents the information retrieved by parsing a command script
 type commandData struct {
-	help           string
-	args           []*commandArg
-	parsedCommands [][]string
-	manual         string
-	buildNumber    bool
-	dependencies   []string
-	outputs        []string
+	// Help text
+	Help string `yaml:"help"`
+
+	// Args for command
+	Args string `yaml:"args"`
+
+	// Chain contains the targets commandChain
+	Chain string `yaml:"chain"`
+
+	// Manual text
+	Manual string `yaml:"manual"`
+
+	// BuildNumber yes or no
+	BuildNumber bool `yaml:"buildNumber"`
+
+	// Dependencies for the current target
+	Dependencies []string `yaml:"deps"`
+
+	// Outputs of the current target
+	Outputs []string `yaml:"out"`
+
+	// Run when executed
+	Run string `yaml:"run"`
 }
 
 // argument types
@@ -192,7 +208,7 @@ func (p *parser) parseScript(path string, job *parseJob) (*commandData, error) {
 					return d, nil
 				}
 
-				d.manual += line + "\n"
+				d.Manual += line + "\n"
 				continue
 			}
 
@@ -210,7 +226,7 @@ func (p *parser) parseScript(path string, job *parseJob) (*commandData, error) {
 					}
 					Log.Fatal("invalid zeus-help header field in line ", c, " : ", line)
 				}
-				d.help = strings.TrimSpace(trimZeusPrefix(line))
+				d.Help = strings.TrimSpace(trimZeusPrefix(line))
 				break
 
 			// parse args field
@@ -226,49 +242,7 @@ func (p *parser) parseScript(path string, job *parseJob) (*commandData, error) {
 					Log.Fatal("invalid zeus-args header field in line ", c, " : ", line)
 				}
 
-				// parse arg types
-				for _, s := range strings.Fields(strings.TrimSpace(trimZeusPrefix(line))) {
-
-					var (
-						k     reflect.Kind
-						slice = strings.Split(s, ":")
-					)
-
-					if len(slice) == 2 {
-
-						// check for duplicate argument names
-						for _, a := range d.args {
-							if a.name == slice[0] {
-								cLog.Error("argument name ", a.name, " was used twice")
-								return nil, ErrDuplicateArgumentNames
-							}
-						}
-
-						// check if its a valid argType and set reflect.Kind
-						switch slice[1] {
-						case argTypeBool:
-							k = reflect.Bool
-						case argTypeFloat:
-							k = reflect.Float64
-						case argTypeString:
-							k = reflect.String
-						case argTypeInt:
-							k = reflect.Int
-						default:
-							return nil, errors.New("invalid or missing argument type: " + slice[1])
-						}
-
-						// append to commandData args
-						d.args = append(d.args, &commandArg{
-							name:    slice[0],
-							argType: k,
-						})
-					} else {
-						if !conf.AllowUntypedArgs {
-							return nil, errors.New("untyped arguments are not allowed: " + s)
-						}
-					}
-				}
+				d.Args = strings.TrimSpace(trimZeusPrefix(line))
 
 				break
 
@@ -285,8 +259,6 @@ func (p *parser) parseScript(path string, job *parseJob) (*commandData, error) {
 					Log.Fatal("invalid zeus-chain header field in line ", c, " : ", line)
 				}
 
-				d.parsedCommands = parseCommandChain(line)
-
 				break
 
 			// parse multiline help entry (20 dashes minimum)
@@ -294,16 +266,16 @@ func (p *parser) parseScript(path string, job *parseJob) (*commandData, error) {
 				separatorCount++
 
 			case strings.Contains(line, p.zeusFieldBuildNumber):
-				d.buildNumber = true
+				d.BuildNumber = true
 
 			case strings.Contains(line, p.zeusFieldDependencies):
 				for _, dep := range strings.Split(strings.TrimSpace(trimZeusPrefix(line)), ",") {
-					d.dependencies = append(d.dependencies, dep)
+					d.Dependencies = append(d.Dependencies, dep)
 				}
 
 			case strings.Contains(line, p.zeusFieldOutputs):
 				for _, output := range strings.Split(strings.TrimSpace(trimZeusPrefix(line)), ",") {
-					d.outputs = append(d.outputs, output)
+					d.Outputs = append(d.Outputs, output)
 				}
 
 			default:
@@ -373,7 +345,7 @@ func parseCommandChain(line string) (parsedCommands [][]string) {
 		})
 	)
 
-	cLog.Debug("starting to parse")
+	cLog.Debug("starting to parse command chain")
 
 	if len(cmds) > 0 {
 

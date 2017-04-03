@@ -1,6 +1,6 @@
 /*
  *  ZEUS - An Electrifying Build System
- *  Copyright (c) 2017 Philipp Mieden <dreadl0ck@protonmail.ch>
+ *  Copyright (c) 2017 Philipp Mieden <dreadl0ck [at] protonmail [dot] ch>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -58,21 +58,29 @@ func addDeadline(args []string) {
 		return
 	}
 
+	configMutex.Lock()
+	format := conf.DateFormat
+	configMutex.Unlock()
+
 	// check if date is valid
-	t, err := time.Parse(conf.DateFormat, args[0])
+	t, err := time.Parse(format, args[0])
 	if err != nil {
 		Log.WithError(err).Error("failed to parse date")
 		return
 	}
 
+	projectDataMutex.Lock()
 	projectData.Deadline = t.Format(conf.DateFormat)
+	projectDataMutex.Unlock()
 	projectData.update()
 	Log.Info("added deadline for ", args[0])
 }
 
 // remove the deadline from project data
 func removeDeadline() {
+	projectDataMutex.Lock()
 	projectData.Deadline = ""
+	projectDataMutex.Unlock()
 	projectData.update()
 	Log.Info("removed deadline")
 }

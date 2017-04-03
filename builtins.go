@@ -1,6 +1,6 @@
 /*
  *  ZEUS - An Electrifying Build System
- *  Copyright (c) 2017 Philipp Mieden <dreadl0ck@protonmail.ch>
+ *  Copyright (c) 2017 Philipp Mieden <dreadl0ck [at] protonmail [dot] ch>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -19,7 +19,6 @@
 package main
 
 import (
-	"encoding/json"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -49,6 +48,8 @@ const (
 	wikiCommand       = "wiki"
 	webCommand        = "web"
 	createCommand     = "create"
+	bootstrapCommand  = "bootstrap"
+	zeusfileCommand   = "migrate-zeusfile"
 )
 
 var builtins = map[string]string{
@@ -73,6 +74,7 @@ var builtins = map[string]string{
 	webCommand:        "web",
 	wikiCommand:       "wiki",
 	createCommand:     "create",
+	zeusfileCommand:   "migrate zeusfile into a zeus directory",
 }
 
 // executed when running the info command
@@ -103,16 +105,34 @@ func printProjectInfo() {
 // print built-in commands
 func printBuiltins() {
 
-	width := 15
+	var (
+		names []string
+		width = 17
+	)
+
+	// assemble array for sorting
+	for builtin := range builtins {
+		names = append(names, builtin)
+	}
+
+	// sort alphabetically
+	sort.Strings(names)
+
 	l.Println(cp.colorText + "builtins:")
-	for builtin, description := range builtins {
-		l.Println(cp.colorCommandName + pad(builtin, width) + cp.colorText + description)
+
+	// print
+	for _, name := range names {
+		description := builtins[name]
+		l.Println(cp.colorCommandName + pad(name, width) + cp.colorText + description)
 	}
 	l.Println("")
 }
 
 // print all available commands
 func printCommands() {
+
+	commandMutex.Lock()
+	defer commandMutex.Unlock()
 
 	var (
 		sortedCommandKeys = make([]string, len(commands))
@@ -153,35 +173,6 @@ func getArgumentString(args []*commandArg) (argStr string) {
 		argStr += "[" + arg.name + ":" + arg.argType.String() + "] "
 	}
 	return
-}
-
-// print the current configuration as JSON to stdout
-func printConfiguration() {
-
-	configMutex.Lock()
-
-	b, err := json.MarshalIndent(conf, "", "	")
-	if err != nil {
-		Log.WithError(err).Fatal("failed to marshal config to JSON")
-	}
-
-	configMutex.Unlock()
-	l.Println(string(b))
-}
-
-// print the current project data as JSON to stdout
-func printProjectData() {
-
-	eventLock.Lock()
-	defer eventLock.Unlock()
-
-	// make it pretty
-	b, err := json.MarshalIndent(projectData, "", "	")
-	if err != nil {
-		Log.WithError(err).Fatal("failed to marshal zeus project data to JSON")
-	}
-
-	l.Println(string(b))
 }
 
 // print the contents of globals.sh on stdout

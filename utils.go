@@ -1,6 +1,6 @@
 /*
  *  ZEUS - An Electrifying Build System
- *  Copyright (c) 2017 Philipp Mieden <dreadl0ck@protonmail.ch>
+ *  Copyright (c) 2017 Philipp Mieden <dreadl0ck [at] protonmail [dot] ch>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -284,7 +284,7 @@ func validCommandChain(args []string, silent bool) bool {
 
 	defer p.RemoveJob(job)
 
-	_, err := job.getCommandChain(commandList)
+	_, err := job.getCommandChain(commandList, nil)
 	if err != nil {
 		if !silent {
 			Log.WithError(err).Error("failed to get command chain")
@@ -387,8 +387,19 @@ func randomString() string {
 	return hex.EncodeToString(rb)
 }
 
-func watchHeaders() {
-	err := addEvent(newEvent(zeusDir, fsnotify.Write, "header watcher", f.fileExtension, "", "internal", func(e fsnotify.Event) {
+func watchScripts(eventID string) {
+
+	// dont add a new watcher when the event exists
+	projectDataMutex.Lock()
+	for _, e := range projectData.Events {
+		if e.Name == "script watcher" {
+			projectDataMutex.Unlock()
+			return
+		}
+	}
+	projectDataMutex.Unlock()
+
+	err := addEvent(newEvent(zeusDir, fsnotify.Write, "script watcher", f.fileExtension, eventID, "internal", func(e fsnotify.Event) {
 
 		Log.Debug("change event: ", e.Name)
 

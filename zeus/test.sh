@@ -11,8 +11,6 @@ echo "starting tests"
 
 go test -v -coverprofile coverage.out -cover
 
-exit 0
-
 if [[ $? == 0 ]]; then
 	go tool cover -html=coverage.out
 fi

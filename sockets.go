@@ -1,6 +1,6 @@
 /*
  *  ZEUS - An Electrifying Build System
- *  Copyright (c) 2017 Philipp Mieden <dreadl0ck@protonmail.ch>
+ *  Copyright (c) 2017 Philipp Mieden <dreadl0ck [at] protonmail [dot] ch>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -32,7 +32,7 @@ var (
 
 // SocketStore contains the socket connections and provides an interface for safe concurrent access
 type SocketStore struct {
-	mutex   *sync.Mutex
+	mutex   sync.Mutex
 	sockets []*glue.Socket
 }
 
@@ -86,7 +86,7 @@ func (s *SocketStore) NumSockets() int {
 // NewSocketStore constructs a new SocketStore
 func NewSocketStore() *SocketStore {
 	return &SocketStore{
-		mutex:   &sync.Mutex{},
+		mutex:   sync.Mutex{},
 		sockets: make([]*glue.Socket, 0),
 	}
 }

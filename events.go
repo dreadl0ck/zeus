@@ -1,6 +1,6 @@
 /*
  *  ZEUS - An Electrifying Build System
- *  Copyright (c) 2017 Philipp Mieden <dreadl0ck@protonmail.ch>
+ *  Copyright (c) 2017 Philipp Mieden <dreadl0ck [at] protonmail [dot] ch>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -195,8 +195,7 @@ func listEvents() {
 // remove the event for the given path
 func removeEvent(id string) {
 
-	eventLock.Lock()
-	defer eventLock.Unlock()
+	projectDataMutex.Lock()
 
 	// check if event exists
 	if e, ok := projectData.Events[id]; ok {
@@ -208,6 +207,7 @@ func removeEvent(id string) {
 
 		// delete event
 		delete(projectData.Events, id)
+		projectDataMutex.Unlock()
 
 		Log.Debug("removed event with name ", e.Name)
 
@@ -215,6 +215,7 @@ func removeEvent(id string) {
 		projectData.update()
 		return
 	}
+	projectDataMutex.Unlock()
 
 	Log.Error("event with ID ", id, " does not exist")
 }
@@ -248,10 +249,11 @@ func addEvent(e *Event) error {
 	Log.WithField("path", e.Path).Debug("adding event")
 
 	// add to events
-	eventLock.Lock()
+	projectDataMutex.Lock()
 	projectData.Events[e.ID] = e
+	projectDataMutex.Unlock()
+
 	projectData.update()
-	eventLock.Unlock()
 
 	// init new watcher
 	watcher, err := fsnotify.NewWatcher()
@@ -323,4 +325,29 @@ func addEvent(e *Event) error {
 	<-done
 
 	return nil
+}
+
+// reload an internal event from project data
+func reloadEvent(e *Event) {
+
+	Log.Debug("reloading event: ", e.Name)
+
+	switch e.Name {
+	case "config watcher":
+		go conf.watch(e.ID)
+	case "formatter watcher":
+		if conf.AutoFormat {
+			go f.watchzeusDir(e.ID)
+		}
+	case "zeusfile watcher":
+		if _, err := os.Stat(zeusfilePath); err != nil {
+			go watchZeusfile("Zeusfile", e.ID)
+		} else {
+			go watchZeusfile(zeusfilePath, e.ID)
+		}
+	case "script watcher":
+		go watchScripts(e.ID)
+	default:
+		Log.Warn("reload event called for an unkown event: ", e.Name)
+	}
 }

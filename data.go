@@ -1,6 +1,6 @@
 /*
  *  ZEUS - An Electrifying Build System
- *  Copyright (c) 2017 Philipp Mieden <dreadl0ck@protonmail.ch>
+ *  Copyright (c) 2017 Philipp Mieden <dreadl0ck [at] protonmail [dot] ch>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -19,19 +19,24 @@
 package main
 
 import (
-	"encoding/json"
 	"errors"
 	"io/ioutil"
 	"os"
 	"strings"
+	"sync"
+
+	yaml "gopkg.in/yaml.v2"
+
+	"time"
 
 	"github.com/Sirupsen/logrus"
 	"github.com/fsnotify/fsnotify"
 )
 
 var (
-	// path for the project data JSON
-	projectDataPath string
+	// path for the project data YAML
+	projectDataPath  string
+	projectDataMutex sync.Mutex
 
 	// ErrEmptyZeusData occurs when the zeus_data file is empty
 	ErrEmptyZeusData = errors.New("zeus data file is empty")
@@ -74,11 +79,14 @@ func newData() *data {
 // update project data on disk
 func (d *data) update() {
 
-	// make it pretty
-	b, err := json.MarshalIndent(d, "", "    ")
+	projectDataMutex.Lock()
+
+	b, err := yaml.Marshal(d)
 	if err != nil {
+		projectDataMutex.Unlock()
 		Log.WithError(err).Fatal("failed to marshal zeus data")
 	}
+	projectDataMutex.Unlock()
 
 	f, err := os.OpenFile(projectDataPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0700)
 	if err != nil {
@@ -99,10 +107,10 @@ func (d *data) update() {
 	disableWriteEventMutex.Unlock()
 }
 
-// parse the project data JSON
+// parse the project data YAML
 func parseProjectData() (*data, error) {
 
-	projectDataPath = zeusDir + "/zeus_data.json"
+	projectDataPath = zeusDir + "/zeus_data.yml"
 	var d = new(data)
 
 	_, err := os.Stat(projectDataPath)
@@ -119,9 +127,9 @@ func parseProjectData() (*data, error) {
 		return nil, ErrEmptyZeusData
 	}
 
-	err = json.Unmarshal(contents, d)
+	err = yaml.Unmarshal(contents, d)
 	if err != nil {
-		Log.WithError(err).Error("failed to unmarshal zeus data - invalid JSON: " + string(contents))
+		Log.WithError(err).Error("failed to unmarshal zeus data - invalid YAML: " + string(contents))
 		return nil, err
 	}
 
@@ -131,12 +139,14 @@ func parseProjectData() (*data, error) {
 // load user events from projectData and create the watchers
 func loadEvents() {
 
-	eventLock.Lock()
+	projectDataMutex.Lock()
 	for _, e := range projectData.Events {
 
-		// skip loading of internal watchers from project data
-		if e.Path == zeusDir || e.Path == projectConfigPath {
+		// reload internal watchers from project data
+		if e.Command == "internal" {
+			// remove from projectData
 			delete(projectData.Events, e.ID)
+			reloadEvent(e)
 			continue
 		}
 
@@ -146,7 +156,7 @@ func loadEvents() {
 
 		fields := strings.Fields(e.Command)
 
-		Log.Warn("LOADING EVENT: ", e.Command, " path: ", e.Path)
+		Log.Info("loading event: ", e.Command, " path: ", e.Path)
 
 		// addEvent will create a new eventID so we need to clean up the entry for the previous one
 		delete(projectData.Events, e.ID)
@@ -186,5 +196,24 @@ func loadEvents() {
 			}
 		}()
 	}
-	eventLock.Unlock()
+	projectDataMutex.Unlock()
+
+	// event creating is async
+	// wait a little bit to avoid duplicate internal events
+	time.Sleep(50 * time.Millisecond)
+}
+
+// print the current project data as YAML to stdout
+func printProjectData() {
+
+	projectDataMutex.Lock()
+	defer projectDataMutex.Unlock()
+
+	// make it pretty
+	b, err := yaml.Marshal(projectData)
+	if err != nil {
+		Log.WithError(err).Fatal("failed to marshal zeus project data to YAML")
+	}
+
+	l.Println(string(b))
 }

@@ -7,12 +7,11 @@
           \/    \/           \/   /\\/\ //\
                 An Electrifying Build System
 
-- switch to YAML for config file and project data
+- improve markdown wiki
+- add @zeus-async header for parallel builds
 - improve parse error feedback
 - fix readline bug
 - remove logfile, generate reports
 - improve tests
-- add Zeusfile
-- add @zeus-async header for parallel builds
 - add encrypted storage
 - support more scripting languages

@@ -1,0 +1,84 @@
+############
+# ZEUSFILE #
+############
+
+# globals for all build commands
+globals: |
+    version=0.7
+    buildDir=bin/
+
+# all commands
+commands: 
+    build:
+        args: name:String
+        chain: clean
+        help: build project
+		buildNumber: true
+        run: |
+            echo "building $name"
+			godep go build -o $buildDir$name
+	build-race:
+        chain: clean
+        help: build race detection enabled binary
+        manual: |
+			zeus build-race script
+			this script produces the zeus binary with race detection enabled
+        run: go build -race -o bin/zeus && bin/zeus
+	clean:
+        help: clean up to prepare for build
+        run: |
+            rm -rf bin/*
+            rm -rf tests/*.yml
+	configure:
+        help: prepare JS and CSS
+        manual: Generate Javascript and CSS
+        run: |
+            jsobfus -d frontend/src/js/:frontend/dist/js
+			sasscompile -d frontend/src/sass:frontend/dist/css
+	dev:
+        help: start the dev mode
+		chain: clean -> configure
+        manual: |
+			zeus development mode script
+			this script compiles the binary without assets
+        run: |
+			rm -f rice-box.go
+			go install
+    install:
+        chain: clean -> configure
+        help: install to $PATH
+        manual: Install the application to the default system location
+        run: |
+            echo "installing zeus $version"
+			rice embed-go
+			godep go install
+	reset:
+        chain: clean
+        help: reset and delete all generated files
+        manual: zeus reset script
+        run: rm -f rice-box.go
+	
+    # run the test with race detection enabled
+    test-race:
+        chain: clean
+        help: start data race detection tests
+        manual: zeus data race detection test script
+        run: go test -v -race
+
+    version-number:
+        run:
+            echo "$version"
+
+    # run the tests
+	test:
+        chain: clean
+        help: run automated tests
+        manual: zeus automated tests
+        run: |
+            echo "starting tests"
+
+            go test -v -coverprofile coverage.out -cover
+
+            if [[ $? == 0 ]]; then
+                go tool cover -html=coverage.out
+            fi

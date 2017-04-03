@@ -1,6 +1,6 @@
 /*
  *  ZEUS - An Electrifying Build System
- *  Copyright (c) 2017 Philipp Mieden <dreadl0ck@protonmail.ch>
+ *  Copyright (c) 2017 Philipp Mieden <dreadl0ck [at] protonmail [dot] ch>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -212,16 +212,16 @@ func (f *formatter) formatCommand() {
 func (f *formatter) watchzeusDir(eventID string) {
 
 	// dont add a new watcher when the event exists
-	eventLock.Lock()
+	projectDataMutex.Lock()
 	for _, e := range projectData.Events {
-		if e.Name == "formatter event" {
-			eventLock.Unlock()
+		if e.Name == "formatter watcher" {
+			projectDataMutex.Unlock()
 			return
 		}
 	}
-	eventLock.Unlock()
+	projectDataMutex.Unlock()
 
-	err := addEvent(newEvent(zeusDir, fsnotify.Write, "formatter event", "", eventID, "internal", func(event fsnotify.Event) {
+	err := addEvent(newEvent(zeusDir, fsnotify.Write, "formatter watcher", "", eventID, "internal", func(event fsnotify.Event) {
 
 		// check if its a valid script
 		if strings.HasSuffix(event.Name, f.fileExtension) {

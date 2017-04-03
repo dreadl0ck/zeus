@@ -7,6 +7,35 @@
           \/    \/           \/   /\\/\ //\
                 An Electrifying Build System
 
+## 02.04.17
+
+- switched to YAML for config file and project data
+- implemented Zeusfile handling
+- added an example Zeusfile
+- updated README, changelog and tests
+- sorting builtins alphabetically
+- added test 50% badge
+- updated LICENSE file
+- implemented zeusfile bootstrapping
+- implemented zeusfile to zeusDir migration
+
+## 29.03.17
+
+- added header watcher event to watch scripts and parse again on WRITE event
+- updated tests
+- working on parse error feedback
+
+## 27.03.17
+
+- handling strings for manipulating config
+- command arguments accept name=val syntax
+- added dateFormat for deadline and milestones to config
+- refactored addEvent to keep eventID and formatterID when reloading events
+
+## 22.03.17
+
+- added zeus create to bootstrap single command
+
 ## 20.03.17
 
 - warn about unknown config fields

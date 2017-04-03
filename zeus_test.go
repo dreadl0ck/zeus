@@ -1,6 +1,6 @@
 /*
  *  ZEUS - An Electrifying Build System
- *  Copyright (c) 2017 Philipp Mieden <dreadl0ck@protonmail.ch>
+ *  Copyright (c) 2017 Philipp Mieden <dreadl0ck [at] protonmail [dot] ch>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -32,11 +32,16 @@ import (
 // because it handles command and config parsing
 func TestMain(t *testing.T) {
 
+	Log.Info("TEST MAIN")
+
 	// switch to testing mode
 	testingMode = true
 
 	// parse tests dir on startup
 	zeusDir = "tests"
+
+	// ignore zeusfile in the project dir for now, it will be tested separately with TestZeusfile()
+	zeusfilePath = ""
 
 	Convey("When Starting main", t, func() {
 
@@ -154,16 +159,24 @@ func TestDeadlines(t *testing.T) {
 	})
 }
 
+func printEvents() {
+	for id, e := range projectData.Events {
+		Log.Info("ID: " + id + ", Name: " + e.Name + ", Command: " + e.Command)
+	}
+}
+
 func TestEvents(t *testing.T) {
 	Convey("Testing events", t, func() {
 
 		handleLine("events")
 
 		func() {
-			eventLock.Lock()
-			defer eventLock.Unlock()
+			projectDataMutex.Lock()
+			defer projectDataMutex.Unlock()
 
-			// there should be only the config and header watcher events
+			printEvents()
+
+			// there should be only the config and the script or zeusfile watcher event
 			So(len(projectData.Events), ShouldEqual, 2)
 		}()
 
@@ -179,8 +192,10 @@ func TestEvents(t *testing.T) {
 		var id string
 
 		func() {
-			eventLock.Lock()
-			defer eventLock.Unlock()
+			projectDataMutex.Lock()
+			defer projectDataMutex.Unlock()
+
+			printEvents()
 
 			So(len(projectData.Events), ShouldEqual, 3)
 		}()
@@ -198,8 +213,8 @@ func TestEvents(t *testing.T) {
 		time.Sleep(100 * time.Millisecond)
 
 		func() {
-			eventLock.Lock()
-			defer eventLock.Unlock()
+			projectDataMutex.Lock()
+			defer projectDataMutex.Unlock()
 
 			So(len(projectData.Events), ShouldEqual, 2)
 		}()
@@ -290,6 +305,8 @@ func TestKeybindings(t *testing.T) {
 		So(projectData.KeyBindings, ShouldHaveLength, 2)
 		handleLine("keys remove Ctrl-H")
 		So(projectData.KeyBindings, ShouldHaveLength, 1)
+		handleLine("keys remove Ctrl-S")
+		So(projectData.KeyBindings, ShouldBeEmpty)
 	})
 }
 
@@ -313,10 +330,32 @@ func TestDependencies(t *testing.T) {
 	})
 }
 
-// func TestBootstrap(t *testing.T) {
+func TestZeusfile(t *testing.T) {
+	Convey("Testing Zeusfile parsing", t, func() {
+		err := parseZeusfile("Zeusfile.yml")
+		So(err, ShouldBeNil)
+	})
+
+	var eventID string
+
+	// remove zeusfile watcher
+	projectDataMutex.Lock()
+	for id, e := range projectData.Events {
+		if e.Name == "zeusfile watcher" {
+			eventID = id
+		}
+	}
+	projectDataMutex.Unlock()
+
+	removeEvent(eventID)
+
+	// @TODO: test migration & bootstrapping
+}
+
+// func TestBootstrapFile(t *testing.T) {
 // 	bootstrapCommand()
 // }
 
-// func TestParser(t *testing.T) {
-
+// func TestBootstrapDir(t *testing.T) {
+// 	bootstrapCommand()
 // }

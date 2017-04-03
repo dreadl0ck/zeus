@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # ---------------------------------------------------------------------- #
-# @zeus-chain: clean -> configure -> build zeus
+# @zeus-chain: clean -> configure
 # @zeus-help: start the dev mode
 # ---------------------------------------------------------------------- #
 # zeus development mode script

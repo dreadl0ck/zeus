@@ -1,5 +1,5 @@
 // ZEUS - A Powerful Build System
-// Copyright (c) 2017 Philipp Mieden <dreadl0ck@protonmail.ch>
+// Copyright (c) 2017 Philipp Mieden <dreadl0ck [at] protonmail [dot] ch>
 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -46,14 +46,14 @@ func (as *AnsiStripper) Write(b []byte) (n int, err error) {
 // AtomicAnsiStripper is thread safe
 type AtomicAnsiStripper struct {
 	w     io.Writer
-	mutex *sync.Mutex
+	mutex sync.Mutex
 }
 
 // NewAtomic creates a new AtomicAnsiStripper
 func NewAtomic(w io.Writer) *AtomicAnsiStripper {
 	return &AtomicAnsiStripper{
 		w:     w,
-		mutex: &sync.Mutex{},
+		mutex: sync.Mutex{},
 	}
 }
 

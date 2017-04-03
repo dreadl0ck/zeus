@@ -1,6 +1,6 @@
 /*
  *  ZEUS - An Electrifying Build System
- *  Copyright (c) 2017 Philipp Mieden <dreadl0ck@protonmail.ch>
+ *  Copyright (c) 2017 Philipp Mieden <dreadl0ck [at] protonmail [dot] ch>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -63,21 +63,30 @@ func addAlias(name, command string) {
 	}
 
 	// add to project data
+	projectDataMutex.Lock()
 	projectData.Aliases[name] = command
+	projectDataMutex.Unlock()
+
 	projectData.update()
 
 	// add to completer
+	completerLock.Lock()
 	completer.Children = append(completer.Children, readline.PcItem(name, nil))
+	completerLock.Unlock()
 }
 
 func deleteAlias(name string) {
+	projectDataMutex.Lock()
 	delete(projectData.Aliases, name)
+	projectDataMutex.Unlock()
 }
 
 // print alias names to stdout
 func printAliases() {
 
 	var maxLen int
+
+	projectDataMutex.Lock()
 	for name := range projectData.Aliases {
 		if len(name) > maxLen {
 			maxLen = len(name)
@@ -87,6 +96,8 @@ func printAliases() {
 	for name, command := range projectData.Aliases {
 		l.Println(pad(name, maxLen+1), "=", command)
 	}
+
+	projectDataMutex.Unlock()
 }
 
 // handle alias shell command

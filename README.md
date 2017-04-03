@@ -8,10 +8,11 @@
                 An Electrifying Build System
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/dreadl0ck/zeus)](https://goreportcard.com/report/github.com/dreadl0ck/zeus)
-[![License](https://img.shields.io/aur/license/yaourt.svg)](https://raw.githubusercontent.com/dreadl0ck/zeus/master/docs/LICENSE)
+[![License](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://raw.githubusercontent.com/dreadl0ck/zeus/master/docs/LICENSE)
 [![Golang](https://img.shields.io/badge/Go-1.8-blue.svg)](https://golang.org)
 ![Linux](https://img.shields.io/badge/Supports-Linux-green.svg)
 ![macOS](https://img.shields.io/badge/Supports-macOS-green.svg)
+![coverage](https://img.shields.io/badge/coverage-50%25-yellow.svg)
 
 ZEUS is a modern build system featuring an *interactive shell*
 with *tab completion* and support for *keybindings*.
@@ -33,7 +34,7 @@ It also features an auto formatter for shell scripts, a *bootstrapping* function
 ZEUS can save and restore project specific data such as *events*,
 *keybindings*, *aliases*, *milestones*, *author*, *build number* and a project *deadline*.
 
-JSON is used for serialization of the ***zeus_config*** and ***zeus_data*** files.
+YAML is used for serialization of the ***zeus_config*** and ***zeus_data*** files.
 This makes them easy to read, edit and transparent,
 especially when working in a team and using version control.
 
@@ -248,8 +249,10 @@ zeus » clean -> build-amd64 -> deploy
 ## Globals
 
 Globals allow you to declare variables and functions in global scope and share them among all ZEUS scripts.
+
 This works by prepending the **globals.sh** script in the **zeus** directory to every command before execution.
 
+When using a Zeusfile, they can be declared in the *globals* setion.
 
 ## Aliases
 
@@ -304,7 +307,7 @@ Running *events* without params will print the current events:
 ```shell
 zeus » events
 custom event        a63d8659d6243630    WRITE               say wiki updated    .md               wiki/
-config event        58c41a66bf6efde4    WRITE               internal            .json               zeus/zeus_config.json
+config event        58c41a66bf6efde4    WRITE               internal            .yml               zeus/zeus_config.yml
 ```
 
 Note that you can also see the internal ZEUS events used for watching the config file,
@@ -598,6 +601,8 @@ DisableTimestamps     | bool   | disable timestamps when logging
 StopOnError           | bool   | stop script execution when theres an error inside a script
 DumpScriptOnError     | bool   | dump the currently processed script into a file if an error occurs
 
+> NOTE: when modifying the Debug or Colors field, you need to restart zeus in order for the changes to take effect. That's because the Log instance is a global variable, and manipulating it on the fly produces data races.
+
 ## Logging
 
 ZEUS can write its output into a logfile.
@@ -738,6 +743,26 @@ example:
 # @zeus-deps: command1 <arg1> <arg2>, command2, ...
 ```
 
+## Zeusfile
+
+Similiar to GNU Make, ZEUS allows adding all targets to a single file named Zeusfile.yml or Zeusfile.
+This is useful for small projects and you can still use the interactive shell if desired.
+
+The File follows the [YAML](http://yaml.org) specification,
+but tabs are allowed and will be replaced with spaces before parsing.
+
+There is an example Zeusfile in the tests directory.
+A watcher event is automatically created for parsing the file again on WRITE events.
+
+Use the globals section to export global variables and function to all commands.
+
+If you want to migrate to a zeus directory structure after a while, use the *migrate-zeusfile* builtin:
+
+```shell
+zeus » migrate-zeusfile
+migrated  10  commands from Zeusfile in:  4.575956ms
+```
+
 ## Internals
 
 For parsing the header fields, golang RE2 regular expressions are used.
@@ -771,12 +796,6 @@ After that the 1.0 Release is expected.
      A new header field will allow to run commands in the background,
      to speed up builds with lots of targets that dont have dependencies between them.
 
-- Zeusfile
-
-     Similiar to GNU Make, ZEUS will offer to add all targets to a single file.
-     This might be useful for small projects and you can still use the interactive shell if desired.
-     The File will follow the [YAML](http://yaml.org) specification.
-
 - Encrypted Storage
 
      Projects can contain sensitive information like encryption keys or passwords.
@@ -801,31 +820,32 @@ After that the 1.0 Release is expected.
 
 ## Bugs
 
-Multilevel Path tab completion is still broken, the reason for this seems to be an issue in the readline library.
+Multilevel Path tab completion is still broken, the reason for this seems to be an issue in the readline library. I forked readline and currently experiment with a solution.
 
 Also the Keybindings should be used with care, this is not stable yet.
 I observed them firing after being loaded from the project data.
 This means handling the runes for key detection needs to be improved.
-If the interactive shell misbehaves after loading project data with keybindings, remove them manually from the project data JSON.
+If the interactive shell misbehaves after loading project data with keybindings, remove them manually from the project data.
 
 > NOTE: Please notify me about any issues you encounter during testing.
 
 ## Project Stats
 
-    -------------------------------------------------------------------------------
-    Language                     files          blank        comment           code
-    -------------------------------------------------------------------------------
-    Go                              27           1116           1065           3895
-    Markdown                         6            301              0            690
-    JSON                             5              0              0            236
-    SASS                             1             21              1            143
-    Bourne Shell                    27             55            212             70
-    JavaScript                       1             17             21             51
-    HTML                             2              9              2             41
-    make                             1              6              6             10
-    -------------------------------------------------------------------------------
-    SUM:                            70           1525           1307           5136
-    -------------------------------------------------------------------------------
+     -------------------------------------------------------------------------------
+     Language                     files          blank        comment           code
+     -------------------------------------------------------------------------------
+     Go                              28           1182           1116           4119
+     Markdown                         5            307              0            696
+     JSON                             4              0              0            229
+     SASS                             1             21              1            143
+     YAML                             4              1              0            128
+     Bourne Shell                    27             54            200             71
+     JavaScript                       1             17             21             51
+     HTML                             2              9              2             41
+     make                             1              6              6             10
+     -------------------------------------------------------------------------------
+     SUM:                            73           1597           1346           5488
+     -------------------------------------------------------------------------------
 
 ## License
 

@@ -1,6 +1,6 @@
 /*
  *  ZEUS - An Electrifying Build System
- *  Copyright (c) 2017 Philipp Mieden <dreadl0ck@protonmail.ch>
+ *  Copyright (c) 2017 Philipp Mieden <dreadl0ck [at] protonmail [dot] ch>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -106,8 +106,12 @@ func addMilestone(args []string) {
 		return
 	}
 
+	configMutex.Lock()
+	format := conf.DateFormat
+	configMutex.Unlock()
+
 	// check if date is valid
-	t, err := time.Parse(conf.DateFormat, args[1])
+	t, err := time.Parse(format, args[1])
 	if err != nil {
 		Log.WithError(err).Error("failed to parse date")
 		return
@@ -123,8 +127,11 @@ func addMilestone(args []string) {
 		m = newMilestone(args[0], t, []string{})
 	}
 
+	projectDataMutex.Lock()
 	projectData.Milestones = append(projectData.Milestones, m)
+	projectDataMutex.Unlock()
 	projectData.update()
+
 	Log.Info("added milestone ", args[0])
 }
 
@@ -140,12 +147,14 @@ func setMilestone(name, percent string) {
 
 	var ok bool
 
+	projectDataMutex.Lock()
 	for i := range projectData.Milestones {
 		if projectData.Milestones[i].Name == name {
 			projectData.Milestones[i].PercentComplete = int(p)
 			ok = true
 		}
 	}
+	projectDataMutex.Unlock()
 
 	if !ok {
 		Log.Info("unknown milestone: ", name)
@@ -163,18 +172,25 @@ func removeMilestone(name string) {
 		return
 	}
 
+	projectDataMutex.Lock()
 	for i, m := range projectData.Milestones {
 		if m.Name == name {
 			projectData.Milestones = append(projectData.Milestones[:i], projectData.Milestones[i+1:]...)
+			projectDataMutex.Unlock()
 			projectData.update()
 			Log.Info("remove milestone ", name)
 			return
 		}
 	}
+	projectDataMutex.Unlock()
 }
 
 // print all milestones to stdout
 func listMilestones() {
+
+	projectDataMutex.Lock()
+	defer projectDataMutex.Unlock()
+
 	if len(projectData.Milestones) > 0 {
 
 		l.Println(cp.colorText + "Milestones:")

@@ -1,6 +1,6 @@
 /*
  *  ZEUS - An Electrifying Build System
- *  Copyright (c) 2017 Philipp Mieden <dreadl0ck@protonmail.ch>
+ *  Copyright (c) 2017 Philipp Mieden <dreadl0ck [at] protonmail [dot] ch>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -59,7 +59,7 @@ func readlineLoop() error {
 	)
 
 	if conf.HistoryFile {
-		historyFileName = workingDir + "/zeus/zeus_history"
+		historyFileName = zeusDir + "/zeus_history"
 	}
 
 	configMutex.Lock()
@@ -132,13 +132,21 @@ func handleLine(line string) {
 		l.Println(cp.colorText + asciiArt + ansi.Reset + "\n")
 		l.Println(cp.colorText + "Project Name: " + cp.colorPrompt + filepath.Base(workingDir) + cp.colorText + "\n")
 
+		configMutex.Lock()
 		if conf.PrintBuiltins {
 			printBuiltins()
 		}
+		configMutex.Unlock()
 		printCommands()
 
 	case infoCommand:
 		printProjectInfo()
+
+	case zeusfileCommand:
+		err := migrateZeusfile()
+		if err != nil {
+			Log.WithError(err).Error("failed to migrate zeusfile")
+		}
 
 	case formatCommand:
 		f.formatCommand()

@@ -1,6 +1,6 @@
 /*
  *  ZEUS - An Electrifying Build System
- *  Copyright (c) 2017 Philipp Mieden <dreadl0ck@protonmail.ch>
+ *  Copyright (c) 2017 Philipp Mieden <dreadl0ck [at] protonmail [dot] ch>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -180,6 +180,9 @@ func newCompleter() *readline.PrefixCompleter {
 				keyKombItems()...,
 			),
 		),
+		readline.PcItem("web"),
+		readline.PcItem("wiki"),
+		readline.PcItem(zeusfileCommand),
 		// shell commands that need file/dir completion
 		readline.PcItem("ls",
 			readline.PcItemDynamic(directoryCompleter),
@@ -198,6 +201,9 @@ func newCompleter() *readline.PrefixCompleter {
 		),
 		readline.PcItem("mkdir"),
 		readline.PcItem("touch"),
+		readline.PcItem("micro",
+			readline.PcItemDynamic(fileCompleter),
+		),
 	)
 
 	c.Dynamic = true
@@ -210,8 +216,8 @@ func newCompleter() *readline.PrefixCompleter {
 
 // complete eventIDs for removing events
 func eventIDCompleter(path string) (res []string) {
-	eventLock.Lock()
-	defer eventLock.Unlock()
+	projectDataMutex.Lock()
+	defer projectDataMutex.Unlock()
 	for _, e := range projectData.Events {
 		res = append(res, e.ID)
 	}

@@ -1,0 +1,28 @@
+buildnumber: 0
+deadline: ""
+milestones: []
+aliases: {}
+events:
+  93eeef416c10e4e0:
+    name: zeusfile watcher
+    id: 93eeef416c10e4e0
+    path: Zeusfile.yml
+    op: 2
+    fileextension: ""
+    command: internal
+  cb9e9f6561eb634e:
+    name: script watcher
+    id: cb9e9f6561eb634e
+    path: tests
+    op: 2
+    fileextension: .sh
+    command: internal
+  fcfa949a3e17462e:
+    name: config watcher
+    id: fcfa949a3e17462e
+    path: tests/zeus_config.yml
+    op: 2
+    fileextension: .yml
+    command: internal
+author: ""
+keybindings: {}

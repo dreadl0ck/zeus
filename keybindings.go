@@ -1,6 +1,6 @@
 /*
  *  ZEUS - An Electrifying Build System
- *  Copyright (c) 2017 Philipp Mieden <dreadl0ck@protonmail.ch>
+ *  Copyright (c) 2017 Philipp Mieden <dreadl0ck [at] protonmail [dot] ch>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -108,12 +108,16 @@ func handleKeysCommand(args []string) {
 			return
 		}
 
+		projectDataMutex.Lock()
 		projectData.KeyBindings[args[2]] = strings.Join(args[3:], " ")
+		projectDataMutex.Unlock()
 		projectData.update()
 
 		Log.Info("key binding added")
 	} else if args[1] == "remove" {
+		projectDataMutex.Lock()
 		delete(projectData.KeyBindings, args[2])
+		projectDataMutex.Unlock()
 		projectData.update()
 
 		Log.Info("key binding removed")

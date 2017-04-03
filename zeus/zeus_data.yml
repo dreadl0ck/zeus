@@ -1,0 +1,28 @@
+buildnumber: 0
+deadline: ""
+milestones: []
+aliases: {}
+events:
+  3ba6977be0cf945f:
+    name: zeusfile watcher
+    id: 3ba6977be0cf945f
+    path: Zeusfile.yml
+    op: 2
+    fileextension: ""
+    command: internal
+  25ca979ef88d0c55:
+    name: config watcher
+    id: 25ca979ef88d0c55
+    path: zeus/zeus_config.yml
+    op: 2
+    fileextension: .yml
+    command: internal
+  ced05aa368ccea2f:
+    name: formatter watcher
+    id: ced05aa368ccea2f
+    path: zeus
+    op: 2
+    fileextension: ""
+    command: internal
+author: Philipp Mieden
+keybindings: {}

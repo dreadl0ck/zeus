@@ -1,6 +1,6 @@
 /*
  *  ZEUS - An Electrifying Build System
- *  Copyright (c) 2017 Philipp Mieden <dreadl0ck@protonmail.ch>
+ *  Copyright (c) 2017 Philipp Mieden <dreadl0ck [at] protonmail [dot] ch>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -36,7 +36,7 @@ import (
 
 const (
 	// current zeus version
-	version = "0.1"
+	version = "0.7"
 )
 
 var (
@@ -50,7 +50,8 @@ var (
 	commandMutex = &sync.Mutex{}
 
 	// readline auto completion
-	completer = newCompleter()
+	completer     = newCompleter()
+	completerLock = &sync.Mutex{}
 
 	// assets folder
 	assetBox = rice.MustFindBox("assets")
@@ -60,7 +61,6 @@ var (
 
 	// project data
 	projectData *data
-	eventLock   = &sync.Mutex{}
 
 	// shell formatter
 	f = newFormatter()
@@ -92,30 +92,55 @@ func main() {
 
 	var cLog = Log.WithField("prefix", "main")
 
-	// check if zeus directory exists
-	stat, err := os.Stat(zeusDir)
-	if err != nil {
-		if len(os.Args) > 1 {
-			if os.Args[1] == "bootstrap" {
-				bootstrapCommand()
+	if len(os.Args) > 1 {
+		if os.Args[1] == bootstrapCommand {
+			if len(os.Args) > 2 {
+				switch os.Args[2] {
+				case "file":
+					runBootstrapFileCommand()
+				case "dir":
+					runBootstrapDirCommand()
+				}
 				return
 			}
+			printBootstrapCommandUsageErr()
+			return
 		}
-
-		if len(os.Args) > 2 {
-			if os.Args[1] == "makefile" && os.Args[2] == "migrate" {
-				migrateMakefile()
-				return
-			}
-		}
-		cLog.WithError(err).Error("zeus directory does not exist!")
-		cLog.Info("run 'zeus bootstrap' to create a default one, or 'zeus makefile migrate' if you want to migrate from a GNU Makefile.")
-		os.Exit(1)
 	}
 
-	// make sure its a directory
-	if !stat.IsDir() {
-		cLog.Fatal("zeus is not a directory")
+	if len(os.Args) > 2 {
+		if os.Args[1] == "makefile" && os.Args[2] == "migrate" {
+			migrateMakefile()
+			return
+		}
+	}
+
+	// check if zeus directory or Zeusfile exists
+	stat, err := os.Stat(zeusDir)
+	if err != nil {
+		if stat, err = os.Stat(zeusfilePath); err != nil {
+			if stat, err = os.Stat("Zeusfile"); err != nil {
+				cLog.WithError(err).Error("no zeus directory or Zeusfile found.")
+				cLog.Info("run 'zeus bootstrap dir' or 'zeus bootstrap file' to create a default one, or 'zeus makefile migrate' if you want to migrate from a GNU Makefile.")
+				os.Exit(1)
+			} else {
+				// make sure its a file
+				if stat.IsDir() {
+					cLog.Fatal("Zeusfile is not a file")
+
+				}
+			}
+		} else {
+			// make sure its a file
+			if stat.IsDir() {
+				cLog.Fatal(zeusfilePath + " is not a file")
+			}
+		}
+	} else {
+		// make sure its a directory
+		if !stat.IsDir() {
+			cLog.Fatal("zeus/ is not a directory")
+		}
 	}
 
 	clearScreen()
@@ -126,14 +151,6 @@ func main() {
 		cLog.WithError(err).Debug("error looking for project data")
 		projectData = newData()
 	}
-
-	var (
-		configEventID    = cleanConfigEvent()
-		formatterEventID = cleanFormatterEvent()
-	)
-
-	// load persisted events from project data
-	loadEvents()
 
 	// look for project config
 	conf, err = parseProjectConfig()
@@ -150,6 +167,9 @@ func main() {
 			conf.update()
 		}
 	}
+
+	// load persisted events from project data
+	loadEvents()
 
 	// validate aliases
 	for name := range projectData.Aliases {
@@ -232,11 +252,11 @@ func main() {
 	if conf.Interactive {
 
 		// watch config for changes
-		go conf.watch(configEventID)
+		go conf.watch("")
 
 		if conf.AutoFormat {
 			// watch zeus directory for changes
-			go f.watchzeusDir(formatterEventID)
+			go f.watchzeusDir("")
 		}
 	}
 
@@ -249,8 +269,25 @@ func main() {
 		printMakefileCommandOverview()
 	}
 
-	// create commandList
-	findCommands()
+	// check if a Zeusfile for the project exists
+	err = parseZeusfile(zeusfilePath)
+	if err != nil {
+
+		// check if a Zeusfile for the project exists without the .yml extension
+		err = parseZeusfile("Zeusfile")
+		if err != nil {
+
+			Log.Debug("no Zeusfile found. parsing zeusDir...")
+
+			// create commandList from ZEUS dir
+			findCommands()
+
+			// watch scripts directory in interactive mode
+			if conf.Interactive {
+				go watchScripts("")
+			}
+		}
+	}
 
 	// handle commandline arguments
 	handleArgs()
@@ -266,8 +303,6 @@ func main() {
 			// set shell prompt to project name
 			zeusPrompt = filepath.Base(workingDir)
 		}
-
-		go watchHeaders()
 
 		// handle OS Signals
 		// all child processes need to be killed when theres an error
@@ -348,8 +383,11 @@ func handleArgs() {
 		default:
 			handleSignals()
 
+			commandMutex.Lock()
+
 			// check if the command exists
 			if cmd, ok := commands[os.Args[1]]; ok {
+				commandMutex.Unlock()
 
 				validCommand = true
 				numCommands = getTotalCommandCount(cmd)
@@ -358,6 +396,8 @@ func handleArgs() {
 				if err != nil {
 					cLog.WithError(err).Fatal("failed to execute " + cmd.name)
 				}
+			} else {
+				commandMutex.Unlock()
 			}
 
 			// check if its a commandchain supplied with "" or ''

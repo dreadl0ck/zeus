@@ -1,6 +1,6 @@
 /*
  *  ZEUS - An Electrifying Build System
- *  Copyright (c) 2017 Philipp Mieden <dreadl0ck@protonmail.ch>
+ *  Copyright (c) 2017 Philipp Mieden <dreadl0ck [at] protonmail [dot] ch>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -44,10 +44,14 @@ func handleAuthorCommand(args []string) {
 			printAuthorUsageErr()
 			return
 		}
+		projectDataMutex.Lock()
 		projectData.Author = strings.Join(args[2:], " ")
+		projectDataMutex.Unlock()
 		projectData.update()
 	case "remove":
+		projectDataMutex.Lock()
 		projectData.Author = ""
+		projectDataMutex.Unlock()
 		projectData.update()
 	default:
 		printAuthorUsageErr()
