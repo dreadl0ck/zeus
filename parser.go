@@ -259,6 +259,8 @@ func (p *parser) parseScript(path string, job *parseJob) (*commandData, error) {
 					Log.Fatal("invalid zeus-chain header field in line ", c, " : ", line)
 				}
 
+				d.Chain = strings.TrimSpace(trimZeusPrefix(line))
+
 				break
 
 			// parse multiline help entry (20 dashes minimum)
