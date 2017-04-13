@@ -1,4 +1,4 @@
-buildnumber: 6
+buildnumber: 7
 deadline: ""
 milestones: []
 aliases: {}
@@ -16,13 +16,6 @@ events:
     path: zeus/zeus_config.yml
     op: 2
     fileextension: .yml
-    command: internal
-  2585d93ebc12a866:
-    name: zeusfile watcher
-    id: 2585d93ebc12a866
-    path: Zeusfile
-    op: 2
-    fileextension: ""
     command: internal
   ba6d90e095e03a0b:
     name: script watcher

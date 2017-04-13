@@ -233,24 +233,32 @@ func main() {
 		Log.Fatal(ErrUnknownColorProfile, " : ", conf.ColorProfile)
 	}
 
-	// print ascii art
-	asciiArt, err = assetBox.String("ascii_art.txt")
-	if err != nil {
-		cLog.WithError(err).Fatal("failed to get ascii art from rice box")
-	}
-	l.Println(cp.colorText + asciiArt + "\n")
+	// only print info when using the interactive shell
+	if len(os.Args) == 1 {
 
-	// set working directory
-	workingDir, err = os.Getwd()
-	if err != nil {
-		cLog.WithError(err).Fatal("failed to get current directory name")
-	}
+		// print ascii art
+		asciiArt, err = assetBox.String("ascii_art.txt")
+		if err != nil {
+			cLog.WithError(err).Fatal("failed to get ascii art from rice box")
+		}
+		l.Println(cp.colorText + asciiArt + "\n")
 
-	l.Println(cp.colorText + "Project Name: " + cp.colorPrompt + filepath.Base(workingDir) + cp.colorText + "\n")
-	printAuthor()
+		// set working directory
+		workingDir, err = os.Getwd()
+		if err != nil {
+			cLog.WithError(err).Fatal("failed to get current directory name")
+		}
 
-	if projectData.BuildNumber > 0 {
-		l.Println(cp.colorText + "BuildNumber: " + cp.colorPrompt + strconv.Itoa(projectData.BuildNumber) + cp.colorText + "\n")
+		l.Println(cp.colorText + "Project Name: " + cp.colorPrompt + filepath.Base(workingDir) + cp.colorText + "\n")
+		printAuthor()
+
+		if projectData.BuildNumber > 0 {
+			l.Println(cp.colorText + "BuildNumber: " + cp.colorPrompt + strconv.Itoa(projectData.BuildNumber) + cp.colorText + "\n")
+		}
+
+		// project infos
+		printDeadline()
+		listMilestones()
 	}
 
 	// start watchers when running in interactive mode
@@ -264,10 +272,6 @@ func main() {
 			go f.watchzeusDir("")
 		}
 	}
-
-	// project infos
-	printDeadline()
-	listMilestones()
 
 	// print makefile command overview
 	if conf.MakefileOverview {

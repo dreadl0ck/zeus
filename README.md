@@ -796,6 +796,10 @@ Heres a simple overview of the architecure:
 
 ![alt text](https://github.com/dreadl0ck/zeus/blob/master/wiki/docs/zeus_overview.jpg "ZEUS Overview")
 
+## Notes
+
+- spawned jobs inside a script (for example with: &) will cause ZEUS to wait for them to return (the exec.Wait() call waits for all child processes to complete)
+
 ## Coming Soon
 
 The listed features will be implemented over the next weeks.
@@ -810,7 +814,7 @@ After that the 1.0 Release is expected.
 - Parallel Builds
 
      A new header field will allow to run commands in the background,
-     to speed up builds with lots of targets that dont have dependencies between them.
+     to speed up builds with lots of targets that dont have dependencies between them
 
 - Encrypted Storage
 

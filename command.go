@@ -774,7 +774,10 @@ func findCommands() {
 		println()
 	}
 
-	l.Println(cp.colorText+"initialized "+cp.colorPrompt, len(commands), cp.colorText+" commands in: "+cp.colorPrompt, time.Now().Sub(start), ansi.Reset+"\n")
+	// only print info when using the interactive shell
+	if len(os.Args) == 1 {
+		l.Println(cp.colorText+"initialized "+cp.colorPrompt, len(commands), cp.colorText+" commands in: "+cp.colorPrompt, time.Now().Sub(start), ansi.Reset+"\n")
+	}
 
 	// check if custom command conflicts with builtin name
 	for _, name := range builtins {
