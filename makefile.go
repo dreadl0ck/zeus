@@ -127,7 +127,9 @@ func migrateMakefile() {
 				line = makefileShellCommand.ReplaceAll(line, replace)
 
 				// replace all make <command> with zeus <command>
-				line = makeCommand.ReplaceAll(line, append([]byte("g"), makeCommand.Find(line)...))
+				if makeCommand.Match(line) {
+					line = bytes.Replace(line, []byte("make"), []byte("zeus"), -1)
+				}
 
 				// convert if statements
 				if bytes.HasSuffix(line, []byte("\\")) {

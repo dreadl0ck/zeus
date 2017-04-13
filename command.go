@@ -286,7 +286,7 @@ func (c *command) Run(args []string) error {
 
 			// create command instance and pass new script to bash
 			if conf.StopOnError {
-				cmd = exec.Command(p.interpreter, []string{"-e", "-c", script}...)
+				cmd = exec.Command(p.interpreter, "-e", "-c", script)
 			} else {
 				cmd = exec.Command(p.interpreter, "-c", script)
 			}
@@ -341,7 +341,7 @@ func (c *command) Run(args []string) error {
 	err = cmd.Wait()
 	if err != nil {
 
-		// when are no globals, read the command script directly and print it with line numbers to stdout for easy debugging
+		// when there are no globals, read the command script directly and print it with line numbers to stdout for easy debugging
 		if script == "" {
 			scriptBytes, err := ioutil.ReadFile(c.path)
 			if err != nil {
@@ -362,7 +362,11 @@ func (c *command) Run(args []string) error {
 	deleteProcess(id)
 
 	// print stats
-	l.Println(printPrompt()+"["+strconv.Itoa(currentCommand)+"/"+strconv.Itoa(numCommands)+"] finished "+cp.colorPrompt+c.name+cp.colorText+" in"+cp.colorPrompt, time.Now().Sub(start), ansi.Reset)
+	l.Println(
+		printPrompt()+"["+strconv.Itoa(currentCommand)+"/"+strconv.Itoa(numCommands)+"] finished "+cp.colorPrompt+c.name+cp.colorText+" in"+cp.colorPrompt,
+		time.Now().Sub(start),
+		ansi.Reset,
+	)
 
 	return nil
 }
@@ -403,10 +407,14 @@ func addCommand(path string, force bool) error {
 	// job done
 	p.RemoveJob(job)
 
-	// Add the completer.
-	completerLock.Lock()
-	completer.Children = append(completer.Children, cmd.PrefixCompleter)
-	completerLock.Unlock()
+	// add to the completer
+	// when being forced the command has already been parsed
+	// so we dont need to add it again
+	if !force {
+		completerLock.Lock()
+		completer.Children = append(completer.Children, cmd.PrefixCompleter)
+		completerLock.Unlock()
+	}
 
 	commandMutex.Lock()
 	// add to command map
@@ -702,8 +710,8 @@ func findCommands() {
 						l.Fatal(err)
 					}
 
-					// add newline to prevent parse errors
-					globalsContent = append(g, []byte("\n")...)
+					// append a newline to prevent parse errors
+					globalsContent = append(g, []byte("\n\n")...)
 					return nil
 				}
 

@@ -18,7 +18,7 @@ PortWebPanel: 8080
 PortGlueServer: 0
 ExitOnInterrupt: true
 DisableTimestamps: false
-PrintBuiltins: true
+PrintBuiltins: false
 StopOnError: true
 DumpScriptOnError: true
 DateFormat: 02-01-2006

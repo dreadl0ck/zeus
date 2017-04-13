@@ -21,6 +21,7 @@ package main
 import (
 	"os"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -91,6 +92,10 @@ func init() {
 func main() {
 
 	var cLog = Log.WithField("prefix", "main")
+
+	if runtime.GOOS == "windows" {
+		cLog.Fatal("windows is not (yet) supported.")
+	}
 
 	if len(os.Args) > 1 {
 		if os.Args[1] == bootstrapCommand {

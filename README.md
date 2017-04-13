@@ -254,6 +254,9 @@ This works by prepending the **globals.sh** script in the **zeus** directory to 
 
 When using a Zeusfile, they can be declared in the *globals* setion.
 
+> NOTE: if you need to access globals variables or function from your **.bashrc / .bash_profile**,
+> simply add 'source ~/.bash_profile' to your **zeus/globals.sh**
+
 ## Aliases
 
 You can specify aliases for ZEUS or shell commands.
@@ -535,6 +538,19 @@ available GNUMake Commands:
 
 This might be helpful when switching to ZEUS or when using both for whatever reason.
 
+Currently the following actions are performed:
+
+- globals will be extracted and put into the **zeus/globals.sh** file
+- variable conversion from '$(VAR)' to the bash dialect: '$VAR'
+- shell commands will be converted from '@command' to 'command'
+- calls to 'make target' will be replaced with 'zeus target'
+- if statements will be converted to bash dialect
+
+> NOTE:
+> Makefile migration is not yet perfect!
+> Always look at the generated files, and check if the output makes sense.
+> Especially automatic migration of make target arguments has not been implemented yet.
+> Also switch statement conversion is currently missing.
 
 ## Makefile Migration Assistance
 

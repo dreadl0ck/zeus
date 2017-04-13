@@ -105,7 +105,7 @@ func newConfig() *config {
 		PortWebPanel:        8080,
 		ExitOnInterrupt:     true,
 		DisableTimestamps:   false,
-		PrintBuiltins:       true,
+		PrintBuiltins:       false,
 		StopOnError:         true,
 		DumpScriptOnError:   true,
 		// german date format
