@@ -23,6 +23,7 @@ import (
 	"os"
 	"os/exec"
 	"sort"
+	"strings"
 )
 
 // contants for builtin names
@@ -50,6 +51,7 @@ const (
 	createCommand     = "create"
 	bootstrapCommand  = "bootstrap"
 	zeusfileCommand   = "migrate-zeusfile"
+	gitFilterCommand  = "git-filter"
 )
 
 var builtins = map[string]string{
@@ -75,6 +77,7 @@ var builtins = map[string]string{
 	wikiCommand:       "wiki",
 	createCommand:     "create",
 	zeusfileCommand:   "migrate zeusfile into a zeus directory",
+	gitFilterCommand:  "filter git log output",
 }
 
 // executed when running the info command
@@ -170,7 +173,7 @@ func printCommands() {
 // format argStr
 func getArgumentString(args []*commandArg) (argStr string) {
 	for _, arg := range args {
-		argStr += "[" + arg.name + ":" + arg.argType.String() + "] "
+		argStr += "[" + arg.name + ":" + strings.Title(arg.argType.String()) + "] "
 	}
 	return
 }
@@ -186,5 +189,31 @@ func listGlobals() {
 		l.Println(string(c))
 	} else {
 		l.Println("no globals defined.")
+	}
+}
+
+func printGitFilterCommandUsageErr() {
+	l.Println("invalid usage")
+	l.Println("usage: git-filter [keyword]")
+}
+
+func handleGitFilterCommand(args []string) {
+
+	out, err := exec.Command("git", "log", "--pretty=format:[%cd] author: %cn, subject: %s").CombinedOutput()
+	if err != nil {
+		l.Println(err)
+		return
+	}
+
+	if len(args) < 2 {
+		// print all
+		l.Println(string(out))
+		return
+	}
+
+	for _, line := range strings.Split(string(out), "\n") {
+		if strings.Contains(line, args[1]) {
+			l.Println(line)
+		}
 	}
 }

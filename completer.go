@@ -150,6 +150,7 @@ func newCompleter() *readline.PrefixCompleter {
 			readline.PcItem("remove"),
 			readline.PcItem("add"),
 		),
+		readline.PcItem(gitFilterCommand),
 		readline.PcItem(deadlineCommand,
 			readline.PcItem("set"),
 			readline.PcItem("remove"),

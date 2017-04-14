@@ -1,12 +1,12 @@
 MakefileOverview: true
-AutoFormat: true
+AutoFormat: false
 FixParseErrors: true
 Colors: true
 PassCommandsToShell: true
 WebInterface: false
 Interactive: true
-LogToFileColor: true
-LogToFile: true
+LogToFileColor: false
+LogToFile: false
 Debug: false
 RecursionDepth: 1
 ProjectNamePrompt: true

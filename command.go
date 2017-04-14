@@ -21,6 +21,7 @@ package main
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -225,13 +226,40 @@ func (c *command) Run(args []string) error {
 		}
 	}
 
+	Log.Debug("injecting args into script: ", args, " cmd: ", c.name)
+
+	// parse arguments and add them to the script
+	var argBuf bytes.Buffer
+	for i, a := range args {
+		if i < len(c.args) {
+
+			// handle argument labels
+			if strings.Contains(a, "=") {
+				if !strings.HasPrefix(a, c.args[i].name+"=") {
+					Log.Error("expected label: " + c.args[i].name + ", got: " + a)
+					return ErrInvalidArgumentLabel
+				}
+				a = strings.TrimPrefix(a, c.args[i].name+"=")
+			}
+
+			if !validArgType(a, c.args[i].argType) {
+				cLog.WithError(ErrInvalidArgumentType).WithFields(logrus.Fields{
+					"value":   a,
+					"argName": c.args[i].name,
+				}).Error("expected type: ", c.args[i].argType.String())
+				return ErrInvalidArgumentType
+			}
+			argBuf.WriteString(c.args[i].name + "=" + a + "\n")
+		}
+	}
+
 	var (
 		cmd    *exec.Cmd
 		script string
 	)
 
 	if c.runCommand != "" {
-		script += string(globalsContent) + "\n#!/bin/bash\n" + c.runCommand
+		script += string(globalsContent) + "\n#!/bin/bash\n" + argBuf.String() + "\n" + c.runCommand
 		if conf.StopOnError {
 			cmd = exec.Command(p.interpreter, []string{"-e", "-c", script}...)
 		} else {
@@ -249,33 +277,6 @@ func (c *command) Run(args []string) error {
 		target, err := ioutil.ReadFile(c.path)
 		if err != nil {
 			l.Fatal(err)
-		}
-
-		Log.Debug("injecting args into script: ", args, " cmd: ", c.name)
-
-		// parse arguments and add them to the script
-		var argBuf bytes.Buffer
-		for i, a := range args {
-			if i < len(c.args) {
-
-				// handle argument labels
-				if strings.Contains(a, "=") {
-					if !strings.HasPrefix(a, c.args[i].name+"=") {
-						Log.Error("expected label: " + c.args[i].name + ", got: " + a)
-						return ErrInvalidArgumentLabel
-					}
-					a = strings.TrimPrefix(a, c.args[i].name+"=")
-				}
-
-				if !validArgType(a, c.args[i].argType) {
-					cLog.WithError(ErrInvalidArgumentType).WithFields(logrus.Fields{
-						"value":   a,
-						"argName": c.args[i].name,
-					}).Error("expected type: ", c.args[i].argType.String())
-					return ErrInvalidArgumentType
-				}
-				argBuf.WriteString(c.args[i].name + "=" + a + "\n")
-			}
 		}
 
 		// prepend projectGlobals if not empty
@@ -512,6 +513,12 @@ func (job *parseJob) newCommand(path string) (*command, error) {
 		return nil, ErrEmptyName
 	}
 
+	// init completer and add parameter labels
+	pc := readline.PcItem(name)
+	for _, arg := range args {
+		pc.Children = append(pc.Children, readline.PcItem(arg.name+"="))
+	}
+
 	return &command{
 		path:            path,
 		name:            name,
@@ -519,7 +526,7 @@ func (job *parseJob) newCommand(path string) (*command, error) {
 		manual:          d.Manual,
 		help:            d.Help,
 		commandChain:    commandChain,
-		PrefixCompleter: readline.PcItem(name),
+		PrefixCompleter: pc,
 		buildNumber:     d.BuildNumber,
 		dependencies:    d.Dependencies,
 		outputs:         d.Outputs,
@@ -835,4 +842,26 @@ func executeCommand(command string) {
 			}
 		}
 	}
+}
+
+func (c *command) dump() {
+	fmt.Println("-----------------------------------------------------------")
+	fmt.Println("name:", c.name)
+	fmt.Println("path:", c.path)
+	for i, arg := range c.args {
+		fmt.Println("arg"+strconv.Itoa(i)+":", arg.name, "~>", arg.argType.String())
+	}
+	fmt.Println("params:", c.params)
+	fmt.Println("help:", c.help)
+	fmt.Println("manual:", c.manual)
+	fmt.Println("commandChain:")
+	for i, cmd := range c.commandChain {
+		fmt.Println("command" + strconv.Itoa(i) + ":")
+		cmd.dump()
+	}
+	fmt.Println("buildNumber:", c.buildNumber)
+	fmt.Println("dependencies:", c.dependencies)
+	fmt.Println("outputs:", c.outputs)
+	fmt.Println("runCommand:", c.runCommand)
+	fmt.Println("-----------------------------------------------------------")
 }

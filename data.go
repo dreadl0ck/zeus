@@ -129,7 +129,8 @@ func parseProjectData() (*data, error) {
 
 	err = yaml.Unmarshal(contents, d)
 	if err != nil {
-		Log.WithError(err).Error("failed to unmarshal zeus data - invalid YAML: " + string(contents))
+		Log.WithError(err).Error("failed to unmarshal zeus data - invalid YAML:")
+		printFileContents(contents)
 		return nil, err
 	}
 

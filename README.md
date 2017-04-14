@@ -67,9 +67,11 @@ I recommend using the solarized dark terminal theme, if you want to use the dark
 From github:
 
 ```shell
-$ go get -u github.com/dreadl0ck/zeus
+$ go get -v -u github.com/dreadl0ck/zeus
 ...
 ```
+
+> NOTE: This might take a while, because all assets are embedded into the binary to make it position independent. Time to get a coffee
 
 ZEUS uses ZEUS as its build system!
 After the initial install simply run **zeus** inside the project directory,
@@ -150,24 +152,30 @@ $ zeus
 
 the following builtin commands are available:
 
-Command      | Description
------------- | ------------------------------------------------------------------------
-*format*     | run the formatter for all scripts
-*config*     | print or change the current config
-*deadline*   | print or change the deadline
-*version*    | print version
-*data*       | print the current project data
-*makefile*   | show or migrate GNU Makefile contents
-*milestones* | print, add or remove the milestones
-*events*     | print, add or remove events
-*exit*       | leave the interactive shell
-*help*       | print the command overview or the manualtext for a specific command
-*info*       | print project info (lines of code + latest git commits)
-*author*     | print or change project author name
-*clear*      | clear the terminal screen
-*globals*    | print the current globals
-*alias*      | print, add or remove aliases
-*color*      | change the current ANSI color profile
+Command            | Description
+------------------ | ------------------------------------------------------------------------
+*format*           | run the formatter for all scripts
+*config*           | print or change the current config
+*deadline*         | print or change the deadline
+*version*          | print version
+*data*             | print the current project data
+*makefile*         | show or migrate GNU Makefile contents
+*milestones*       | print, add or remove the milestones
+*events*           | print, add or remove events
+*exit*             | leave the interactive shell
+*help*             | print the command overview or the manualtext for a specific command
+*info*             | print project info (lines of code + latest git commits)
+*author*           | print or change project author name
+*clear*            | clear the terminal screen
+*globals*          | print the current globals
+*alias*            | print, add or remove aliases
+*color*            | change the current ANSI color profile
+*keys*             | manage keybindings
+*web*              | start webinterface
+*wiki*             | start web wiki
+*create*           | bootstrap a single command
+*migrate-zeusfile* | migrate Zeusfile to zeusDir
+*git-filter*       | filter git log output
 
 you can list them by using the **builtins** command.
 
@@ -488,15 +496,17 @@ Argument typechecking can be disabled in the config, by setting the **AllowUntyp
 Here's an example of how this looks like in the interactive shell:
 
 ```
-├~» build [name:string] [arch:string] [verbose:bool]
+├~» build [name:String] [arch:String] [verbose:Bool]
 ├──── chain:            (clean all -> configure)
 ├──── help:             build the executable for the specified platform
-├~» deploy [server:string] [user:string] [container:string]
+├~» deploy [server:String] [user:String] [container:String]
 ├──── chain:            (clean -> configure)
 ├──── help:             deploy to the specified server ip, as the user using the named docker container
 ```
 
 For how to declare arguments in the ZEUS header, please check the headers section.
+
+> NOTE: if you dont remember the order of the arguments, hit tab to get completion for the labels
 
 ## Auto Sanitizing
 

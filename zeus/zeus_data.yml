@@ -1,28 +1,21 @@
-buildnumber: 7
+buildnumber: 0
 deadline: ""
 milestones: []
 aliases: {}
 events:
-  02ebaf62c61df0f1:
-    name: formatter watcher
-    id: 02ebaf62c61df0f1
-    path: zeus
+  57fc067c6bef8ff9:
+    name: zeusfile watcher
+    id: 57fc067c6bef8ff9
+    path: Zeusfile.yml
     op: 2
     fileextension: ""
     command: internal
-  4d6a6c3119196af8:
+  879685dbb67743bb:
     name: config watcher
-    id: 4d6a6c3119196af8
+    id: 879685dbb67743bb
     path: zeus/zeus_config.yml
     op: 2
     fileextension: .yml
-    command: internal
-  ba6d90e095e03a0b:
-    name: script watcher
-    id: ba6d90e095e03a0b
-    path: zeus
-    op: 2
-    fileextension: .sh
     command: internal
 author: ""
 keybindings: {}

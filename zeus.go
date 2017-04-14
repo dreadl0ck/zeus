@@ -384,6 +384,8 @@ func handleArgs() {
 
 		case makefileCommand:
 			handleMakefileCommand(os.Args[1:])
+		case gitFilterCommand:
+			handleGitFilterCommand(os.Args[1:])
 
 		case createCommand:
 			handleCreateCommand(os.Args[1:])

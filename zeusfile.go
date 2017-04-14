@@ -105,6 +105,11 @@ func parseZeusfile(path string) error {
 
 		commandMutex.Lock()
 
+		// add parameter labels to completer
+		for _, arg := range cmd.args {
+			cmd.PrefixCompleter.Children = append(cmd.PrefixCompleter.Children, readline.PcItem(arg.name+"="))
+		}
+
 		// Add the completer.
 		completer.Children = append(completer.Children, cmd.PrefixCompleter)
 

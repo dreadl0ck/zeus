@@ -206,6 +206,8 @@ func handleLine(line string) {
 			handleAliasCommand(args)
 		case deadlineCommand:
 			handleDeadlineCommand(args)
+		case gitFilterCommand:
+			handleGitFilterCommand(args)
 		case milestonesCommand:
 			handleMilestonesCommand(args)
 		case helpCommand:

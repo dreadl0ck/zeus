@@ -203,7 +203,8 @@ func parseProjectConfig() (*config, error) {
 
 	err = yaml.Unmarshal(contents, c)
 	if err != nil {
-		Log.WithError(err).Fatal("failed to unmarshal confg - invalid YAML")
+		Log.WithError(err).Fatal("failed to unmarshal confg - invalid YAML:")
+		printFileContents(contents)
 	}
 
 	c.handle()
@@ -244,10 +245,9 @@ func (c *config) update() {
 	configMutex.Lock()
 	defer configMutex.Unlock()
 
-	// make it pretty
 	b, err := yaml.Marshal(conf)
 	if err != nil {
-		Log.WithError(err).Fatal("failed to marshal config")
+		Log.WithError(err).Fatal("failed to marshal config YAM:")
 	}
 
 	if _, err := os.Stat(zeusDir); err != nil {

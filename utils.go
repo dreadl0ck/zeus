@@ -23,6 +23,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -31,6 +32,8 @@ import (
 	"strings"
 	"sync"
 	"syscall"
+
+	yaml "gopkg.in/yaml.v2"
 
 	gosxnotifier "github.com/deckarep/gosx-notifier"
 	"github.com/fsnotify/fsnotify"
@@ -411,4 +414,24 @@ func watchScripts(eventID string) {
 	if err != nil {
 		Log.WithError(err).Error("failed to watch script headers")
 	}
+}
+
+// dump datastructure as YAML - useful for debugging
+func dumpYAML(i interface{}) {
+	out, err := yaml.Marshal(i)
+	if err != nil {
+		log.Println("ERROR: failed to marshal to YAML:", err)
+		return
+	}
+
+	fmt.Println(string(out))
+}
+
+// print file content with linenumbers to stdout - useful for debugging
+func printFileContents(data []byte) {
+	l.Println("| ------------------------------------------------------------ |")
+	for i, line := range strings.Split(string(data), "\n") {
+		l.Println(pad(strconv.Itoa(i+1), 3), line)
+	}
+	l.Println("| ------------------------------------------------------------ |")
 }
