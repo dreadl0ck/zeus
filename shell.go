@@ -240,7 +240,7 @@ func handleLine(line string) {
 				// check if its an alias
 				if command, ok := projectData.Aliases[commandName]; ok {
 
-					executeCommand(command)
+					handleLine(command)
 
 					// reset counters
 					numCommands = 0

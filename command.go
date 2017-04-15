@@ -806,43 +806,6 @@ func findCommands() {
 	}
 }
 
-// run an alias command (allows shell commands)
-// first checks for zeus commands and builtins then passes it to the shell
-func executeCommand(command string) {
-
-	s := strings.Split(command, " ")
-	if len(s) > 0 {
-
-		// check if first command is known to zeus
-		// check user commands
-		if _, ok := commands[s[0]]; ok {
-			executeCommandChain(command)
-			return
-		}
-
-		// check builtins
-		if _, ok := builtins[s[0]]; ok {
-			println()
-			handleLine(command)
-			return
-		}
-
-		if conf.PassCommandsToShell {
-
-			// not an alias - pass to shell
-			var err error
-			if len(s) > 1 {
-				err = passCommandToShell(s[0], s[1:])
-			} else {
-				err = passCommandToShell(s[0], []string{})
-			}
-			if err != nil {
-				l.Println(err)
-			}
-		}
-	}
-}
-
 func (c *command) dump() {
 	fmt.Println("-----------------------------------------------------------")
 	fmt.Println("name:", c.name)

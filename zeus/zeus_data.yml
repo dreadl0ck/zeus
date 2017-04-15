@@ -1,7 +1,9 @@
 BuildNumber: 0
 Deadline: ""
 Milestones: []
-Aliases: {}
+Aliases:
+  gs: git status
+  td: todo
 Events:
   3cb4cb7003edc153:
     name: config watcher
@@ -19,4 +21,4 @@ Events:
     command: internal
 Author: ""
 KeyBindings:
-  Ctrl-T: todo
+  Ctrl-T: clean -> test

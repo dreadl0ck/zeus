@@ -120,7 +120,10 @@ func parseZeusfile(path string) error {
 		Log.Debug("added " + cmd.name + " to the command map")
 	}
 
-	l.Println(cp.colorText+"initialized "+cp.colorPrompt, len(commands), cp.colorText+" commands from Zeusfile in: "+cp.colorPrompt, time.Now().Sub(start), ansi.Reset+"\n")
+	// only print info when using the interactive shell
+	if len(os.Args) == 1 {
+		l.Println(cp.colorText+"initialized "+cp.colorPrompt, len(commands), cp.colorText+" commands from Zeusfile in: "+cp.colorPrompt, time.Now().Sub(start), ansi.Reset+"\n")
+	}
 
 	// watch file for changes in interactive mode
 	if conf.Interactive {

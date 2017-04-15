@@ -33,11 +33,10 @@ var (
 			return
 		}
 
-		// Log.Info(key)
-
 		if keyName, ok := keyMap[key]; ok {
-			if chain, ok := projectData.KeyBindings[keyName]; ok {
-				executeCommand(chain)
+			if command, ok := projectData.KeyBindings[keyName]; ok {
+				println()
+				handleLine(command)
 			}
 		}
 

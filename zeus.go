@@ -419,8 +419,8 @@ func handleArgs() {
 
 			// check if its an alias
 			if command, ok := projectData.Aliases[os.Args[1]]; ok {
-				executeCommand(command)
-				return
+				handleLine(command)
+				os.Exit(0)
 			}
 
 			if !validCommand {
