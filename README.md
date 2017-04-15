@@ -13,6 +13,7 @@
 ![Linux](https://img.shields.io/badge/Supports-Linux-green.svg)
 ![macOS](https://img.shields.io/badge/Supports-macOS-green.svg)
 ![coverage](https://img.shields.io/badge/coverage-50%25-yellow.svg)
+![travisCI](https://travis-ci.org/dreadl0ck/zeus.svg?branch=master)
 
 ZEUS is a modern build system featuring an *interactive shell*
 with *tab completion* and support for *keybindings*.
