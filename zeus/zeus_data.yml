@@ -1,21 +1,21 @@
-buildnumber: 0
-deadline: ""
-milestones: []
-aliases: {}
-events:
-  57fc067c6bef8ff9:
+BuildNumber: 0
+Deadline: ""
+Milestones: []
+Aliases: {}
+Events:
+  7d80e88255cdfc75:
     name: zeusfile watcher
-    id: 57fc067c6bef8ff9
+    id: 7d80e88255cdfc75
     path: Zeusfile.yml
     op: 2
     fileextension: ""
     command: internal
-  879685dbb67743bb:
+  8fca70b159b5307b:
     name: config watcher
-    id: 879685dbb67743bb
+    id: 8fca70b159b5307b
     path: zeus/zeus_config.yml
     op: 2
     fileextension: .yml
     command: internal
-author: ""
-keybindings: {}
+Author: ""
+KeyBindings: {}

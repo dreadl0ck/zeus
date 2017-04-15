@@ -23,6 +23,7 @@ import (
 	"os"
 	"os/exec"
 	"sort"
+	"strconv"
 	"strings"
 )
 
@@ -52,6 +53,7 @@ const (
 	bootstrapCommand  = "bootstrap"
 	zeusfileCommand   = "migrate-zeusfile"
 	gitFilterCommand  = "git-filter"
+	todoCommand       = "todo"
 )
 
 var builtins = map[string]string{
@@ -73,11 +75,12 @@ var builtins = map[string]string{
 	authorCommand:     "print or change project author name",
 	keysCommand:       "manage keybindings",
 	builtinsCommand:   "print the builtins overview",
-	webCommand:        "web",
-	wikiCommand:       "wiki",
-	createCommand:     "create",
+	webCommand:        "start web interface",
+	wikiCommand:       "start web wiki ",
+	createCommand:     "bootstrap single commands",
 	zeusfileCommand:   "migrate zeusfile into a zeus directory",
 	gitFilterCommand:  "filter git log output",
+	todoCommand:       "manage todos",
 }
 
 // executed when running the info command
@@ -214,6 +217,89 @@ func handleGitFilterCommand(args []string) {
 	for _, line := range strings.Split(string(out), "\n") {
 		if strings.Contains(line, args[1]) {
 			l.Println(line)
+		}
+	}
+}
+
+func printTodoCommandUsageErr() {
+	l.Println("invalid usage")
+	l.Println("usage: todo [add <task>] [remove <index>]")
+}
+
+func handleTodoCommand(args []string) {
+
+	if len(args) < 2 {
+
+		contents, err := ioutil.ReadFile(conf.TodoFilePath)
+		if err != nil {
+			l.Println(err)
+			return
+		}
+
+		var index int
+
+		for _, line := range strings.Split(string(contents), "\n") {
+			if strings.HasPrefix(line, "- ") {
+				index++
+				l.Println(pad(strconv.Itoa(index)+")", 4) + strings.TrimPrefix(line, "- "))
+			}
+		}
+
+		return
+	}
+
+	if len(args) < 3 {
+		printTodoCommandUsageErr()
+		return
+	}
+
+	switch args[1] {
+	case "add":
+
+		l.Println("adding TODO ", args[2:])
+
+		f, err := os.OpenFile(conf.TodoFilePath, os.O_RDWR|os.O_APPEND|os.O_CREATE, 0600)
+		if err != nil {
+			l.Println(err)
+			return
+		}
+		defer f.Close()
+
+		_, err = f.WriteString("\n- " + strings.Join(args[2:], " "))
+		if err != nil {
+			l.Println(err)
+		}
+	case "remove":
+
+		l.Println("removing TODO ", args[2])
+
+		i, err := strconv.Atoi(args[2])
+		if err != nil {
+			l.Println(err)
+			return
+		}
+
+		contents, err := ioutil.ReadFile(conf.TodoFilePath)
+		if err != nil {
+			l.Println(err)
+			return
+		}
+
+		f, err := os.OpenFile(conf.TodoFilePath, os.O_RDWR|os.O_TRUNC, 0600)
+		if err != nil {
+			l.Println(err)
+			return
+		}
+		defer f.Close()
+
+		var index int
+		for _, line := range strings.Split(string(contents), "\n") {
+			if strings.HasPrefix(line, "- ") {
+				index++
+			}
+			if index != i {
+				f.WriteString(line + "\n")
+			}
 		}
 	}
 }

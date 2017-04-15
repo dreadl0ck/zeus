@@ -220,6 +220,8 @@ func handleLine(line string) {
 			handleKeysCommand(args)
 		case createCommand:
 			handleCreateCommand(args)
+		case todoCommand:
+			handleTodoCommand(args)
 
 		default:
 			// check if its a commandchain

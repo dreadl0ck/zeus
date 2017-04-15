@@ -22,3 +22,4 @@ PrintBuiltins: false
 StopOnError: true
 DumpScriptOnError: true
 DateFormat: 02-01-2006
+TodoFilePath: "wiki/docs/TODO.md"

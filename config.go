@@ -57,7 +57,6 @@ var (
 
 // config contains configurable parameters
 type config struct {
-	MakefileOverview    bool   `yaml:"MakefileOverview"`
 	AutoFormat          bool   `yaml:"AutoFormat"`
 	FixParseErrors      bool   `yaml:"FixParseErrors"`
 	Colors              bool   `yaml:"Colors"`
@@ -78,9 +77,11 @@ type config struct {
 	ExitOnInterrupt     bool   `yaml:"ExitOnInterrupt"`
 	DisableTimestamps   bool   `yaml:"DisableTimestamps"`
 	PrintBuiltins       bool   `yaml:"PrintBuiltins"`
+	MakefileOverview    bool   `yaml:"MakefileOverview"`
 	StopOnError         bool   `yaml:"StopOnError"`
 	DumpScriptOnError   bool   `yaml:"DumpScriptOnError"`
 	DateFormat          string `yaml:"DateFormat"`
+	TodoFilePath        string `yaml:"TodoFilePath"`
 }
 
 // newConfig returns the default configuration in case there is no config file
@@ -109,7 +110,8 @@ func newConfig() *config {
 		StopOnError:         true,
 		DumpScriptOnError:   true,
 		// german date format
-		DateFormat: "02-01-2006",
+		DateFormat:   "02-01-2006",
+		TodoFilePath: "TODO.md",
 	}
 }
 

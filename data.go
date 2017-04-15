@@ -44,24 +44,24 @@ var (
 
 // zeus project data written to disk
 type data struct {
-	BuildNumber int
+	BuildNumber int `yaml:"BuildNumber"`
 
 	// project deadline
-	Deadline string
+	Deadline string `yaml:"Deadline"`
 
 	// project milestones
-	Milestones []*milestone
+	Milestones []*milestone `yaml:"Milestones"`
 
 	// alias names mapped to commands
-	Aliases map[string]string
+	Aliases map[string]string `yaml:"Aliases"`
 
 	// mapping from watched path to the corresponding event
-	Events map[string]*Event
+	Events map[string]*Event `yaml:"Events"`
 
-	Author string
+	Author string `yaml:"Author"`
 
 	// keys mapped to commands
-	KeyBindings map[string]string
+	KeyBindings map[string]string `yaml:"KeyBindings"`
 }
 
 func newData() *data {

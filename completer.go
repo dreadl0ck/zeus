@@ -22,6 +22,7 @@ import (
 	"io/ioutil"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/dreadl0ck/readline"
@@ -70,6 +71,7 @@ func configItems() []readline.PrefixCompleterInterface {
 		readline.PcItem("PortWebPanel"),
 		readline.PcItem("PortGlueServer"),
 		readline.PcItem("DateFormat"),
+		readline.PcItem("TodoFilePath"),
 	}
 }
 
@@ -163,6 +165,12 @@ func newCompleter() *readline.PrefixCompleter {
 			readline.PcItem("set"),
 			readline.PcItem("remove"),
 		),
+		readline.PcItem(todoCommand,
+			readline.PcItem("add"),
+			readline.PcItem("remove",
+				readline.PcItemDynamic(todoIndexCompleter),
+			),
+		),
 		readline.PcItem(colorsCommand,
 			readline.PcItem("dark"),
 			readline.PcItem("light"),
@@ -231,6 +239,22 @@ func commandCompleter(path string) (res []string) {
 	defer commandMutex.Unlock()
 	for name := range commands {
 		res = append(res, name)
+	}
+	return
+}
+
+func todoIndexCompleter(path string) (res []string) {
+	contents, err := ioutil.ReadFile(conf.TodoFilePath)
+	if err != nil {
+		l.Println(err)
+		return
+	}
+	var index int
+	for _, line := range strings.Split(string(contents), "\n") {
+		if strings.HasPrefix(line, "- ") {
+			index++
+			res = append(res, strconv.Itoa(index))
+		}
 	}
 	return
 }

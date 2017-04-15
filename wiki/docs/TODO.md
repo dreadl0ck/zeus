@@ -8,7 +8,6 @@
                 An Electrifying Build System
 
 - debug periodic YAML unmarshal errors
-- add todo builtin, to operate on a TODO.md file
 - improve markdown wiki
 - remove logfile, generate reports
 - improve tests
