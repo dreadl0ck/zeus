@@ -12,7 +12,7 @@
 # ---------------------------------------------------------------------- #
 
 # make sure bin dir exists
-mkdir -f bin
+mkdir -p bin
 
 echo "creating bin/dependency2"
 touch bin/dependency2

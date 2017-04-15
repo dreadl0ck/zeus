@@ -13,7 +13,7 @@
 echo "my arg: $argument"
 
 # make sure bin dir exists
-mkdir -f bin
+mkdir -p bin
 
 echo "creating bin/dependency1"
 touch bin/dependency1
