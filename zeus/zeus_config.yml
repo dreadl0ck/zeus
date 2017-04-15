@@ -1,4 +1,3 @@
-MakefileOverview: true
 AutoFormat: false
 FixParseErrors: true
 Colors: true
@@ -19,7 +18,8 @@ PortGlueServer: 0
 ExitOnInterrupt: true
 DisableTimestamps: false
 PrintBuiltins: false
+MakefileOverview: true
 StopOnError: true
 DumpScriptOnError: true
 DateFormat: 02-01-2006
-TodoFilePath: "wiki/docs/TODO.md"
+TodoFilePath: wiki/docs/TODO.md

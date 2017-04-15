@@ -7,7 +7,35 @@
           \/    \/           \/   /\\/\ //\
                 An Electrifying Build System
 
-## 02.04.17
+## 15.04.17
+
+- fixed generic markdown wiki
+- implemented todo builtin
+- fix keybindings mapping to builtins
+- fixed periodic zeus_data corruption
+- removed executeCommand func
+
+## 14.04.17
+
+- fixed command arguments after parsing Zeusfile
+- add tab completion for parameter labels
+- bootstrapped git-filter builtin
+
+## 13.04.17
+
+- changed default PrintBuiltins to false
+- added note about using bashrc in globals
+- fixed makefile migration bug
+- fix duplicate completer option after re-parsing scripts
+- added more details about makefile conversion to README
+- added a fatal when executed on windows
+- mentioned behaviour regarding dispatched processes in the README
+
+## 10.04.17
+
+- fixed parsing zeusDir command chain
+
+## 03.04.17
 
 - switched to YAML for config file and project data
 - implemented Zeusfile handling

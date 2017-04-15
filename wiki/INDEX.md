@@ -2,7 +2,7 @@
 
 Welcome to the ZEUS Wiki.
 
-[README](/wiki/docs/ZEUS_README.pdf)
+[README](/wiki/docs/README.md)
 
 [OVERVIEW](wiki/docs/zeus_overview.html)
 
@@ -10,4 +10,8 @@ Welcome to the ZEUS Wiki.
 
 [CHANGELOG](/wiki/docs/CHANGELOG.md)
 
-[LICENSE](/wiki/docs/LICENSE.md)
+[TODOs](/wiki/docs/TODO.md)
+
+[DEVNOTES](/wiki/docs/DEVNOTES.md)
+
+[LICENSE](/wiki/docs/LICENSE)

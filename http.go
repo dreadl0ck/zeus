@@ -96,9 +96,7 @@ func StartWebListener(openInBrowser bool) {
 	webInterfaceRunning = true
 	webInterfaceRunningMutex.Unlock()
 
-	// setup boxes
 	distBox = rice.MustFindBox("frontend/dist")
-	wikiBox = rice.MustFindBox("wiki")
 
 	showNote("serving on "+strconv.Itoa(conf.PortWebPanel), "starting server...")
 

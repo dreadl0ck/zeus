@@ -20,15 +20,11 @@ package main
 
 import (
 	"html/template"
+	"io/ioutil"
 	"net/http"
 	"strings"
 
-	rice "github.com/GeertJohan/go.rice"
 	"github.com/russross/blackfriday"
-)
-
-var (
-	wikiBox *rice.Box
 )
 
 // serve wiki index page
@@ -36,12 +32,13 @@ var wikiIndexHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Requ
 
 	w.Header().Set("Content-Type", "text/html")
 
-	index, err := wikiBox.Bytes("INDEX.md")
+	index, err := ioutil.ReadFile("wiki/INDEX.md")
 	if err != nil {
-		Log.WithError(err).Fatal("failed to read wiki index markdown")
+		Log.WithError(err).Error("failed to read wiki index markdown")
+		return
 	}
 
-	tpl, err := wikiBox.String("index.html")
+	tpl, err := assetBox.String("wiki_index.html")
 	if err != nil {
 		Log.WithError(err).Fatal("failed to read wiki index HTML")
 	}
@@ -60,16 +57,16 @@ var wikiIndexHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Requ
 // serve wiki documents
 var wikiDocsHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
-	fileName := strings.TrimPrefix(r.RequestURI, "/wiki/")
+	fileName := strings.TrimPrefix(r.RequestURI, "/")
 
 	Log.Debug("wikiDocsHandler: ", fileName)
 
 	if strings.HasSuffix(fileName, ".html") {
-		tpl, err := wikiBox.String(fileName)
+		tpl, err := ioutil.ReadFile(fileName)
 		if err != nil {
 			Log.WithError(err).Fatal("failed to read wiki HTML file: ", fileName)
 		}
-		t, err := template.New("wiki").Parse(tpl)
+		t, err := template.New("wiki").Parse(string(tpl))
 		if err != nil {
 			Log.WithError(err).Fatal("failed to create index template")
 		}
@@ -83,7 +80,7 @@ var wikiDocsHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Reque
 	}
 
 	// get file
-	b, err := wikiBox.Bytes(fileName)
+	b, err := ioutil.ReadFile(fileName)
 	if err != nil {
 		Log.WithError(err).Error("unknown file")
 		w.WriteHeader(404)
@@ -112,7 +109,7 @@ var wikiDocsHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Reque
 	w.Header().Set("Content-Type", "text/html")
 
 	// get template
-	tpl, err := wikiBox.String("index.html")
+	tpl, err := assetBox.String("wiki_index.html")
 	if err != nil {
 		Log.WithError(err).Fatal("failed to read wiki index HTML")
 	}

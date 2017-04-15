@@ -30,14 +30,20 @@ commands:
             rm -rf bin/*
             rm -rf tests/*.yml
 	configure:
-        help: prepare JS and CSS
+        help: prepare JS and CSS and move assets into wiki/docs
         manual: Generate Javascript and CSS
         run: |
+
+            echo "copying LICENSE and README.md"
+
+            cp -f LICENSE wiki/docs
+            cp -f README.md wiki/docs
+
             jsobfus -d frontend/src/js/:frontend/dist/js
 			sasscompile -d frontend/src/sass:frontend/dist/css
 	dev:
         help: start the dev mode
-		chain: clean -> configure
+		chain: clean - configure
         manual: |
 			zeus development mode script
 			this script compiles the binary without assets

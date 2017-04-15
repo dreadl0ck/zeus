@@ -217,7 +217,8 @@ func (c *command) Run(args []string) error {
 	if len(c.commandChain) > 0 {
 		for _, cmd := range c.commandChain {
 
-			// dont pass the args down the commandChain
+			// dont pass the commandline args down the commandChain
+			// if the following commands have required arguments they are set on the params fields
 			err := cmd.Run([]string{})
 			if err != nil {
 				cLog.WithError(err).Error("failed to execute " + cmd.name)
