@@ -86,10 +86,10 @@ func (d *data) update() {
 		projectDataMutex.Unlock()
 		Log.WithError(err).Fatal("failed to marshal zeus data")
 	}
-	projectDataMutex.Unlock()
 
 	f, err := os.OpenFile(projectDataPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0700)
 	if err != nil {
+		projectDataMutex.Unlock()
 		Log.WithError(err).Fatal("failed to open zeus data")
 	}
 
@@ -99,8 +99,10 @@ func (d *data) update() {
 
 	_, err = f.Write(b)
 	if err != nil {
+		projectDataMutex.Unlock()
 		Log.WithError(err).Fatal("failed to write zeus data")
 	}
+	projectDataMutex.Unlock()
 
 	disableWriteEventMutex.Lock()
 	disableWriteEvent = false
@@ -129,8 +131,8 @@ func parseProjectData() (*data, error) {
 
 	err = yaml.Unmarshal(contents, d)
 	if err != nil {
-		Log.WithError(err).Error("failed to unmarshal zeus data - invalid YAML:")
 		printFileContents(contents)
+		Log.WithError(err).Fatal("failed to unmarshal zeus data - invalid YAML:")
 		return nil, err
 	}
 

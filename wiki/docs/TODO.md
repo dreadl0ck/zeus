@@ -7,7 +7,6 @@
           \/    \/           \/   /\\/\ //\
                 An Electrifying Build System
 
-- debug periodic YAML unmarshal errors
 - improve markdown wiki
 - remove logfile, generate reports
 - improve tests

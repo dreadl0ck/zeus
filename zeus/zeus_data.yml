@@ -3,19 +3,20 @@ Deadline: ""
 Milestones: []
 Aliases: {}
 Events:
-  7d80e88255cdfc75:
-    name: zeusfile watcher
-    id: 7d80e88255cdfc75
-    path: Zeusfile.yml
-    op: 2
-    fileextension: ""
-    command: internal
-  8fca70b159b5307b:
+  3cb4cb7003edc153:
     name: config watcher
-    id: 8fca70b159b5307b
+    id: 3cb4cb7003edc153
     path: zeus/zeus_config.yml
     op: 2
     fileextension: .yml
     command: internal
+  c40be1ddcc3ca92d:
+    name: zeusfile watcher
+    id: c40be1ddcc3ca92d
+    path: Zeusfile.yml
+    op: 2
+    fileextension: ""
+    command: internal
 Author: ""
-KeyBindings: {}
+KeyBindings:
+  Ctrl-T: todo
