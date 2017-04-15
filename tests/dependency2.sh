@@ -11,5 +11,8 @@
 # and requires bin/dependency1 to exist
 # ---------------------------------------------------------------------- #
 
+# make sure bin dir exists
+mkdir -f bin
+
 echo "creating bin/dependency2"
 touch bin/dependency2
