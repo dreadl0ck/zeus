@@ -7,6 +7,12 @@
           \/    \/           \/   /\\/\ //\
                 An Electrifying Build System
 
+## 19.04.17
+
+- improved Zeusfile parse error feedback
+- argument refactoring: added optional args with default values, declaring args as comma separated list, requiring argument labels, requiring data type on arguments
+- fixed panic when using tab completion on an alias
+
 ## 15.04.17
 
 - fixed generic markdown wiki

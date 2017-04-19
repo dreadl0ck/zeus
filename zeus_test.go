@@ -318,7 +318,7 @@ func TestDependencies(t *testing.T) {
 	Convey("Testing Dependencies", t, func() {
 
 		// create bin/dependency1
-		handleLine("dependency1 arg1")
+		handleLine("dependency1")
 		_, err := os.Stat("bin/dependency1")
 		So(err, ShouldBeNil)
 

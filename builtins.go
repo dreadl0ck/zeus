@@ -162,9 +162,13 @@ func printCommands() {
 
 		// check if there are arguments
 		if len(cmd.args) != 0 {
-			l.Print(cp.colorText + "├~» " + cp.colorCommandName + pad(cmd.name+" "+getArgumentString(cmd.args), 20) + cp.colorCommandChain + formatcommandChain(cmd.commandChain) + cp.colorText)
+			l.Print(cp.colorText + "├~» " + cp.colorCommandName + pad(cmd.name+" "+getArgumentString(cmd.args), 20) + cp.colorText)
 		} else {
-			l.Print(cp.colorText + "├~» " + cp.colorCommandName + pad(cmd.name, 20) + cp.colorCommandChain + formatcommandChain(cmd.commandChain) + cp.colorText)
+			l.Print(cp.colorText + "├~» " + cp.colorCommandName + pad(cmd.name, 20) + cp.colorText)
+		}
+
+		if len(cmd.commandChain) > 0 {
+			l.Println(cp.colorText + "├──── " + pad("chain:", 18) + cp.colorCommandChain + formatcommandChain(cmd.commandChain))
 		}
 
 		// print help section
@@ -174,11 +178,30 @@ func printCommands() {
 }
 
 // format argStr
-func getArgumentString(args []*commandArg) (argStr string) {
+func getArgumentString(args map[string]*commandArg) string {
+
+	var (
+		argStr = "("
+		count  = 1
+	)
+
 	for _, arg := range args {
-		argStr += "[" + arg.name + ":" + strings.Title(arg.argType.String()) + "] "
+		var t = strings.Title(arg.argType.String())
+		if arg.optional {
+			if arg.defaultValue != "" {
+				t += "? =" + arg.defaultValue
+			} else {
+				t += "?"
+			}
+		}
+		if count == len(args) {
+			argStr += arg.name + ":" + t + ")"
+		} else {
+			argStr += arg.name + ":" + t + ", "
+		}
+		count++
 	}
-	return
+	return argStr
 }
 
 // print the contents of globals.sh on stdout

@@ -25,7 +25,6 @@ import (
 	"reflect"
 	"regexp"
 	"strings"
-
 	"sync"
 
 	"github.com/Sirupsen/logrus"
@@ -146,10 +145,21 @@ const (
 	argTypeFloat  = "Float"
 )
 
-// a command argument has a name and a type
+// a command argument has a name and a type and a value
 type commandArg struct {
-	name    string
+
+	// argument label
+	name string
+
+	// argument type
 	argType reflect.Kind
+
+	// optionals are allowed, they can have default values
+	optional     bool
+	defaultValue string
+
+	// value after parsing argument input from commandline
+	value string
 }
 
 // parse script and return commandData

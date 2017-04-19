@@ -71,7 +71,7 @@ func addAlias(name, command string) {
 
 	// add to completer
 	completerLock.Lock()
-	completer.Children = append(completer.Children, readline.PcItem(name, nil))
+	completer.Children = append(completer.Children, readline.PcItem(name))
 	completerLock.Unlock()
 }
 

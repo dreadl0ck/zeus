@@ -7,14 +7,19 @@
           \/    \/           \/   /\\/\ //\
                 An Electrifying Build System
 
-- add optional command arguments
+- throw an error if a defaultValue is set for a non optional argument
+- split up cmd.Run()
+
 - remove logfile, generate reports
 - improve tests
 - add @zeus-async header for parallel builds
 
 - integrate fstree & fsdiff as builtins
 - improve parse error feedback
-- fix readline directory completion bug
-
 - add encrypted storage
 - support more scripting languages
+
+## readline
+
+- fix path completion bug
+- fix argument completion

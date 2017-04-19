@@ -184,7 +184,7 @@ func main() {
 		}
 
 		// add to completer
-		completer.Children = append(completer.Children, readline.PcItem(name, nil))
+		completer.Children = append(completer.Children, readline.PcItem(name))
 	}
 
 	// get debug value from config
@@ -280,11 +280,11 @@ func main() {
 
 	// check if a Zeusfile for the project exists
 	err = parseZeusfile(zeusfilePath)
-	if err != nil {
+	if err == ErrFailedToReadZeusfile {
 
 		// check if a Zeusfile for the project exists without the .yml extension
 		err = parseZeusfile("Zeusfile")
-		if err != nil {
+		if err == ErrFailedToReadZeusfile {
 
 			Log.Debug("no Zeusfile found. parsing zeusDir...")
 
@@ -296,6 +296,10 @@ func main() {
 				go watchScripts("")
 			}
 		}
+	}
+	if err != nil && err != ErrFailedToReadZeusfile {
+		Log.Error(err)
+		println()
 	}
 
 	// handle commandline arguments

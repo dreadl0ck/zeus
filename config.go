@@ -68,7 +68,6 @@ type config struct {
 	Debug               bool   `yaml:"Debug"`
 	RecursionDepth      int    `yaml:"RecursionDepth"`
 	ProjectNamePrompt   bool   `yaml:"ProjectNamePrompt"`
-	AllowUntypedArgs    bool   `yaml:"AllowUntypedArgs"`
 	ColorProfile        string `yaml:"ColorProfile"`
 	HistoryFile         bool   `yaml:"HistoryFile"`
 	HistoryLimit        int    `yaml:"HistoryLimit"`
@@ -99,7 +98,6 @@ func newConfig() *config {
 		Debug:               false,
 		RecursionDepth:      1,
 		ProjectNamePrompt:   true,
-		AllowUntypedArgs:    false,
 		ColorProfile:        "default",
 		HistoryFile:         true,
 		HistoryLimit:        20,

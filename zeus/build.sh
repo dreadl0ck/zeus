@@ -3,7 +3,7 @@
 # ---------------------------------------------------------------------- #
 # @zeus-chain: clean
 # @zeus-help: build project
-# @zeus-args: name:String
+# @zeus-args: name:String?
 # @zeus-build-number
 # ---------------------------------------------------------------------- #
 # zeus build script

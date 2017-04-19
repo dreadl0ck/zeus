@@ -26,8 +26,8 @@
 		},
 		{
 			"ImportPath": "github.com/dreadl0ck/readline",
-			"Comment": "v1.4-20-geef24db",
-			"Rev": "eef24db1d59cac55d773312ab6efe1890187f2de"
+			"Comment": "v1.4-22-gc707494",
+			"Rev": "c707494efab496012c27bee49da83057023ffbd3"
 		},
 		{
 			"ImportPath": "github.com/daaku/go.zipexe",

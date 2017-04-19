@@ -17,6 +17,15 @@ commands:
         run: |
             echo "building $name"
 			godep go build -o $buildDir$name
+    optional:
+        args: name:String? = "defaultName", bla:String, ok:Bool?, count:Int?, req:String
+        help: test optionals
+        run: |
+            echo "name=$name"
+            echo "bla=$bla"
+            echo "ok=$ok"
+            echo "count=$count"
+            echo "req=$req"
 	build-race:
         chain: clean
         help: build race detection enabled binary
@@ -43,7 +52,7 @@ commands:
 			sasscompile -d frontend/src/sass:frontend/dist/css
 	dev:
         help: start the dev mode
-		chain: clean - configure
+		chain: clean -> configure
         manual: |
 			zeus development mode script
 			this script compiles the binary without assets

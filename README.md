@@ -478,36 +478,53 @@ zeus » help
 
 ## Typed Command Arguments
 
-Command arguments are typed by default.
-This prevents mixing up args, which is important,
-because ZEUS expects arguments in the order they are declared.
+ZEUS supports typed command arguments.
 
-Note that you can also pass arguments in the name=val format:
+To declare them, supply a comma separated list to the **zeus-args** field,
+following this scheme: **label:type**
 
-```
+Available types are: **Int, String, Float, Bool**
+
+Arguments are being passed in the label=val format:
+
+```shell
 zeus » build name=testbuild
 ```
 
-When a command has parameters, these are mandatory.
+The order in which they appear does NOT matter (because of the labels)
 
-Available types are: Int, String, Float, Bool
+It is also possible to create optional arguments: **label:type?**
 
-Argument typechecking can be disabled in the config, by setting the **AllowUntypedArgs** field to true.
+They won't be required for executing the command, and if no value was supplied they will be initialized with the *zero value for their data type*
+
+You can set a default value for optional arguments: **label:type? = value**
+
+Lets look at an example for declaration:
+
+```shell
+# @zeus-help: test optional args
+# @zeus-args: name:String? = "defaultName", author:String, ok:Bool?, count:Int?
+```
 
 Here's an example of how this looks like in the interactive shell:
 
 ```
-├~» build [name:String] [arch:String] [verbose:Bool]
-├──── chain:            (clean all -> configure)
-├──── help:             build the executable for the specified platform
-├~» deploy [server:String] [user:String] [container:String]
-├──── chain:            (clean -> configure)
-├──── help:             deploy to the specified server ip, as the user using the named docker container
+├~» build (name:String)
+├──── chain:            clean
+├──── help:             build project
+├~» argTest (name:String? = "defaultName", author:String, ok:Bool?, count:Int?)
+├──── help:             test optional args
 ```
 
-For how to declare arguments in the ZEUS header, please check the headers section.
+The build command has one argument with the label 'name', its a string and its required.
+The argTest command has 4 arguments, 3 of them are optional.
+The only one required is the 'author' argument.
+If dismissed 'name' will be initialized with 'defaultName', the rest will be set to the zero values of their data types. (false, 0)
 
-> NOTE: if you dont remember the order of the arguments, hit tab to get completion for the labels
+Accessing the arguments inside your scripts is easy:
+Just use $label to access them, at the end of the day they are normal shell variables prepended to your current commands script buffer.
+
+> NOTE: use tab to get completion for the labels
 
 ## Auto Sanitizing
 

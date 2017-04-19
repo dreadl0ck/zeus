@@ -20,6 +20,7 @@ package main
 
 import (
 	"bytes"
+	"errors"
 	"io/ioutil"
 	"os"
 	"strings"
@@ -33,6 +34,9 @@ import (
 
 var (
 	zeusfilePath = "Zeusfile.yml"
+
+	// ErrFailedToReadZeusfile occurs when the Zeusfile could not be read
+	ErrFailedToReadZeusfile = errors.New("failed to read Zeusfile")
 )
 
 // Zeusfile contains globals and commands for the Zeusfile.yml
@@ -51,7 +55,8 @@ func parseZeusfile(path string) error {
 
 	contents, err := ioutil.ReadFile(path)
 	if err != nil {
-		return err
+		Log.Debug(err)
+		return ErrFailedToReadZeusfile
 	}
 
 	// replace all tabs with spaces
@@ -76,39 +81,43 @@ func parseZeusfile(path string) error {
 		// get build chain
 		commandChain, err := job.getCommandChain(parseCommandChain(d.Chain), zeusfile)
 		if err != nil {
-			return err
+			return errors.New("Zeusfile, command " + name + ": " + err.Error())
 		}
 
 		// assemble commands args
 		args, err := validateArgs(d.Args)
 		if err != nil {
-			return err
+			return errors.New("Zeusfile, command " + name + ": " + err.Error())
 		}
 
 		// create command
 		cmd := &command{
-			path:            "",
-			name:            name,
-			args:            args,
-			manual:          d.Manual,
-			help:            d.Help,
-			commandChain:    commandChain,
-			PrefixCompleter: readline.PcItem(name),
-			buildNumber:     d.BuildNumber,
-			dependencies:    d.Dependencies,
-			outputs:         d.Outputs,
-			runCommand:      d.Run,
+			path:         "",
+			name:         name,
+			args:         args,
+			manual:       d.Manual,
+			help:         d.Help,
+			commandChain: commandChain,
+			PrefixCompleter: readline.PcItem(name,
+				readline.PcItemDynamic(func(path string) (res []string) {
+					for _, a := range args {
+						if !strings.Contains(path, a.name+"=") {
+							res = append(res, a.name+"=")
+						}
+					}
+					return
+				}),
+			),
+			buildNumber:  d.BuildNumber,
+			dependencies: d.Dependencies,
+			outputs:      d.Outputs,
+			runCommand:   d.Run,
 		}
 
 		// job done
 		p.RemoveJob(job)
 
 		commandMutex.Lock()
-
-		// add parameter labels to completer
-		for _, arg := range cmd.args {
-			cmd.PrefixCompleter.Children = append(cmd.PrefixCompleter.Children, readline.PcItem(arg.name+"="))
-		}
 
 		// Add the completer.
 		completer.Children = append(completer.Children, cmd.PrefixCompleter)
@@ -191,9 +200,8 @@ func migrateZeusfile() error {
 		if err != nil {
 			l.Println("couldnt find Zeusfile.yml or Zeusfile")
 			return err
-		} else {
-			filename = "Zeusfile"
 		}
+		filename = "Zeusfile"
 	} else {
 		filename = zeusfilePath
 	}

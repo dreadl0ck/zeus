@@ -71,8 +71,9 @@ type command struct {
 	// commandName
 	name string
 
-	// arguments that the command needs
-	args []*commandArg
+	// arguments for the command
+	// mapped labels to commandArg instances
+	args map[string]*commandArg
 
 	// parameters that can be set, for calling commands with arguments in commandChains
 	params []string
@@ -184,15 +185,15 @@ func (c *command) Run(args []string) error {
 	}
 
 	var (
-		argc         = len(args)
-		requiredArgs = len(c.args)
-		cLog         = Log.WithField("prefix", "runCommand"+strings.ToTitle(c.name))
-		start        = time.Now()
+		argc  = len(args)
+		cLog  = Log.WithField("prefix", c.name)
+		start = time.Now()
 	)
 
 	cLog.WithFields(logrus.Fields{
 		"name":   c.name,
 		"args":   args,
+		"argc":   argc,
 		"params": c.params,
 	}).Debug("running command")
 
@@ -202,15 +203,6 @@ func (c *command) Run(args []string) error {
 		Log.Debug("found predefined params: ", c.params)
 		args = c.params
 		argc = len(c.params)
-	}
-
-	// check args
-	if argc != requiredArgs {
-		if argc > requiredArgs {
-			return ErrTooManyArguments
-		}
-		cLog.Info("expected: ", getArgumentString(c.args))
-		return ErrNotEnoughArguments
 	}
 
 	// execute build chain commands
@@ -228,31 +220,75 @@ func (c *command) Run(args []string) error {
 	}
 
 	Log.Debug("injecting args into script: ", args, " cmd: ", c.name)
+	var argStr = strings.Join(args, " ")
 
-	// parse arguments and add them to the script
-	var argBuf bytes.Buffer
-	for i, a := range args {
-		if i < len(c.args) {
+	// parse args
+	for _, val := range args {
 
-			// handle argument labels
-			if strings.Contains(a, "=") {
-				if !strings.HasPrefix(a, c.args[i].name+"=") {
-					Log.Error("expected label: " + c.args[i].name + ", got: " + a)
-					return ErrInvalidArgumentLabel
-				}
-				a = strings.TrimPrefix(a, c.args[i].name+"=")
+		// handle argument labels
+		if strings.Contains(val, "=") {
+
+			var (
+				cmdArg *commandArg
+				ok     bool
+			)
+
+			argSlice := strings.Split(val, "=")
+			if len(argSlice) != 2 {
+				return errors.New("invalid argument: " + val)
 			}
 
-			if !validArgType(a, c.args[i].argType) {
+			if cmdArg, ok = c.args[argSlice[0]]; !ok {
+				Log.Error("invalid label: " + argSlice[0])
+				return ErrInvalidArgumentLabel
+			}
+
+			if !validArgType(argSlice[1], cmdArg.argType) {
 				cLog.WithError(ErrInvalidArgumentType).WithFields(logrus.Fields{
-					"value":   a,
-					"argName": c.args[i].name,
-				}).Error("expected type: ", c.args[i].argType.String())
+					"value": argSlice[1],
+					"label": cmdArg.name,
+				}).Error("expected type: ", cmdArg.argType.String())
 				return ErrInvalidArgumentType
 			}
-			argBuf.WriteString(c.args[i].name + "=" + a + "\n")
+
+			if strings.Count(argStr, cmdArg.name+"=") > 1 {
+				return errors.New("argument label appeared more than once: " + cmdArg.name)
+			}
+
+			c.args[argSlice[0]].value = argSlice[1]
+		} else {
+			return errors.New("invalid argument: " + val)
 		}
 	}
+
+	// add args to the script
+	var argBuf bytes.Buffer
+
+	for _, arg := range c.args {
+		if arg.value == "" {
+			if arg.optional {
+				if arg.defaultValue != "" {
+					// default value has been set
+					argBuf.WriteString(arg.name + "=" + strings.TrimSpace(arg.defaultValue) + "\n")
+				} else {
+					// init empty optionals with default value for their type
+					argBuf.WriteString(arg.name + "=" + getDefaultValue(arg) + "\n")
+				}
+			} else {
+				// empty value and not optional - error
+				return errors.New("missing argument: " + arg.name)
+			}
+		} else {
+			// write value into buffer
+			argBuf.WriteString(arg.name + "=" + arg.value + "\n")
+		}
+	}
+	// flush arg values when we leave
+	defer func() {
+		for _, arg := range c.args {
+			arg.value = ""
+		}
+	}()
 
 	var (
 		cmd    *exec.Cmd
@@ -377,6 +413,21 @@ func (c *command) Run(args []string) error {
  *	Utils
  */
 
+func getDefaultValue(arg *commandArg) string {
+	switch arg.argType {
+	case reflect.String:
+		return ""
+	case reflect.Int:
+		return "0"
+	case reflect.Bool:
+		return "false"
+	case reflect.Float64:
+		return "0.0"
+	default:
+		return "unknown type"
+	}
+}
+
 // addCommand parses the script at path, adds it to the commandMap and sets up the shell completer
 // if force is set to true the command will parsed again even when it already has been parsed
 func addCommand(path string, force bool) error {
@@ -428,24 +479,50 @@ func addCommand(path string, force bool) error {
 	return nil
 }
 
-func validateArgs(args string) (validatedArgs []*commandArg, err error) {
+// validate arg string and return the validatedArgs as map
+func validateArgs(args string) (validatedArgs map[string]*commandArg, err error) {
 
-	// parse arg types
-	for _, s := range strings.Fields(args) {
+	// init map
+	validatedArgs = make(map[string]*commandArg, 0)
+
+	// empty string - empty args
+	if len(args) == 0 {
+		return
+	}
+
+	// parse arg string
+	// split by commas
+	for _, s := range strings.Split(args, ",") {
 
 		var (
-			k     reflect.Kind
-			slice = strings.Split(s, ":")
+			k            reflect.Kind
+			slice        = strings.Split(s, ":")
+			opt          bool
+			defaultValue string
 		)
 
 		if len(slice) == 2 {
 
+			// argument name may contain leading whitespace - trim it
+			var argumentName = strings.TrimSpace(slice[0])
+
 			// check for duplicate argument names
-			for _, a := range validatedArgs {
-				if a.name == slice[0] {
-					Log.Error("argument name ", a.name, " was used twice")
-					return nil, ErrDuplicateArgumentNames
-				}
+			if a, ok := validatedArgs[argumentName]; ok {
+				Log.Error("argument label ", a.name, " was used twice")
+				return nil, ErrDuplicateArgumentNames
+			}
+
+			// check if there's a default value set
+			defaultValSlice := strings.Split(slice[1], "=")
+			if len(defaultValSlice) > 1 {
+				slice[1] = strings.TrimSpace(defaultValSlice[0])
+				defaultValue = defaultValSlice[1]
+			}
+
+			// check if its an optional arg
+			if strings.HasSuffix(slice[1], "?") {
+				slice[1] = strings.TrimSuffix(slice[1], "?")
+				opt = true
 			}
 
 			// check if its a valid argType and set reflect.Kind
@@ -462,15 +539,15 @@ func validateArgs(args string) (validatedArgs []*commandArg, err error) {
 				return nil, errors.New("invalid or missing argument type: " + slice[1])
 			}
 
-			// append to commandData args
-			validatedArgs = append(validatedArgs, &commandArg{
-				name:    slice[0],
-				argType: k,
-			})
-		} else {
-			if !conf.AllowUntypedArgs {
-				return nil, errors.New("untyped arguments are not allowed: " + s)
+			// add to validatedArgs
+			validatedArgs[argumentName] = &commandArg{
+				name:         argumentName,
+				argType:      k,
+				optional:     opt,
+				defaultValue: defaultValue,
 			}
+		} else {
+			return nil, errors.New("untyped arguments are not allowed: " + s)
 		}
 	}
 
@@ -514,23 +591,26 @@ func (job *parseJob) newCommand(path string) (*command, error) {
 		return nil, ErrEmptyName
 	}
 
-	// init completer and add parameter labels
-	pc := readline.PcItem(name)
-	for _, arg := range args {
-		pc.Children = append(pc.Children, readline.PcItem(arg.name+"="))
-	}
-
 	return &command{
-		path:            path,
-		name:            name,
-		args:            args,
-		manual:          d.Manual,
-		help:            d.Help,
-		commandChain:    commandChain,
-		PrefixCompleter: pc,
-		buildNumber:     d.BuildNumber,
-		dependencies:    d.Dependencies,
-		outputs:         d.Outputs,
+		path:         path,
+		name:         name,
+		args:         args,
+		manual:       d.Manual,
+		help:         d.Help,
+		commandChain: commandChain,
+		PrefixCompleter: readline.PcItem(name,
+			readline.PcItemDynamic(func(path string) (res []string) {
+				for _, a := range args {
+					if !strings.Contains(path, a.name+"=") {
+						res = append(res, a.name+"=")
+					}
+				}
+				return
+			}),
+		),
+		buildNumber:  d.BuildNumber,
+		dependencies: d.Dependencies,
+		outputs:      d.Outputs,
 	}, nil
 }
 
@@ -579,7 +659,11 @@ func (job *parseJob) getCommandChain(parsedCommands [][]string, zeusfile *Zeusfi
 		if !ok {
 
 			if zeusfile != nil {
+
 				d := zeusfile.Commands[args[0]]
+				if d == nil {
+					return nil, errors.New("invalid command in commandChain: " + args[0])
+				}
 
 				// assemble commands args
 				arguments, err := validateArgs(d.Args)
@@ -811,8 +895,8 @@ func (c *command) dump() {
 	fmt.Println("-----------------------------------------------------------")
 	fmt.Println("name:", c.name)
 	fmt.Println("path:", c.path)
-	for i, arg := range c.args {
-		fmt.Println("arg"+strconv.Itoa(i)+":", arg.name, "~>", arg.argType.String())
+	for _, arg := range c.args {
+		fmt.Println(arg.name, "~>", arg.argType.String(), "optional:", arg.optional)
 	}
 	fmt.Println("params:", c.params)
 	fmt.Println("help:", c.help)

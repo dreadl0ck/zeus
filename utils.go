@@ -148,10 +148,9 @@ func pad(in string, length int) string {
 }
 
 // create a readable string from a commandChain
-// example: (clean -> build -> install)
-func formatcommandChain(commands commandChain) string {
+// example: clean -> build name=testBuild -> install
+func formatcommandChain(commands commandChain) (out string) {
 
-	var out = "("
 	for i, cmd := range commands {
 
 		out += cmd.name
@@ -168,10 +167,7 @@ func formatcommandChain(commands commandChain) string {
 			out += " -> "
 		}
 	}
-	if out == "(" {
-		return ""
-	}
-	return out + ")"
+	return
 }
 
 // ClearScreen prints ANSI escape to flush screen
@@ -408,7 +404,7 @@ func watchScripts(eventID string) {
 
 		err := addCommand(e.Name, true)
 		if err != nil {
-			Log.WithError(err).Error("failed to parse command")
+			Log.WithError(err).Error("failed to parse command: ", e.Name)
 		}
 	}))
 	if err != nil {

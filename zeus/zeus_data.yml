@@ -1,9 +1,10 @@
-BuildNumber: 0
+BuildNumber: 4
 Deadline: ""
 Milestones: []
 Aliases:
   gs: git status
   td: todo
+  testAlias: echo test
 Events:
   3cb4cb7003edc153:
     name: config watcher
@@ -12,9 +13,16 @@ Events:
     op: 2
     fileextension: .yml
     command: internal
-  c40be1ddcc3ca92d:
+  81b19117edfb7bee:
+    name: script watcher
+    id: 81b19117edfb7bee
+    path: zeus
+    op: 2
+    fileextension: .sh
+    command: internal
+  d7852a7fa1af3f52:
     name: zeusfile watcher
-    id: c40be1ddcc3ca92d
+    id: d7852a7fa1af3f52
     path: Zeusfile.yml
     op: 2
     fileextension: ""
