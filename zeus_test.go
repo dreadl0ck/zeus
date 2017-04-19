@@ -104,23 +104,23 @@ func TestCommandlineArgs(t *testing.T) {
 }
 
 func TestAliases(t *testing.T) {
-	Convey("Testing aliases", t, func() {
+	Convey("Testing aliases", t, func(c C) {
 		handleLine("alias asdfsdf")
-		So(projectData.Aliases, ShouldBeEmpty)
+		c.So(projectData.Aliases, ShouldBeEmpty)
 		handleLine("alias set testAlias test")
-		So(len(projectData.Aliases), ShouldEqual, 1)
-		So(projectData.Aliases["testAlias"], ShouldEqual, "test")
+		c.So(len(projectData.Aliases), ShouldEqual, 1)
+		c.So(projectData.Aliases["testAlias"], ShouldEqual, "test")
 		handleLine("alias remove testAlias")
-		So(len(projectData.Aliases), ShouldEqual, 0)
+		c.So(len(projectData.Aliases), ShouldEqual, 0)
 		handleLine("alias")
 	})
 }
 
 func TestConfig(t *testing.T) {
-	Convey("Testing config", t, func() {
+	Convey("Testing config", t, func(c C) {
 		handleLine("config asdfasdf")
 		handleLine("config set WebInterface true")
-		So(conf.WebInterface, ShouldBeTrue)
+		c.So(conf.WebInterface, ShouldBeTrue)
 		handleLine("config get WebInterface")
 		handleLine("config")
 	})
@@ -135,27 +135,27 @@ func TestCommands(t *testing.T) {
 }
 
 func TestMilestones(t *testing.T) {
-	Convey("Testing milestones", t, func() {
+	Convey("Testing milestones", t, func(c C) {
 		handleLine("milestones")
 		handleLine("milestones asdfasd")
 		handleLine("milestones add testMilestone 12-12-2012")
-		So(projectData.Milestones, ShouldNotBeEmpty)
+		c.So(projectData.Milestones, ShouldNotBeEmpty)
 		handleLine("milestones set testMilestone 50")
-		So(projectData.Milestones[0].PercentComplete, ShouldEqual, 50)
+		c.So(projectData.Milestones[0].PercentComplete, ShouldEqual, 50)
 		handleLine("milestones remove testMilestone")
-		So(projectData.Milestones, ShouldBeEmpty)
+		c.So(projectData.Milestones, ShouldBeEmpty)
 	})
 }
 
 func TestDeadlines(t *testing.T) {
-	Convey("Testing deadline", t, func() {
+	Convey("Testing deadline", t, func(c C) {
 		handleLine("deadline")
-		So(projectData.Deadline, ShouldBeEmpty)
+		c.So(projectData.Deadline, ShouldBeEmpty)
 		handleLine("deadline asdfasd")
 		handleLine("deadline set 12-12-2012")
-		So(projectData.Deadline, ShouldEqual, "12-12-2012")
+		c.So(projectData.Deadline, ShouldEqual, "12-12-2012")
 		handleLine("deadline remove")
-		So(projectData.Deadline, ShouldBeEmpty)
+		c.So(projectData.Deadline, ShouldBeEmpty)
 	})
 }
 
@@ -166,7 +166,7 @@ func printEvents() {
 }
 
 func TestEvents(t *testing.T) {
-	Convey("Testing events", t, func() {
+	Convey("Testing events", t, func(c C) {
 
 		handleLine("events")
 
@@ -177,7 +177,7 @@ func TestEvents(t *testing.T) {
 			printEvents()
 
 			// there should be only the config and the script or zeusfile watcher event
-			So(len(projectData.Events), ShouldEqual, 2)
+			c.So(len(projectData.Events), ShouldEqual, 2)
 		}()
 
 		handleLine("events asdfasd")
@@ -197,7 +197,7 @@ func TestEvents(t *testing.T) {
 
 			printEvents()
 
-			So(len(projectData.Events), ShouldEqual, 3)
+			c.So(len(projectData.Events), ShouldEqual, 3)
 		}()
 
 		for eID, e := range projectData.Events {
@@ -216,7 +216,7 @@ func TestEvents(t *testing.T) {
 			projectDataMutex.Lock()
 			defer projectDataMutex.Unlock()
 
-			So(len(projectData.Events), ShouldEqual, 2)
+			c.So(len(projectData.Events), ShouldEqual, 2)
 		}()
 	})
 }
@@ -244,13 +244,13 @@ func TestShell(t *testing.T) {
 }
 
 func TestSanitzer(t *testing.T) {
-	Convey("Testing sanitizer", t, func() {
+	Convey("Testing sanitizer", t, func(c C) {
 		sanitizeFile("tests/error.sh")
 
-		So(sanitizeField("# @zeus-chain: clean -> configure", "zeus-chain"), ShouldEqual, "# @zeus-chain: clean -> configure")
-		So(sanitizeField("# zeus-chain: clean -> configure", "zeus-chain"), ShouldEqual, "# @zeus-chain: clean -> configure")
-		So(sanitizeField("# @zeus-chain clean -> configure", "zeus-chain"), ShouldEqual, "# @zeus-chain: clean -> configure")
-		So(sanitizeField("# zeus-chain clean -> configure", "zeus-chain"), ShouldEqual, "# @zeus-chain: clean -> configure")
+		c.So(sanitizeField("# @zeus-chain: clean -> configure", "zeus-chain"), ShouldEqual, "# @zeus-chain: clean -> configure")
+		c.So(sanitizeField("# zeus-chain: clean -> configure", "zeus-chain"), ShouldEqual, "# @zeus-chain: clean -> configure")
+		c.So(sanitizeField("# @zeus-chain clean -> configure", "zeus-chain"), ShouldEqual, "# @zeus-chain: clean -> configure")
+		c.So(sanitizeField("# zeus-chain clean -> configure", "zeus-chain"), ShouldEqual, "# @zeus-chain: clean -> configure")
 	})
 }
 
@@ -283,30 +283,30 @@ func TestMakefileMigration(t *testing.T) {
 }
 
 func TestAuthorCommand(t *testing.T) {
-	Convey("Testing author command", t, func() {
+	Convey("Testing author command", t, func(c C) {
 		handleLine("author")
 		handleLine("author asdfasdf")
-		So(projectData.Author, ShouldBeEmpty)
+		c.So(projectData.Author, ShouldBeEmpty)
 		handleLine("author set Test Author")
-		So(projectData.Author, ShouldEqual, "Test Author")
+		c.So(projectData.Author, ShouldEqual, "Test Author")
 		handleLine("author remove")
-		So(projectData.Author, ShouldBeEmpty)
+		c.So(projectData.Author, ShouldBeEmpty)
 	})
 }
 
 func TestKeybindings(t *testing.T) {
-	Convey("Testing keybindings", t, func() {
+	Convey("Testing keybindings", t, func(c C) {
 		handleLine("keys")
 		handleLine("keys asdafsdf")
-		So(projectData.KeyBindings, ShouldBeEmpty)
+		c.So(projectData.KeyBindings, ShouldBeEmpty)
 		handleLine("keys set Ctrl-S git status")
-		So(projectData.KeyBindings, ShouldNotBeEmpty)
+		c.So(projectData.KeyBindings, ShouldNotBeEmpty)
 		handleLine("keys set Ctrl-H help")
-		So(projectData.KeyBindings, ShouldHaveLength, 2)
+		c.So(projectData.KeyBindings, ShouldHaveLength, 2)
 		handleLine("keys remove Ctrl-H")
-		So(projectData.KeyBindings, ShouldHaveLength, 1)
+		c.So(projectData.KeyBindings, ShouldHaveLength, 1)
 		handleLine("keys remove Ctrl-S")
-		So(projectData.KeyBindings, ShouldBeEmpty)
+		c.So(projectData.KeyBindings, ShouldBeEmpty)
 	})
 }
 
@@ -315,25 +315,25 @@ func TestProjectData(t *testing.T) {
 }
 
 func TestDependencies(t *testing.T) {
-	Convey("Testing Dependencies", t, func() {
+	Convey("Testing Dependencies", t, func(c C) {
 
 		// create bin/dependency1
 		handleLine("dependency1")
 		_, err := os.Stat("bin/dependency1")
-		So(err, ShouldBeNil)
+		c.So(err, ShouldBeNil)
 
 		// create bin/dependency2
 		handleLine("dependency2")
 		_, err = os.Stat("bin/dependency2")
-		So(err, ShouldBeNil)
+		c.So(err, ShouldBeNil)
 
 	})
 }
 
 func TestZeusfile(t *testing.T) {
-	Convey("Testing Zeusfile parsing", t, func() {
+	Convey("Testing Zeusfile parsing", t, func(c C) {
 		err := parseZeusfile("Zeusfile.yml")
-		So(err, ShouldBeNil)
+		c.So(err, ShouldBeNil)
 	})
 
 	var eventID string
