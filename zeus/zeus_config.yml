@@ -9,7 +9,6 @@ LogToFile: false
 Debug: false
 RecursionDepth: 1
 ProjectNamePrompt: true
-AllowUntypedArgs: false
 ColorProfile: default
 HistoryFile: true
 HistoryLimit: 20

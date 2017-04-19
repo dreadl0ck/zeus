@@ -45,6 +45,8 @@ var (
 )
 
 // assemble and return all items for config item completion
+// also used for validating the config YAML for unknown fields
+// if there's a key in the config that is not in here there will be a warning
 func configItems() []readline.PrefixCompleterInterface {
 	return []readline.PrefixCompleterInterface{
 		readline.PcItem("MakefileOverview", readline.PcItem("true"), readline.PcItem("false")),
@@ -59,7 +61,6 @@ func configItems() []readline.PrefixCompleterInterface {
 		readline.PcItem("Debug", readline.PcItem("true"), readline.PcItem("false")),
 		readline.PcItem("RecursionDepth"),
 		readline.PcItem("ProjectNamePrompt", readline.PcItem("true"), readline.PcItem("false")),
-		readline.PcItem("AllowUntypedArgs", readline.PcItem("true"), readline.PcItem("false")),
 		readline.PcItem("ColorProfile"),
 		readline.PcItem("HistoryFile", readline.PcItem("true"), readline.PcItem("false")),
 		readline.PcItem("HistoryLimit"),

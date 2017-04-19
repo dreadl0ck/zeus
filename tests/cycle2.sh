@@ -3,7 +3,7 @@
 # ---------------------------------------------------------------------- #
 # @zeus-chain: cycle arg1
 # @zeus-help: produce a cycle by calling the cycle command
-# @zeus-args: test:Bool asdf:String
+# @zeus-args: test:Bool, asdf:String
 # ---------------------------------------------------------------------- #
 # zeus cycle2 script
 # this script produces a cycle
