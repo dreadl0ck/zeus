@@ -43,7 +43,7 @@ func TestMain(t *testing.T) {
 	// ignore zeusfile in the project dir for now, it will be tested separately with TestZeusfile()
 	zeusfilePath = ""
 
-	Convey("When Starting main", t, func() {
+	Convey("When Starting main", t, func(c C) {
 
 		// remove project data rom previous test runs
 		os.Remove("tests/zeus_data.json")
@@ -53,11 +53,11 @@ func TestMain(t *testing.T) {
 		time.Sleep(500 * time.Millisecond)
 
 		commandMutex.Lock()
-		So(len(commands), ShouldBeGreaterThan, 0)
+		c.So(len(commands), ShouldBeGreaterThan, 0)
 		commandMutex.Unlock()
 
 		configMutex.Lock()
-		So(conf, ShouldNotBeNil)
+		c.So(conf, ShouldNotBeNil)
 		configMutex.Unlock()
 
 		go StartWebListener(false)
