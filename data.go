@@ -29,7 +29,6 @@ import (
 
 	"time"
 
-	"github.com/Sirupsen/logrus"
 	"github.com/fsnotify/fsnotify"
 )
 
@@ -152,10 +151,6 @@ func loadEvents() {
 			reloadEvent(e)
 			continue
 		}
-
-		Log.WithFields(logrus.Fields{
-			"command": e.Command,
-		}).Debug("EVENT: ", e)
 
 		fields := strings.Fields(e.Command)
 

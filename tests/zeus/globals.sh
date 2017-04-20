@@ -1,3 +1,2 @@
 #!/bin/bash
 GLOBALVAR="TEST"
-

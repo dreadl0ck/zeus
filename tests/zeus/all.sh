@@ -10,4 +10,3 @@
 
 # some comment
 go build
-

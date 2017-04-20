@@ -46,7 +46,7 @@ func TestMain(t *testing.T) {
 	Convey("When Starting main", t, func(c C) {
 
 		// remove project data rom previous test runs
-		os.Remove("tests/zeus_data.json")
+		os.Remove("tests/zeus_data.yml")
 
 		go main()
 
