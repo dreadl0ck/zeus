@@ -251,25 +251,27 @@ func printTodoCommandUsageErr() {
 	l.Println("usage: todo [add <task>] [remove <index>]")
 }
 
+func printTodos() {
+	contents, err := ioutil.ReadFile(conf.TodoFilePath)
+	if err != nil {
+		l.Println(err)
+		return
+	}
+
+	var index int
+
+	for _, line := range strings.Split(string(contents), "\n") {
+		if strings.HasPrefix(line, "- ") {
+			index++
+			l.Println(pad(strconv.Itoa(index)+")", 4) + strings.TrimPrefix(line, "- "))
+		}
+	}
+}
+
 func handleTodoCommand(args []string) {
 
 	if len(args) < 2 {
-
-		contents, err := ioutil.ReadFile(conf.TodoFilePath)
-		if err != nil {
-			l.Println(err)
-			return
-		}
-
-		var index int
-
-		for _, line := range strings.Split(string(contents), "\n") {
-			if strings.HasPrefix(line, "- ") {
-				index++
-				l.Println(pad(strconv.Itoa(index)+")", 4) + strings.TrimPrefix(line, "- "))
-			}
-		}
-
+		printTodos()
 		return
 	}
 

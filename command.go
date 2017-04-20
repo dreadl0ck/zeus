@@ -107,26 +107,7 @@ type command struct {
 	runCommand string
 }
 
-// Run executes the command
-func (c *command) Run(args []string) error {
-
-	if len(c.outputs) != 0 {
-		// check if named outputs exist
-		for _, output := range c.outputs {
-
-			Log.Debug("checking output: ", output)
-
-			_, err := os.Stat(output)
-			if err == nil {
-				// file exists, skip it
-				Log.WithFields(logrus.Fields{
-					"commandName": c.name,
-					"output":      output,
-				}).Info("skipping command because its output exists")
-				return nil
-			}
-		}
-	}
+func (c *command) handleDependencies() error {
 
 	// check if there are dependencies for the current command
 	if len(c.dependencies) != 0 {
@@ -184,42 +165,13 @@ func (c *command) Run(args []string) error {
 		}
 	}
 
-	var (
-		argc  = len(args)
-		cLog  = Log.WithField("prefix", c.name)
-		start = time.Now()
-	)
+	return nil
+}
 
-	cLog.WithFields(logrus.Fields{
-		"name":   c.name,
-		"args":   args,
-		"argc":   argc,
-		"params": c.params,
-	}).Debug("running command")
+func (c *command) parseArguments(args []string) (string, error) {
 
-	// check if parameters are set on the command
-	// in this case ignore the arguments from the commandline and pass the predefined ones
-	if len(c.params) > 0 {
-		Log.Debug("found predefined params: ", c.params)
-		args = c.params
-		argc = len(c.params)
-	}
+	Log.Debug("parsing args: ", args, " cmd: ", c.name)
 
-	// execute build chain commands
-	if len(c.commandChain) > 0 {
-		for _, cmd := range c.commandChain {
-
-			// dont pass the commandline args down the commandChain
-			// if the following commands have required arguments they are set on the params fields
-			err := cmd.Run([]string{})
-			if err != nil {
-				cLog.WithError(err).Error("failed to execute " + cmd.name)
-				return err
-			}
-		}
-	}
-
-	Log.Debug("injecting args into script: ", args, " cmd: ", c.name)
 	var argStr = strings.Join(args, " ")
 
 	// parse args
@@ -235,29 +187,29 @@ func (c *command) Run(args []string) error {
 
 			argSlice := strings.Split(val, "=")
 			if len(argSlice) != 2 {
-				return errors.New("invalid argument: " + val)
+				return "", errors.New("invalid argument: " + val)
 			}
 
 			if cmdArg, ok = c.args[argSlice[0]]; !ok {
 				Log.Error("invalid label: " + argSlice[0])
-				return ErrInvalidArgumentLabel
+				return "", ErrInvalidArgumentLabel
 			}
 
 			if !validArgType(argSlice[1], cmdArg.argType) {
-				cLog.WithError(ErrInvalidArgumentType).WithFields(logrus.Fields{
+				Log.WithError(ErrInvalidArgumentType).WithFields(logrus.Fields{
 					"value": argSlice[1],
 					"label": cmdArg.name,
 				}).Error("expected type: ", cmdArg.argType.String())
-				return ErrInvalidArgumentType
+				return "", ErrInvalidArgumentType
 			}
 
 			if strings.Count(argStr, cmdArg.name+"=") > 1 {
-				return errors.New("argument label appeared more than once: " + cmdArg.name)
+				return "", errors.New("argument label appeared more than once: " + cmdArg.name)
 			}
 
 			c.args[argSlice[0]].value = argSlice[1]
 		} else {
-			return errors.New("invalid argument: " + val)
+			return "", errors.New("invalid argument: " + val)
 		}
 	}
 
@@ -276,27 +228,26 @@ func (c *command) Run(args []string) error {
 				}
 			} else {
 				// empty value and not optional - error
-				return errors.New("missing argument: " + arg.name)
+				return "", errors.New("missing argument: " + arg.name)
 			}
 		} else {
 			// write value into buffer
 			argBuf.WriteString(arg.name + "=" + arg.value + "\n")
 		}
 	}
-	// flush arg values when we leave
-	defer func() {
-		for _, arg := range c.args {
-			arg.value = ""
-		}
-	}()
 
-	var (
-		cmd    *exec.Cmd
-		script string
-	)
+	// flush arg values
+	for _, arg := range c.args {
+		arg.value = ""
+	}
+
+	return argBuf.String(), nil
+}
+
+func (c *command) createCommand(argBuffer string) (cmd *exec.Cmd, script string, err error) {
 
 	if c.runCommand != "" {
-		script += string(globalsContent) + "\n#!/bin/bash\n" + argBuf.String() + "\n" + c.runCommand
+		script += string(globalsContent) + "\n#!/bin/bash\n" + argBuffer + "\n" + c.runCommand
 		if conf.StopOnError {
 			cmd = exec.Command(p.interpreter, []string{"-e", "-c", script}...)
 		} else {
@@ -306,8 +257,8 @@ func (c *command) Run(args []string) error {
 		// make script executable
 		err := os.Chmod(c.path, 0700)
 		if err != nil {
-			cLog.Error("failed to make script executable")
-			return err
+			Log.Error("failed to make script executable")
+			return nil, "", err
 		}
 
 		// read the contents of this commands script
@@ -320,7 +271,7 @@ func (c *command) Run(args []string) error {
 		if len(globalsContent) > 0 {
 
 			// add the globals, append argument buffer and then append script contents
-			script = string(append(append(globalsContent, argBuf.Bytes()...), target...))
+			script = string(append(append(globalsContent, []byte(argBuffer)...), target...))
 
 			// create command instance and pass new script to bash
 			if conf.StopOnError {
@@ -331,7 +282,7 @@ func (c *command) Run(args []string) error {
 		} else {
 
 			// add argument buffer and then append script contents
-			script = string(append(argBuf.Bytes(), target...))
+			script = string(append([]byte(argBuffer), target...))
 
 			// create command instance
 			// no globals - only execute target script
@@ -345,6 +296,77 @@ func (c *command) Run(args []string) error {
 
 	if conf.Debug {
 		printScript(script)
+	}
+
+	return
+}
+
+// Run executes the command
+func (c *command) Run(args []string) error {
+
+	var (
+		cLog  = Log.WithField("prefix", c.name)
+		start = time.Now()
+	)
+
+	if len(c.outputs) != 0 {
+		// check if named outputs exist
+		for _, output := range c.outputs {
+
+			Log.Debug("checking output: ", output)
+
+			_, err := os.Stat(output)
+			if err == nil {
+				// file exists, skip it
+				Log.WithFields(logrus.Fields{
+					"commandName": c.name,
+					"output":      output,
+				}).Info("skipping command because its output exists")
+				return nil
+			}
+		}
+	}
+
+	err := c.handleDependencies()
+	if err != nil {
+		return err
+	}
+
+	cLog.WithFields(logrus.Fields{
+		"name":   c.name,
+		"args":   args,
+		"params": c.params,
+	}).Debug("running command")
+
+	// check if parameters are set on the command
+	// in this case ignore the arguments from the commandline and pass the predefined ones
+	if len(c.params) > 0 {
+		Log.Debug("found predefined params: ", c.params)
+		args = c.params
+	}
+
+	// execute build chain commands
+	if len(c.commandChain) > 0 {
+		for _, cmd := range c.commandChain {
+
+			// dont pass the commandline args down the commandChain
+			// if the following commands have required arguments they are set on the params fields
+			err := cmd.Run([]string{})
+			if err != nil {
+				cLog.WithError(err).Error("failed to execute " + cmd.name)
+				return err
+			}
+		}
+	}
+
+	argBuffer, err := c.parseArguments(args)
+	if err != nil {
+		return err
+	}
+
+	cmd, script, err := c.createCommand(argBuffer)
+	if err != nil {
+		return err
 	}
 
 	// set up environment
@@ -366,7 +388,7 @@ func (c *command) Run(args []string) error {
 	l.Println(printPrompt() + "[" + strconv.Itoa(currentCommand) + "/" + strconv.Itoa(numCommands) + "] executing " + cp.colorPrompt + c.name + ansi.Reset)
 
 	// lets go
-	err := cmd.Start()
+	err = cmd.Start()
 	if err != nil {
 		cLog.WithError(err).Fatal("failed to start command: " + c.name)
 	}

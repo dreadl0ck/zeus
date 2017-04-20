@@ -7,10 +7,8 @@
           \/    \/           \/   /\\/\ //\
                 An Electrifying Build System
 
-- split up cmd.Run()
 - fix ANSI Sequences in output of external commands
 - remove logfile
-
 - add @zeus-async header for parallel builds
 
 - generate reports

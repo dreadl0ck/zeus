@@ -92,76 +92,79 @@ func handleEventsCommand(args []string) {
 	case "remove":
 		removeEvent(args[2])
 	case "add":
-
-		if len(args) < 5 {
-			printEventsUsageErr()
-			return
-		}
-
-		// check if event type is valid
-		op, err := getEventType(args[2])
-		if err != nil {
-			Log.Error(err)
-			return
-		}
-
-		// check if path exists
-		_, err = os.Stat(args[3])
-		if err != nil {
-			Log.Error(err)
-			return
-		}
-
-		var (
-			fields   []string
-			filetype string
-		)
-
-		if strings.HasPrefix(args[4], ".") {
-			fields = args[5:]
-			filetype = args[4]
-		} else {
-			fields = args[4:]
-		}
-
-		if filetype != "" && len(fields) == 0 {
-			Log.Error("no command supplied")
-			return
-		}
-
-		if validCommandChain(fields, true) {
-			Log.Info("adding command chain")
-		} else {
-			Log.Info("adding shell command")
-		}
-
-		chain := strings.Join(fields, " ")
-		go func() {
-			e := newEvent(args[3], op, "custom event", filetype, "", chain, func(event fsnotify.Event) {
-
-				Log.Debug("event fired, name: ", event.Name, " path: ", args[3])
-
-				if validCommandChain(fields, true) {
-					executeCommandChain(chain)
-				} else {
-
-					// its a shell command
-					if len(fields) > 1 {
-						passCommandToShell(fields[0], fields[1:])
-					} else {
-						passCommandToShell(fields[0], []string{})
-					}
-				}
-			})
-			err := addEvent(e)
-			if err != nil {
-				Log.Error("failed to watch path: ", args[3])
-			}
-		}()
+		registerEvent(args)
 
 	default:
 		printEventsUsageErr()
 	}
+}
+
+func registerEvent(args []string) {
+	if len(args) < 5 {
+		printEventsUsageErr()
+		return
+	}
+
+	// check if event type is valid
+	op, err := getEventType(args[2])
+	if err != nil {
+		Log.Error(err)
+		return
+	}
+
+	// check if path exists
+	_, err = os.Stat(args[3])
+	if err != nil {
+		Log.Error(err)
+		return
+	}
+
+	var (
+		fields   []string
+		filetype string
+	)
+
+	if strings.HasPrefix(args[4], ".") {
+		fields = args[5:]
+		filetype = args[4]
+	} else {
+		fields = args[4:]
+	}
+
+	if filetype != "" && len(fields) == 0 {
+		Log.Error("no command supplied")
+		return
+	}
+
+	if validCommandChain(fields, true) {
+		Log.Info("adding command chain")
+	} else {
+		Log.Info("adding shell command")
+	}
+
+	chain := strings.Join(fields, " ")
+	go func() {
+		e := newEvent(args[3], op, "custom event", filetype, "", chain, func(event fsnotify.Event) {
+
+			Log.Debug("event fired, name: ", event.Name, " path: ", args[3])
+
+			if validCommandChain(fields, true) {
+				executeCommandChain(chain)
+			} else {
+
+				// its a shell command
+				if len(fields) > 1 {
+					passCommandToShell(fields[0], fields[1:])
+				} else {
+					passCommandToShell(fields[0], []string{})
+				}
+			}
+		})
+		err := addEvent(e)
+		if err != nil {
+			Log.Error("failed to watch path: ", args[3])
+		}
+	}()
 }
 
 // parse command type string and fsnotify type
@@ -348,6 +351,6 @@ func reloadEvent(e *Event) {
 	case "script watcher":
 		go watchScripts(e.ID)
 	default:
-		Log.Warn("reload event called for an unkown event: ", e.Name)
+		Log.Warn("reload event called for an unknown event: ", e.Name)
 	}
 }
