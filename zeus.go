@@ -233,6 +233,12 @@ func main() {
 		Log.Fatal(ErrUnknownColorProfile, " : ", conf.ColorProfile)
 	}
 
+	// set working directory
+	workingDir, err = os.Getwd()
+	if err != nil {
+		cLog.WithError(err).Fatal("failed to get current directory name")
+	}
+
 	// only print info when using the interactive shell
 	if len(os.Args) == 1 {
 
@@ -242,12 +248,6 @@ func main() {
 			cLog.WithError(err).Fatal("failed to get ascii art from rice box")
 		}
 		l.Println(cp.colorText + asciiArt + "\n")
-
-		// set working directory
-		workingDir, err = os.Getwd()
-		if err != nil {
-			cLog.WithError(err).Fatal("failed to get current directory name")
-		}
 
 		l.Println(cp.colorText + "Project Name: " + cp.colorPrompt + filepath.Base(workingDir) + cp.colorText + "\n")
 		printAuthor()
@@ -302,6 +302,11 @@ func main() {
 		println()
 	}
 
+	if conf.ProjectNamePrompt {
+		// set shell prompt to project name
+		zeusPrompt = filepath.Base(workingDir)
+	}
+
 	// handle commandline arguments
 	handleArgs()
 
@@ -310,11 +315,6 @@ func main() {
 
 		if conf.WebInterface {
 			go StartWebListener(true)
-		}
-
-		if conf.ProjectNamePrompt {
-			// set shell prompt to project name
-			zeusPrompt = filepath.Base(workingDir)
 		}
 
 		// handle OS Signals
@@ -409,7 +409,9 @@ func handleArgs() {
 
 				err := cmd.Run(os.Args[2:])
 				if err != nil {
-					cLog.WithError(err).Fatal("failed to execute " + cmd.name)
+					cLog.WithError(err).Error("failed to execute " + cmd.name)
+					cleanup()
+					os.Exit(1)
 				}
 			} else {
 				commandMutex.Unlock()

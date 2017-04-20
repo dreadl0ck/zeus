@@ -3,23 +3,23 @@ Deadline: ""
 Milestones: []
 Aliases: {}
 Events:
-  6045ef9ae591693a:
+  078cf1c94edfeb06:
     name: config watcher
-    id: 6045ef9ae591693a
+    id: 078cf1c94edfeb06
     path: tests/zeus_config.yml
     op: 2
     fileextension: .yml
     command: internal
-  6ea2da2df858b08b:
+  771f5a10207ac8a5:
     name: script watcher
-    id: 6ea2da2df858b08b
+    id: 771f5a10207ac8a5
     path: tests
     op: 2
     fileextension: .sh
     command: internal
-  536cff611fae9378:
+  b3775e03c6f071a1:
     name: zeusfile watcher
-    id: 536cff611fae9378
+    id: b3775e03c6f071a1
     path: Zeusfile.yml
     op: 2
     fileextension: ""
