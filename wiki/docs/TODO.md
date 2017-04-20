@@ -7,10 +7,7 @@
           \/    \/           \/   /\\/\ //\
                 An Electrifying Build System
 
-- improve parse error feedback for invalid argument declarations
-- throw an error if a defaultValue is set for a non optional argument
 - split up cmd.Run()
-
 - fix ANSI Sequences in output of external commands
 - remove logfile
 

@@ -492,7 +492,11 @@ func validateArgs(args string) (validatedArgs map[string]*commandArg, err error)
 
 	// parse arg string
 	// split by commas
-	for _, s := range strings.Split(args, ",") {
+	for i, s := range strings.Split(args, ",") {
+
+		if len(s) == 0 {
+			return nil, errors.New("found empty argument at index: " + strconv.Itoa(i))
+		}
 
 		var (
 			k            reflect.Kind
@@ -515,6 +519,9 @@ func validateArgs(args string) (validatedArgs map[string]*commandArg, err error)
 			// check if there's a default value set
 			defaultValSlice := strings.Split(slice[1], "=")
 			if len(defaultValSlice) > 1 {
+				if !strings.Contains(slice[1], "?") {
+					return nil, errors.New("default values for mandatory arguments are not allowed: " + s + ", at index: " + strconv.Itoa(i))
+				}
 				slice[1] = strings.TrimSpace(defaultValSlice[0])
 				defaultValue = defaultValSlice[1]
 			}
@@ -536,7 +543,7 @@ func validateArgs(args string) (validatedArgs map[string]*commandArg, err error)
 			case argTypeInt:
 				k = reflect.Int
 			default:
-				return nil, errors.New("invalid or missing argument type: " + slice[1])
+				return nil, errors.New("invalid or missing argument type: " + s)
 			}
 
 			// add to validatedArgs
@@ -547,7 +554,7 @@ func validateArgs(args string) (validatedArgs map[string]*commandArg, err error)
 				defaultValue: defaultValue,
 			}
 		} else {
-			return nil, errors.New("untyped arguments are not allowed: " + s)
+			return nil, errors.New("invalid argument declaration: " + s)
 		}
 	}
 
