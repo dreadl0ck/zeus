@@ -37,7 +37,7 @@ import (
 
 const (
 	// current zeus version
-	version = "0.7"
+	version = "0.7.1"
 )
 
 var (
@@ -148,8 +148,6 @@ func main() {
 		}
 	}
 
-	clearScreen()
-
 	// look for project data
 	projectData, err = parseProjectData()
 	if err != nil {
@@ -239,8 +237,10 @@ func main() {
 		cLog.WithError(err).Fatal("failed to get current directory name")
 	}
 
-	// only print info when using the interactive shell
+	// only execute when using the interactive shell
 	if len(os.Args) == 1 {
+
+		clearScreen()
 
 		// print ascii art
 		asciiArt, err = assetBox.String("ascii_art.txt")
@@ -368,7 +368,8 @@ func handleArgs() {
 
 		case versionCommand:
 			l.Println(version)
-
+		case updateCommand:
+			updateZeus()
 		case infoCommand:
 			printProjectInfo()
 

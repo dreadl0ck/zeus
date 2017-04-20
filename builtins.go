@@ -54,6 +54,7 @@ const (
 	zeusfileCommand   = "migrate-zeusfile"
 	gitFilterCommand  = "git-filter"
 	todoCommand       = "todo"
+	updateCommand     = "update"
 )
 
 var builtins = map[string]string{
@@ -81,6 +82,7 @@ var builtins = map[string]string{
 	zeusfileCommand:   "migrate zeusfile into a zeus directory",
 	gitFilterCommand:  "filter git log output",
 	todoCommand:       "manage todos",
+	updateCommand:     "update zeus version",
 }
 
 // executed when running the info command
@@ -325,4 +327,17 @@ func handleTodoCommand(args []string) {
 			}
 		}
 	}
+}
+
+func updateZeus() {
+	cmd := exec.Command("go", "get", "-u", "github.com/dreadl0ck/zeus")
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	l.Println("current version:", version)
+	l.Println("updating zeus...")
+	err := cmd.Run()
+	if err != nil {
+		Log.WithError(err).Fatal("failed to update zeus")
+	}
+	l.Println("zeus updated!")
 }

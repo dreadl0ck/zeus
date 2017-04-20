@@ -8,5 +8,8 @@
 # this script compiles the binary without assets
 # ---------------------------------------------------------------------- #
 
+# remove assets to force rice debug stubs
 rm -f rice-box.go
+
+# install binary
 go install

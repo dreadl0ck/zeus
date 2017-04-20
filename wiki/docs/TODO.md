@@ -11,14 +11,18 @@
 - throw an error if a defaultValue is set for a non optional argument
 - split up cmd.Run()
 
-- remove logfile, generate reports
-- improve tests
+- fix ANSI Sequences in output of external commands
+- remove logfile
+
 - add @zeus-async header for parallel builds
 
+- generate reports
+- improve tests
 - integrate fstree & fsdiff as builtins
 - improve parse error feedback
 - add encrypted storage
 - support more scripting languages
+- add bash-completion file
 
 ## readline
 

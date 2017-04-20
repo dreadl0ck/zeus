@@ -8,6 +8,7 @@
 
 echo "copying LICENSE and README.md"
 
+# copy readme and license into wiki/docs to make them available for the web-wiki
 cp LICENSE wiki/docs
 cp README.md wiki/docs
 
