@@ -6,7 +6,7 @@ WebInterface: true
 Interactive: true
 LogToFileColor: false
 LogToFile: true
-Debug: false
+Debug: true
 RecursionDepth: 1
 ProjectNamePrompt: true
 ColorProfile: default

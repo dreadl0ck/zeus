@@ -56,9 +56,15 @@ func TestMain(t *testing.T) {
 		c.So(len(commands), ShouldBeGreaterThan, 0)
 		commandMutex.Unlock()
 
+		// config should be initialized
 		configMutex.Lock()
 		c.So(conf, ShouldNotBeNil)
+		// enable debug mode
+		conf.Debug = true
 		configMutex.Unlock()
+
+		// manipulate Zeusfile path to not use the ZEUS projects Zeusfile for the tests
+		zeusfilePath = "tests/Zeusfile.yml"
 
 		go StartWebListener(false)
 
