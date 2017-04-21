@@ -56,8 +56,6 @@ func configItems() []readline.PrefixCompleterInterface {
 		readline.PcItem("PassCommandsToShell", readline.PcItem("true"), readline.PcItem("false")),
 		readline.PcItem("WebInterface", readline.PcItem("true"), readline.PcItem("false")),
 		readline.PcItem("Interactive", readline.PcItem("true"), readline.PcItem("false")),
-		readline.PcItem("LogToFileColor", readline.PcItem("true"), readline.PcItem("false")),
-		readline.PcItem("LogToFile", readline.PcItem("true"), readline.PcItem("false")),
 		readline.PcItem("Debug", readline.PcItem("true"), readline.PcItem("false")),
 		readline.PcItem("RecursionDepth"),
 		readline.PcItem("ProjectNamePrompt", readline.PcItem("true"), readline.PcItem("false")),

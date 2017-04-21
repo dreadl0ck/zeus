@@ -19,6 +19,7 @@
 package main
 
 import (
+	"log"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -30,19 +31,23 @@ import (
 	"github.com/fatih/color"
 	"github.com/mgutz/ansi"
 
+	"flag"
+
 	rice "github.com/GeertJohan/go.rice"
 	"github.com/dreadl0ck/readline"
 	prefixed "github.com/x-cray/logrus-prefixed-formatter"
 )
 
-const (
-	// current zeus version
-	version = "0.7.2"
-)
-
 var (
-	// Log instance
+	// current zeus version
+	// will be added by the build script using the ldflags -X linker option
+	version = "XXXX"
+
+	// Log instance for internal logs
 	Log = logrus.New()
+
+	// logging instance for terminal UI
+	l = log.New(os.Stdout, "", 0)
 
 	// all available build target commands
 	// does not include the built-ins!
@@ -91,7 +96,23 @@ func init() {
 
 func main() {
 
-	var cLog = Log.WithField("prefix", "main")
+	var (
+		cLog            = Log.WithField("prefix", "main")
+		err             error
+		flagCompletions = flag.String("completions", "", "get available command completions")
+		flagHelp        = flag.Bool("h", false, "print zeus help and exit")
+	)
+
+	flag.Parse()
+
+	if *flagCompletions != "" {
+		printCompletions(*flagCompletions)
+		os.Exit(0)
+	}
+
+	if *flagHelp {
+		printHelp()
+	}
 
 	if runtime.GOOS == "windows" {
 		cLog.Fatal("windows is not (yet) supported.")
@@ -120,33 +141,7 @@ func main() {
 		}
 	}
 
-	// check if zeus directory or Zeusfile exists
-	stat, err := os.Stat(zeusDir)
-	if err != nil {
-		if stat, err = os.Stat(zeusfilePath); err != nil {
-			if stat, err = os.Stat("Zeusfile"); err != nil {
-				cLog.WithError(err).Error("no zeus directory or Zeusfile found.")
-				cLog.Info("run 'zeus bootstrap dir' or 'zeus bootstrap file' to create a default one, or 'zeus makefile migrate' if you want to migrate from a GNU Makefile.")
-				os.Exit(1)
-			} else {
-				// make sure its a file
-				if stat.IsDir() {
-					cLog.Fatal("Zeusfile is not a file")
-
-				}
-			}
-		} else {
-			// make sure its a file
-			if stat.IsDir() {
-				cLog.Fatal(zeusfilePath + " is not a file")
-			}
-		}
-	} else {
-		// make sure its a directory
-		if !stat.IsDir() {
-			cLog.Fatal("zeus/ is not a directory")
-		}
-	}
+	checkZeusEnvironment()
 
 	// look for project data
 	projectData, err = parseProjectData()
@@ -208,28 +203,12 @@ func main() {
 		ansi.Green = ansi.ColorCode("off")
 
 		Log.Formatter = &prefixed.TextFormatter{
-			DisableColors: true,
+			DisableColors:    true,
+			DisableTimestamp: conf.DisableTimestamps,
 		}
 	}
 
-	if conf.LogToFile || conf.LogToFileColor {
-		err := logToFile()
-		if err != nil {
-			cLog.WithError(err).Fatal("failed to set up logging to file")
-		}
-	}
-
-	// init color profile
-	switch conf.ColorProfile {
-	case "dark":
-		cp = darkProfile()
-	case "light":
-		cp = lightProfile()
-	case "default":
-		cp = defaultProfile()
-	default:
-		Log.Fatal(ErrUnknownColorProfile, " : ", conf.ColorProfile)
-	}
+	initColorProfile()
 
 	// set working directory
 	workingDir, err = os.Getwd()
@@ -239,26 +218,7 @@ func main() {
 
 	// only execute when using the interactive shell
 	if len(os.Args) == 1 {
-
-		clearScreen()
-
-		// print ascii art
-		asciiArt, err = assetBox.String("ascii_art.txt")
-		if err != nil {
-			cLog.WithError(err).Fatal("failed to get ascii art from rice box")
-		}
-		l.Println(cp.colorText + asciiArt + "\n")
-
-		l.Println(cp.colorText + "Project Name: " + cp.colorPrompt + filepath.Base(workingDir) + cp.colorText + "\n")
-		printAuthor()
-
-		if projectData.BuildNumber > 0 {
-			l.Println(cp.colorText + "BuildNumber: " + cp.colorPrompt + strconv.Itoa(projectData.BuildNumber) + cp.colorText + "\n")
-		}
-
-		// project infos
-		printDeadline()
-		listMilestones()
+		printProjectHeader()
 	}
 
 	// start watchers when running in interactive mode
@@ -327,10 +287,74 @@ func main() {
 			cLog.WithError(err).Fatal("failed to read user input")
 		}
 	} else {
+		printProjectHeader()
 		if conf.PrintBuiltins {
 			printBuiltins()
 		}
 		printCommands()
+	}
+}
+
+func printHelp() {
+	l.Println("ZEUS - An Electrifying Build System")
+	l.Println("author: dreadl0ck@protonmail.ch")
+	l.Println("for documentation see: https://github.com/dreadl0ck/zeus")
+	l.Println("run 'zeus bootstrap dir' or 'zeus bootstrap file' to create a default ZEUS directory")
+	l.Println("or 'zeus makefile migrate' if you want to migrate from a GNU Makefile.")
+	l.Println("to get an overview over an existing ZEUS project, run 'zeus help' or 'zeus' for for the interactive shell.")
+	os.Exit(0)
+}
+
+func printProjectHeader() {
+
+	var err error
+	clearScreen()
+
+	// print ascii art
+	asciiArt, err = assetBox.String("ascii_art.txt")
+	if err != nil {
+		Log.WithError(err).Fatal("failed to get ascii art from rice box")
+	}
+	l.Println(cp.colorText + asciiArt + "\n")
+
+	l.Println(cp.colorText + "Project Name: " + cp.colorPrompt + filepath.Base(workingDir) + cp.colorText + "\n")
+	printAuthor()
+
+	if projectData.BuildNumber > 0 {
+		l.Println(cp.colorText + "BuildNumber: " + cp.colorPrompt + strconv.Itoa(projectData.BuildNumber) + cp.colorText + "\n")
+	}
+
+	// project infos
+	printDeadline()
+	listMilestones()
+}
+
+func checkZeusEnvironment() {
+	// check if zeus directory or Zeusfile exists
+	stat, err := os.Stat(zeusDir)
+	if err != nil {
+		if stat, err = os.Stat(zeusfilePath); err != nil {
+			if stat, err = os.Stat("Zeusfile"); err != nil {
+				Log.WithError(err).Error("no zeus directory or Zeusfile found.")
+				Log.Info("run 'zeus bootstrap dir' or 'zeus bootstrap file' to create a default one, or 'zeus makefile migrate' if you want to migrate from a GNU Makefile.")
+				os.Exit(1)
+			} else {
+				// make sure its a file
+				if stat.IsDir() {
+					Log.Fatal("Zeusfile is not a file")
+				}
+			}
+		} else {
+			// make sure its a file
+			if stat.IsDir() {
+				Log.Fatal(zeusfilePath + " is not a file")
+			}
+		}
+	} else {
+		// make sure its a directory
+		if !stat.IsDir() {
+			Log.Fatal("zeus/ is not a directory")
+		}
 	}
 }
 
@@ -352,7 +376,7 @@ func handleArgs() {
 
 		case formatCommand:
 			f.formatCommand()
-		case "data":
+		case dataCommand:
 			printProjectData()
 
 		case aliasCommand:

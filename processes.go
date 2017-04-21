@@ -82,26 +82,26 @@ func cleanup() {
 		}
 	}
 
-	// close logfileHandle
-	if logfileHandle != nil {
-		err := logfileHandle.Close()
-		if err != nil {
-			Log.WithError(err).Error("failed to close logfileHandle")
-		}
-	}
+	// close reportHandle
+	// if reportHandle != nil {
+	// 	err := reportHandle.Close()
+	// 	if err != nil {
+	// 		Log.WithError(err).Error("failed to close report file deskriptor")
+	// 	}
+	// }
 }
 
 // print all registered processes
-func printProcessMap() {
-	l.Println("processMap: ", len(processMap))
-	for id, p := range processMap {
-		if p.Proc != nil {
-			l.Println("ID:", id, "PID:", p.Proc.Pid)
-		} else {
-			l.Println("ID:", id, "Process: <nil>")
-		}
-	}
-}
+// func printProcessMap() {
+// 	l.Println("processMap: ", len(processMap))
+// 	for id, p := range processMap {
+// 		if p.Proc != nil {
+// 			l.Println("ID:", id, "PID:", p.Proc.Pid)
+// 		} else {
+// 			l.Println("ID:", id, "Process: <nil>")
+// 		}
+// 	}
+// }
 
 // clean up the mess
 func clearProcessMap(sig os.Signal) {

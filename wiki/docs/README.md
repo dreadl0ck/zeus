@@ -481,7 +481,7 @@ zeus » help
 ZEUS supports typed command arguments.
 
 To declare them, supply a comma separated list to the **zeus-args** field,
-following this scheme: **label:type**
+following this scheme: **label:Type**
 
 Available types are: **Int, String, Float, Bool**
 
@@ -493,11 +493,11 @@ zeus » build name=testbuild
 
 The order in which they appear does NOT matter (because of the labels)
 
-It is also possible to create optional arguments: **label:type?**
+It is also possible to create optional arguments: **label:Type?**
 
 They won't be required for executing the command, and if no value was supplied they will be initialized with the *zero value for their data type*
 
-You can set a default value for optional arguments: **label:type? = value**
+You can set a default value for optional arguments: **label:Type? = value**
 
 Lets look at an example for declaration:
 

@@ -36,12 +36,6 @@ var (
 	// ErrConfigFileIsADirectory means the config file is a directory, thats wrong
 	ErrConfigFileIsADirectory = errors.New("the config file is a directory")
 
-	// ErrInvalidGlobalConfig means your global config sucks
-	ErrInvalidGlobalConfig = errors.New("global configuration file is invalid")
-
-	// ErrInvalidLocalConfig means your local config sucks
-	ErrInvalidLocalConfig = errors.New("local configuration file is invalid")
-
 	// path for global config file
 	globalConfigPath = os.Getenv("HOME") + "/.zeus_config.yml"
 
@@ -63,8 +57,6 @@ type config struct {
 	PassCommandsToShell bool   `yaml:"PassCommandsToShell"`
 	WebInterface        bool   `yaml:"WebInterface"`
 	Interactive         bool   `yaml:"Interactive"`
-	LogToFileColor      bool   `yaml:"LogToFileColor"`
-	LogToFile           bool   `yaml:"LogToFile"`
 	Debug               bool   `yaml:"Debug"`
 	RecursionDepth      int    `yaml:"RecursionDepth"`
 	ProjectNamePrompt   bool   `yaml:"ProjectNamePrompt"`
@@ -93,8 +85,6 @@ func newConfig() *config {
 		PassCommandsToShell: true,
 		WebInterface:        false,
 		Interactive:         true,
-		LogToFileColor:      false,
-		LogToFile:           true,
 		Debug:               false,
 		RecursionDepth:      1,
 		ProjectNamePrompt:   true,

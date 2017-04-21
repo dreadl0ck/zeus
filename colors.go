@@ -126,3 +126,16 @@ func handleColorsCommand(args []string) {
 		printCommands()
 	}
 }
+
+func initColorProfile() {
+	switch conf.ColorProfile {
+	case "dark":
+		cp = darkProfile()
+	case "light":
+		cp = lightProfile()
+	case "default":
+		cp = defaultProfile()
+	default:
+		Log.Fatal(ErrUnknownColorProfile, " : ", conf.ColorProfile)
+	}
+}

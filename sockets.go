@@ -19,15 +19,9 @@
 package main
 
 import (
-	"errors"
 	"sync"
 
 	"github.com/desertbit/glue"
-)
-
-var (
-	// ErrSocketNotFound means the socketID does not exist
-	ErrSocketNotFound = errors.New("no socket found for id")
 )
 
 // SocketStore contains the socket connections and provides an interface for safe concurrent access

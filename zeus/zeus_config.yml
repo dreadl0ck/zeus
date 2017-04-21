@@ -4,8 +4,6 @@ Colors: true
 PassCommandsToShell: true
 WebInterface: false
 Interactive: true
-LogToFileColor: false
-LogToFile: false
 Debug: false
 RecursionDepth: 1
 ProjectNamePrompt: true

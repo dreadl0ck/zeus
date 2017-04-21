@@ -19,14 +19,15 @@
 package main
 
 import (
+	"bytes"
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
-	"io"
-	"log"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"os/signal"
+	"path/filepath"
 	"reflect"
 	"strconv"
 	"strings"
@@ -37,46 +38,13 @@ import (
 
 	gosxnotifier "github.com/deckarep/gosx-notifier"
 	"github.com/fsnotify/fsnotify"
-	"github.com/mgutz/ansi"
 )
 
 var (
-
-	// color all output to Stderr red
-	cWriter = newColorWriter(os.Stderr, ansi.Red)
-
-	// prompt for the interactive
+	// prompt for the interactive shell
 	zeusPrompt  = "zeus"
 	signalMutex = &sync.Mutex{}
 )
-
-// create a new color writer instance
-func newColorWriter(w io.Writer, color string) *colorWriter {
-	return &colorWriter{
-		color: color,
-		w:     w,
-	}
-}
-
-// colorWriter wraps an io.Writer and writes all data prefixed with specified ANSI string
-type colorWriter struct {
-	color string
-	w     io.Writer
-}
-
-// implement io.Writer
-func (c *colorWriter) Write(b []byte) (n int, err error) {
-
-	var coloredBuffer = append([]byte(c.color), b...)
-
-	_, err = c.w.Write(append(coloredBuffer, []byte(ansi.Reset)...))
-	if err != nil {
-		Log.WithError(err).Error("error writing")
-	}
-
-	// we need to lie about the written bytelength, otherwise a runtime error will happen
-	return len(b), err
-}
 
 // dump the currently executed script in case of an error
 func dumpScript(script string) {
@@ -413,15 +381,15 @@ func watchScripts(eventID string) {
 }
 
 // dump datastructure as YAML - useful for debugging
-func dumpYAML(i interface{}) {
-	out, err := yaml.Marshal(i)
-	if err != nil {
-		log.Println("ERROR: failed to marshal to YAML:", err)
-		return
-	}
+// func dumpYAML(i interface{}) {
+// 	out, err := yaml.Marshal(i)
+// 	if err != nil {
+// 		log.Println("ERROR: failed to marshal to YAML:", err)
+// 		return
+// 	}
 
-	fmt.Println(string(out))
-}
+// 	fmt.Println(string(out))
+// }
 
 // print file content with linenumbers to stdout - useful for debugging
 func printFileContents(data []byte) {
@@ -430,4 +398,100 @@ func printFileContents(data []byte) {
 		l.Println(pad(strconv.Itoa(i+1), 3), line)
 	}
 	l.Println("| ------------------------------------------------------------ |")
+}
+
+func printCompletions(previous string) {
+
+	switch previous {
+	case "bootstrap":
+		fmt.Println("file dir")
+		return
+	case "makefile":
+		fmt.Println("migrate")
+		return
+	}
+
+	// print builtins
+	var completions = []string{
+		"help",
+		"format",
+		"data",
+		"alias",
+		"config",
+		"version",
+		"update",
+		"info",
+		"colors",
+		"author",
+		"builtins",
+		"makefile",
+		"git-filter",
+		"create",
+	}
+
+	for _, name := range completions {
+		if previous == name || previous == "bootstrap" {
+			return
+		}
+	}
+
+	// bootstrap is available when there's no dir or zeusfile
+	fmt.Print("bootstrap ")
+
+	// check for zeusfile
+	var (
+		zeusfile = new(Zeusfile)
+		contents []byte
+		err      error
+	)
+
+	contents, err = ioutil.ReadFile("Zeusfile.yml")
+	if err != nil {
+		contents, err = ioutil.ReadFile("Zeusfile")
+	}
+	if err == nil {
+
+		// replace tabs with spaces
+		contents = bytes.Replace(contents, []byte("\t"), []byte("    "), -1)
+
+		// unmarshal data
+		err = yaml.Unmarshal(contents, zeusfile)
+		if err != nil {
+			fmt.Println()
+			return
+		}
+
+		for name := range zeusfile.Commands {
+			if name == previous {
+				return
+			}
+			completions = append(completions, name)
+		}
+	} else {
+
+		// check for zeusDir
+		files, err := ioutil.ReadDir(zeusDir)
+		if err != nil {
+			fmt.Println()
+			return
+		}
+
+		for _, stat := range files {
+			if strings.HasSuffix(stat.Name(), ".sh") {
+				fileName := strings.TrimSuffix(filepath.Base(stat.Name()), ".sh")
+				if fileName != "globals" {
+					if fileName == previous {
+						return
+					}
+					completions = append(completions, fileName)
+				}
+			}
+		}
+	}
+
+	// print result
+	for _, name := range completions {
+		fmt.Print(name + " ")
+	}
+	fmt.Println()
 }

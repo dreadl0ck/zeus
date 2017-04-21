@@ -239,6 +239,12 @@ func handleGitFilterCommand(args []string) {
 		return
 	}
 
+	if len(args) > 2 {
+		printGitFilterCommandUsageErr()
+		return
+	}
+
+	// filter output for lines containing the keyword
 	for _, line := range strings.Split(string(out), "\n") {
 		if strings.Contains(line, args[1]) {
 			l.Println(line)
@@ -332,14 +338,19 @@ func handleTodoCommand(args []string) {
 }
 
 func updateZeus() {
+
 	cmd := exec.Command("go", "get", "-u", "github.com/dreadl0ck/zeus")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
+	cmd.Stdin = os.Stdin
+	cmd.Env = os.Environ()
+
 	l.Println("current version:", version)
 	l.Println("updating zeus...")
 	err := cmd.Run()
 	if err != nil {
 		Log.WithError(err).Fatal("failed to update zeus")
 	}
+
 	l.Println("zeus updated!")
 }

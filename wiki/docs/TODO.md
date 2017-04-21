@@ -7,11 +7,8 @@
           \/    \/           \/   /\\/\ //\
                 An Electrifying Build System
 
-- fix ANSI Sequences in output of external commands
-- remove logfile
-- add @zeus-async header for parallel builds
-
 - generate reports
+- add @zeus-async header for parallel builds
 - improve tests
 - integrate fstree & fsdiff as builtins
 - improve parse error feedback

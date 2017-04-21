@@ -3,8 +3,9 @@
 ############
 
 # globals for all build commands
+
 globals: |
-    version=0.7
+    version=0.7.2
     buildDir=bin/
 
 # all commands
@@ -16,7 +17,7 @@ commands:
 		buildNumber: true
         run: |
             echo "building $name"
-			godep go build -o $buildDir$name
+			godep go build -o $buildDir$name -ldflags="-X main.version=$version"
     optional:
         args: name:String? = "defaultName", bla:String, ok:Bool?, count:Int?, req:String
         help: test optionals
@@ -32,7 +33,7 @@ commands:
         manual: |
 			zeus build-race script
 			this script produces the zeus binary with race detection enabled
-        run: go build -race -o bin/zeus && bin/zeus
+        run: go build -race -ldflags="-X main.version=$version" -o bin/zeus && bin/zeus
 	clean:
         help: clean up to prepare for build
         run: |
@@ -58,7 +59,7 @@ commands:
 			this script compiles the binary without assets
         run: |
 			rm -f rice-box.go
-			go install
+			go install -ldflags="-X main.version=$version"
     install:
         chain: clean -> configure
         help: install to $PATH
@@ -66,7 +67,7 @@ commands:
         run: |
             echo "installing zeus $version"
 			rice embed-go
-			godep go install
+			godep go install -ldflags="-X main.version=$version"
 	reset:
         chain: clean
         help: reset and delete all generated files
@@ -79,10 +80,6 @@ commands:
         help: start data race detection tests
         manual: zeus data race detection test script
         run: go test -v -race
-
-    version-number:
-        run:
-            echo "$version"
 
     # run the tests
 	test:
