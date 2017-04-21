@@ -403,34 +403,34 @@ func printFileContents(data []byte) {
 func printCompletions(previous string) {
 
 	switch previous {
-	case "bootstrap":
+	case bootstrapCommand:
 		fmt.Println("file dir")
 		return
-	case "makefile":
+	case makefileCommand:
 		fmt.Println("migrate")
 		return
 	}
 
 	// print builtins
 	var completions = []string{
-		"help",
-		"format",
-		"data",
-		"alias",
-		"config",
-		"version",
-		"update",
-		"info",
-		"colors",
-		"author",
-		"builtins",
-		"makefile",
-		"git-filter",
-		"create",
+		helpCommand,
+		formatCommand,
+		dataCommand,
+		aliasCommand,
+		configCommand,
+		versionCommand,
+		updateCommand,
+		infoCommand,
+		colorsCommand,
+		authorCommand,
+		builtinsCommand,
+		makefileCommand,
+		gitFilterCommand,
+		createCommand,
 	}
 
 	for _, name := range completions {
-		if previous == name || previous == "bootstrap" {
+		if previous == name || previous == bootstrapCommand {
 			return
 		}
 	}

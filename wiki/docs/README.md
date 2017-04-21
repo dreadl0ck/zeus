@@ -824,6 +824,29 @@ Heres a simple overview of the architecure:
 
 ![alt text](https://github.com/dreadl0ck/zeus/blob/master/wiki/docs/zeus_overview.jpg "ZEUS Overview")
 
+## Bash Completions
+
+If you also want tab completion when not using the interactive shell,
+install the bash-completion package which is available for most linux distros and macOS.
+
+on macOS you can install it with brew:
+
+```
+brew install bash-completion
+```
+
+on linux use the package manager of your distro.
+
+Then add the completion file **files/zeus** to:
+
+- macOS: /usr/local/etc/bash_completion.d/
+- Linux: /etc/bash_completion.d/
+
+and source it with:
+
+- macOS: . /usr/local/etc/bash_completion.d/zeus
+- Linux: . /etc/bash_completion.d/zeus
+
 ## Notes
 
 - spawned jobs inside a script (for example with: &) will cause ZEUS to wait for them to return (the exec.Wait() call waits for all child processes to complete)

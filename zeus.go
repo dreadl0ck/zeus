@@ -41,7 +41,7 @@ import (
 var (
 	// current zeus version
 	// will be added by the build script using the ldflags -X linker option
-	version = "XXXX"
+	version = "0.7.2"
 
 	// Log instance for internal logs
 	Log = logrus.New()
