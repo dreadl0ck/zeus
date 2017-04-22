@@ -811,8 +811,6 @@ migrated  10  commands from Zeusfile in:  4.575956ms
 
 For parsing the header fields, golang RE2 regular expressions are used.
 
-On startup two goroutines will be spawned for parsing the scripts concurrently.
-
 ANSI Escape Sequences are from the [ansi](https://github.com/mgutz/ansi) package.
 
 The interactive shell uses the [readline](https://github.com/chzyer/readline) library,
