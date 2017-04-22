@@ -671,6 +671,12 @@ func (job *parseJob) getCommandChain(parsedCommands [][]string, zeusfile *Zeusfi
 
 		job.commands = append(job.commands, args)
 
+		// // check if command is currently being parsed
+		// if p.JobExists(zeusDir + "/" + args[0]) {
+		// 	Log.Warn("JOB EXISTS: ", zeusDir+"/"+args[0])
+		// 	p.WaitForJob(zeusDir + "/" + args[0])
+		// }
+
 		// check if command has already been parsed
 		commandMutex.Lock()
 		cmd, ok := commands[args[0]]
@@ -793,7 +799,7 @@ func findCommands() {
 		cLog    = Log.WithField("prefix", "findCommands")
 		start   = time.Now()
 		scripts []string
-		wg      sync.WaitGroup
+		// wg      sync.WaitGroup
 		// keep track of scripts that couldn't be parsed
 		parseErrors      = make(map[string]error, 0)
 		parseErrorsMutex = &sync.Mutex{}
@@ -837,45 +843,66 @@ func findCommands() {
 		cLog.WithError(err).Fatal("failed to walk zeus directory")
 	}
 
-	wg.Add(1)
+	// Asynchronous approach
 
-	// first half
-	go func() {
-		for _, path := range scripts[:len(scripts)/2] {
-			err := addCommand(path, false)
-			if err != nil {
-				Log.WithError(err).Debug("failed to add command")
-				parseErrorsMutex.Lock()
-				parseErrors[path] = err
-				parseErrorsMutex.Unlock()
-			}
+	// wg.Add(1)
+
+	// if conf.Debug {
+	// 	l.Println("# -------------------------------------------------------------------------- #")
+	// 	l.Println("# GOROUTINE #1:", scripts[:len(scripts)/2])
+	// 	l.Println("# -------------------------------------------------------------------------- #")
+	// }
+
+	// // first half
+	// go func() {
+	// 	for _, path := range scripts[:len(scripts)/2] {
+	// 		err := addCommand(path, false)
+	// 		if err != nil {
+	// 			Log.WithError(err).Debug("failed to add command")
+	// 			parseErrorsMutex.Lock()
+	// 			parseErrors[path] = err
+	// 			parseErrorsMutex.Unlock()
+	// 		}
+	// 	}
+	// 	wg.Done()
+	// }()
+
+	// if conf.Debug {
+	// 	// in debug mode wait for the first goroutine
+	// 	wg.Wait()
+	// 	l.Println("# -------------------------------------------------------------------------- #")
+	// 	l.Println("# GOROUTINE #2:", scripts[len(scripts)/2:])
+	// 	l.Println("# -------------------------------------------------------------------------- #")
+	// }
+
+	// wg.Add(1)
+
+	// // second half
+	// go func() {
+	// 	for _, path := range scripts[len(scripts)/2:] {
+	// 		err := addCommand(path, false)
+	// 		if err != nil {
+	// 			Log.WithError(err).Debug("failed to add command")
+	// 			parseErrorsMutex.Lock()
+	// 			parseErrors[path] = err
+	// 			parseErrorsMutex.Unlock()
+	// 		}
+	// 	}
+	// 	wg.Done()
+	// }()
+
+	// wg.Wait()
+
+	// sequential approach
+	for _, path := range scripts {
+		err := addCommand(path, false)
+		if err != nil {
+			Log.WithError(err).Debug("failed to add command")
+			parseErrorsMutex.Lock()
+			parseErrors[path] = err
+			parseErrorsMutex.Unlock()
 		}
-		wg.Done()
-	}()
-
-	if conf.Debug {
-		// in debug mode wait for the first goroutine
-		wg.Wait()
-		l.Println("# -------------------------------------------------------------------------- #")
 	}
-
-	wg.Add(1)
-
-	// second half
-	go func() {
-		for _, path := range scripts[len(scripts)/2:] {
-			err := addCommand(path, false)
-			if err != nil {
-				Log.WithError(err).Debug("failed to add command")
-				parseErrorsMutex.Lock()
-				parseErrors[path] = err
-				parseErrorsMutex.Unlock()
-			}
-		}
-		wg.Done()
-	}()
-
-	wg.Wait()
 
 	// print parse errors
 	for path, err := range parseErrors {

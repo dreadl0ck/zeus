@@ -31,6 +31,9 @@ type parseJob struct {
 
 	// log parse errors to stdout
 	silent bool
+
+	// job waiting for command parsed by this job
+	waiters []chan bool
 }
 
 // newJob returns a new parseJob for the given path
@@ -63,7 +66,40 @@ func (p *parser) RemoveJob(job *parseJob) {
 
 	Log.Debug("removing job: ", job.path)
 
+	// notify waiters
+	for _, c := range job.waiters {
+		c <- true
+	}
+
 	p.mutex.Lock()
 	delete(p.jobs, job.path)
 	p.mutex.Unlock()
+}
+
+func (p *parser) JobExists(path string) bool {
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
+	if _, ok := p.jobs[path]; ok {
+		return true
+	}
+	return false
+}
+
+func (p *parser) WaitForJob(path string) {
+
+	c := make(chan bool)
+
+	p.mutex.Lock()
+	if job, ok := p.jobs[path]; ok {
+		// add channel to waiters
+		job.waiters = append(job.waiters, c)
+	} else {
+		// job does not exist
+		return
+	}
+	p.mutex.Unlock()
+
+	Log.Info("waiting for job: ", path)
+
+	<-c
 }

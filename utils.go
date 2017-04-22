@@ -370,10 +370,22 @@ func watchScripts(eventID string) {
 
 		Log.Debug("change event: ", e.Name)
 
-		err := addCommand(e.Name, true)
-		if err != nil {
-			Log.WithError(err).Error("failed to parse command: ", e.Name)
+		if e.Name == zeusDir+"/globals.sh" {
+
+			c, err := ioutil.ReadFile(zeusDir + "/globals.sh")
+			if err != nil {
+				Log.WithError(err).Error("failed to read globals")
+				return
+			}
+			Log.Info("updated globals")
+			globalsContent = c
+		} else {
+			err := addCommand(e.Name, true)
+			if err != nil {
+				Log.WithError(err).Error("failed to parse command: ", e.Name)
+			}
 		}
+
 	}))
 	if err != nil {
 		Log.WithError(err).Error("failed to watch script headers")

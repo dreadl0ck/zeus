@@ -7,14 +7,15 @@
           \/    \/           \/   /\\/\ //\
                 An Electrifying Build System
 
+- fix invalid history entries bug
 - generate reports
 - add @zeus-async header for parallel builds
+
 - improve tests
 - integrate fstree & fsdiff as builtins
 - improve parse error feedback
 - add encrypted storage
 - support more scripting languages
-- add bash-completion file
 
 ## readline
 
