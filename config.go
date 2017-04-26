@@ -78,7 +78,7 @@ type config struct {
 // newConfig returns the default configuration in case there is no config file
 func newConfig() *config {
 	return &config{
-		MakefileOverview:    true,
+		MakefileOverview:    false,
 		AutoFormat:          false,
 		FixParseErrors:      true,
 		Colors:              true,

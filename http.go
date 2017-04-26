@@ -229,6 +229,7 @@ func startJSWatcher() {
 	err := cmd.Start()
 	if err != nil {
 		cLog.WithError(err).Error("JavaScript watcher failed")
+		return
 	}
 
 	addProcess(id, "jswatcher", cmd.Process, cmd.Process.Pid)
@@ -260,6 +261,7 @@ func startSassWatcher() {
 	err := cmd.Start()
 	if err != nil {
 		cLog.WithError(err).Error("sass watcher failed")
+		return
 	}
 
 	addProcess(id, "sasswatcher", cmd.Process, cmd.Process.Pid)

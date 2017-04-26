@@ -55,10 +55,10 @@ func darkProfile() *colorProfile {
 	return &colorProfile{
 		text:       ansi.Black,
 		prompt:     ansi.Blue,
-		cmdOutput:  ansi.White,
+		cmdOutput:  ansi.LightWhite,
 		cmdName:    ansi.Blue,
 		cmdFields:  ansi.Yellow,
-		cmdArgs:    ansi.White,
+		cmdArgs:    ansi.LightBlack,
 		cmdArgType: ansi.Green,
 	}
 }
@@ -79,10 +79,10 @@ func defaultProfile() *colorProfile {
 	return &colorProfile{
 		text:       ansi.Green,
 		prompt:     ansi.Red,
-		cmdOutput:  ansi.White,
+		cmdOutput:  ansi.LightWhite,
 		cmdName:    ansi.Red,
 		cmdFields:  ansi.Yellow,
-		cmdArgs:    ansi.White,
+		cmdArgs:    ansi.Red,
 		cmdArgType: ansi.Green,
 	}
 }
