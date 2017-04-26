@@ -15,7 +15,7 @@ PortGlueServer: 0
 ExitOnInterrupt: true
 DisableTimestamps: false
 PrintBuiltins: false
-MakefileOverview: true
+MakefileOverview: false
 StopOnError: true
 DumpScriptOnError: true
 DateFormat: 02.01.06

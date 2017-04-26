@@ -11,7 +11,7 @@ globals: |
 commands: 
     build:
         args: name:String
-        chain: clean -> configure
+        chain: configure
         help: build project for current OS
 		buildNumber: true
         run: |
@@ -19,7 +19,7 @@ commands:
             rice embed-go
 			godep go build -o ${buildDir}/$name
     build-linux:
-        chain: clean -> configure
+        chain: configure
         help: build project for linux amd64
 		buildNumber: true
         run: |
