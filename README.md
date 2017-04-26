@@ -57,6 +57,7 @@ When starting the interactive shell there is a good chance you will be struck by
 which could lead to enourmous **super coding powers**!
 
 [Project Page](https://dreadl0ck.github.io/zeus/)
+
 [Wiki](https://github.com/dreadl0ck/zeus/wiki/)
 
 > NOTE:
