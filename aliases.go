@@ -29,8 +29,8 @@ import (
 var ErrInvalidAlias = errors.New("invalid alias")
 
 func printAliasCommandErr() {
-	Log.Error(ErrInvalidUsage)
-	Log.Info("usage: alias [remove <name>] [set <name> <command>]")
+	l.Println(ErrInvalidUsage)
+	l.Println("usage: alias [remove <name>] [set <name> <command>]")
 }
 
 // check if an alias name conflicts with builtin user defined command names

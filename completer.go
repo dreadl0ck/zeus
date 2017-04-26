@@ -106,13 +106,10 @@ func keyKombItems() []readline.PrefixCompleterInterface {
 // return a new default completer instance
 func newCompleter() *readline.PrefixCompleter {
 	c := readline.NewPrefixCompleter(
-		readline.PcItem("git",
-			readline.PcItem("add"),
-			readline.PcItem("status"),
-			readline.PcItem("commit"),
-		),
 		readline.PcItem(exitCommand),
-		readline.PcItem(helpCommand),
+		readline.PcItem(helpCommand,
+			readline.PcItemDynamic(commandCompleter),
+		),
 		readline.PcItem(infoCommand),
 		readline.PcItem(clearCommand),
 		readline.PcItem(formatCommand),
@@ -189,9 +186,25 @@ func newCompleter() *readline.PrefixCompleter {
 			),
 		),
 		readline.PcItem("web"),
+		readline.PcItem("procs",
+			readline.PcItem("detach",
+				readline.PcItemDynamic(commandCompleter),
+			),
+			readline.PcItem("kill",
+				readline.PcItemDynamic(pIDCompleter),
+			),
+			readline.PcItem("attach",
+				readline.PcItemDynamic(pIDCompleter),
+			),
+		),
 		readline.PcItem("wiki"),
 		readline.PcItem(zeusfileCommand),
-		// shell commands that need file/dir completion
+		// completions for common shell commands
+		readline.PcItem("git",
+			readline.PcItem("add"),
+			readline.PcItem("status"),
+			readline.PcItem("commit"),
+		),
 		readline.PcItem("ls",
 			readline.PcItemDynamic(directoryCompleter),
 		),
@@ -212,6 +225,7 @@ func newCompleter() *readline.PrefixCompleter {
 		readline.PcItem("micro",
 			readline.PcItemDynamic(fileCompleter),
 		),
+		readline.PcItemDynamic(commandChainCompleter),
 	)
 
 	c.Dynamic = true
@@ -242,6 +256,23 @@ func commandCompleter(path string) (res []string) {
 	return
 }
 
+// complete available commands for chains
+func commandChainCompleter(path string) (res []string) {
+
+	// only fire if line has -> suffix
+	if !strings.HasSuffix(path, p.separator+" ") {
+		return
+	}
+
+	// return all available commands
+	commandMutex.Lock()
+	defer commandMutex.Unlock()
+	for name := range commands {
+		res = append(res, name)
+	}
+	return
+}
+
 func todoIndexCompleter(path string) (res []string) {
 	contents, err := ioutil.ReadFile(conf.TodoFilePath)
 	if err != nil {
@@ -254,6 +285,16 @@ func todoIndexCompleter(path string) (res []string) {
 			index++
 			res = append(res, strconv.Itoa(index))
 		}
+	}
+	return
+}
+
+// complete PIDs for killing processes
+func pIDCompleter(path string) (res []string) {
+	projectDataMutex.Lock()
+	defer projectDataMutex.Unlock()
+	for _, p := range processMap {
+		res = append(res, strconv.Itoa(p.PID))
 	}
 	return
 }

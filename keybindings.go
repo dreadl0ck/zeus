@@ -126,8 +126,8 @@ func handleKeysCommand(args []string) {
 }
 
 func printKeybindingsCommmandUsageErr() {
-	Log.Error(ErrInvalidUsage)
-	Log.Info("usage: keys [set <KeyComb> <commandChain>] [remove <KeyComb>]")
+	l.Println(ErrInvalidUsage)
+	l.Println("usage: keys [set <KeyComb> <commandChain>] [remove <KeyComb>]")
 }
 
 func printKeybindings() {

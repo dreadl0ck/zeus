@@ -19,14 +19,16 @@
 package main
 
 import (
-	"net/http"
 	"os"
+	"os/exec"
+	"strconv"
 	"sync"
 	"time"
 )
 
-var (
+type processID string
 
+var (
 	// process instances for all spawned commands, for cleaning up when we leave
 	processMap      = make(map[processID]*Process, 0)
 	processMapMutex = &sync.Mutex{}
@@ -34,23 +36,31 @@ var (
 
 // Process keeps track of an os.Process
 type Process struct {
+
+	// command name
 	Name string
-	ID   string
+
+	// internal ID
+	ID processID
+
+	// OS PID
+	PID int
+
+	// underlying process
 	Proc *os.Process
 }
 
-type processID string
-
 // add a process to the store
 // thread safe
-func addProcess(id processID, name string, p *os.Process) {
+func addProcess(id processID, name string, p *os.Process, pid int) {
 	processMapMutex.Lock()
+	defer processMapMutex.Unlock()
 	processMap[id] = &Process{
 		Name: name,
-		ID:   string(id),
+		ID:   id,
+		PID:  pid,
 		Proc: p,
 	}
-	processMapMutex.Unlock()
 }
 
 // delete a process from the store
@@ -61,18 +71,23 @@ func deleteProcess(id processID) {
 	processMapMutex.Unlock()
 }
 
+// delete a process from the store by its PID
+// thread safe
+func deleteProcessByPID(pid int) {
+	processMapMutex.Lock()
+	for id, p := range processMap {
+		if p.PID == pid {
+			delete(processMap, id)
+		}
+	}
+	processMapMutex.Unlock()
+}
+
 // cleanup before we leave
 func cleanup() {
 
-	// gracefully shutdown prometheus
-	c := &http.Client{}
-	_, err := c.Post("http://localhost:9090/-/quit", "text", nil)
-	if err == nil {
-		time.Sleep(200 * time.Millisecond)
-	}
-
 	// kill all spawned processes
-	clearProcessMap(nil)
+	clearProcessMap()
 
 	// close readline
 	if rl != nil {
@@ -104,7 +119,7 @@ func cleanup() {
 // }
 
 // clean up the mess
-func clearProcessMap(sig os.Signal) {
+func clearProcessMap() {
 
 	// l.Println("processMap:", processMap)
 
@@ -115,18 +130,100 @@ func clearProcessMap(sig os.Signal) {
 	for id, p := range processMap {
 		if p.Proc != nil {
 
-			Log.Debug("killing "+id+" PID:", p.Proc.Pid)
+			Log.Debug("killing process with ID: "+id+" and PID:", p.Proc.Pid)
 
 			// kill it
-			var err error
-			if sig == nil {
-				err = p.Proc.Kill()
-			} else {
-				err = p.Proc.Signal(sig)
-			}
+			err := p.Proc.Kill()
 			if err != nil {
-				Log.WithError(err).Debug("failed to kill "+id+" PID:", p.Proc.Pid)
+				Log.WithError(err).Debug("failed to kill process with ID: "+id+" and PID:", p.Proc.Pid)
 			}
 		}
+	}
+}
+
+// clean up the mess
+func passSignalToProcs(sig os.Signal) {
+
+	// l.Println("processMap:", processMap)
+
+	processMapMutex.Lock()
+	defer processMapMutex.Unlock()
+
+	// range processes
+	for _, p := range processMap {
+		if p.Proc != nil {
+
+			Log.Debug("passing signal "+sig.String()+" to PID:", p.Proc.Pid)
+
+			err := p.Proc.Signal(sig)
+			if err != nil {
+				Log.WithError(err).Debug("failed to pass signal "+sig.String()+" to PID:", p.Proc.Pid)
+			}
+		}
+	}
+}
+
+func printProcsCommandUsageErr() {
+	l.Println(ErrInvalidUsage)
+	l.Println("usage: procs [detach <command>] [attach <pid>] [kill <pid>]")
+}
+
+func handleProcsCommand(args []string) {
+
+	if len(args) < 3 {
+		printProcs()
+		return
+	}
+
+	switch args[1] {
+	// detach any command async
+	case "detach":
+		if cmd, ok := commands[args[2]]; ok {
+			cmd.async = true
+			err := cmd.Run(args[3:], true)
+			if err != nil {
+				Log.WithError(err).Error("failed to run command. args: ", args[3:])
+			}
+			time.Sleep(100 * time.Millisecond)
+			cmd.async = false
+		} else {
+			l.Println("invalid command: ", args[2])
+		}
+	// attach to a runnning async process with screen -r
+	case "attach":
+		cmd := exec.Command("screen", "-r", args[2])
+		cmd.Stderr = os.Stderr
+		cmd.Stdout = os.Stdout
+		cmd.Stdin = os.Stdin
+		cmd.Env = os.Environ()
+		err := cmd.Run()
+		if err != nil {
+			Log.WithError(err).Error("failed to attach to PID: ", args[2])
+		}
+	// kill a process by PID
+	case "kill":
+		pid, err := strconv.Atoi(args[2])
+		if err != nil {
+			Log.WithError(err).Error("invalid integer value: ", args[2])
+			return
+		}
+		err = exec.Command("kill", args[2]).Run()
+		if err != nil {
+			Log.WithError(err).Error("failed to kill PID: ", args[2])
+			return
+		}
+		deleteProcessByPID(pid)
+	default:
+		printProcsCommandUsageErr()
+	}
+}
+
+func printProcs() {
+	processMapMutex.Lock()
+	defer processMapMutex.Unlock()
+
+	l.Println(cp.prompt + pad("ID", 20) + pad("PID", 10) + "Name")
+	for _, p := range processMap {
+		l.Println(cp.text + pad(string(p.ID), 20) + pad(strconv.Itoa(p.PID), 10) + p.Name)
 	}
 }

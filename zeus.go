@@ -41,7 +41,7 @@ import (
 var (
 	// current zeus version
 	// will be added by the build script using the ldflags -X linker option
-	version = "0.7.2"
+	version = "0.7.3"
 
 	// Log instance for internal logs
 	Log = logrus.New()
@@ -315,17 +315,22 @@ func printProjectHeader() {
 	if err != nil {
 		Log.WithError(err).Fatal("failed to get ascii art from rice box")
 	}
-	l.Println(cp.colorText + asciiArt + "\n")
+	l.Println(cp.text + asciiArt + "\n")
 
-	l.Println(cp.colorText + "Project Name: " + cp.colorPrompt + filepath.Base(workingDir) + cp.colorText + "\n")
+	l.Println(cp.text + pad("Project Name", 14) + cp.prompt + filepath.Base(workingDir) + cp.text + "\n")
 	printAuthor()
 
+	printTodoCount()
 	if projectData.BuildNumber > 0 {
-		l.Println(cp.colorText + "BuildNumber: " + cp.colorPrompt + strconv.Itoa(projectData.BuildNumber) + cp.colorText + "\n")
+		l.Println(cp.text + pad("BuildNumber", 14) + cp.prompt + strconv.Itoa(projectData.BuildNumber) + cp.text)
+	}
+	if projectData.Deadline != "" {
+		l.Println(pad("Deadline", 14) + cp.prompt + projectData.Deadline + cp.text)
 	}
 
+	l.Println()
+
 	// project infos
-	printDeadline()
 	listMilestones()
 }
 
@@ -432,7 +437,7 @@ func handleArgs() {
 				validCommand = true
 				numCommands = getTotalCommandCount(cmd)
 
-				err := cmd.Run(os.Args[2:])
+				err := cmd.Run(os.Args[2:], cmd.async)
 				if err != nil {
 					cLog.WithError(err).Error("failed to execute " + cmd.name)
 					cleanup()

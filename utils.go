@@ -24,6 +24,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -33,6 +34,7 @@ import (
 	"strings"
 	"sync"
 	"syscall"
+	"time"
 
 	yaml "gopkg.in/yaml.v2"
 
@@ -47,25 +49,35 @@ var (
 )
 
 // dump the currently executed script in case of an error
-func dumpScript(script string) {
+func dumpScript(script string, e error) {
 
-	f, err := os.OpenFile("error_dump.sh", os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0700)
+	var (
+		t            = "# Timestamp: " + time.Now().Format(timestampFormat) + "\n"
+		errString    = "# Error: " + e.Error() + "\n\n"
+		dumpFileName = "zeus_error_dump.sh"
+	)
+
+	f, err := os.OpenFile(dumpFileName, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0700)
 	if err != nil {
 		Log.WithError(err).Error("failed to open dump file")
 		return
 	}
 	defer f.Close()
 
+	f.WriteString("#!/bin/bash\n#\n")
+	f.WriteString("# ZEUS Error Dump\n")
+	f.WriteString(t)
+	f.WriteString(errString)
 	f.WriteString(script)
-	Log.Info("script dumped")
+	Log.Debug("script dumped: ", dumpFileName)
 }
 
 // print the current script to stdout
 // adds line numbers
-func printScript(script string) {
+func printScript(script, name string) {
 
 	fmt.Println(" |---------------------------------------------------------------------------------------------|")
-	fmt.Println("     Script")
+	fmt.Println("     Script: " + name)
 	fmt.Println(" |---------------------------------------------------------------------------------------------|")
 	for i, s := range strings.Split(script, "\n") {
 
@@ -94,13 +106,13 @@ func handleSignals() {
 
 		sig := <-c
 
-		Log.Info("received SIGNAL: ", sig)
+		Log.Debug("received SIGNAL: ", sig)
 
 		// lock the mutex
 		signalMutex.Lock()
 
-		// kill all spawned procs
-		clearProcessMap(sig)
+		// pass signal to all spawned procs
+		passSignalToProcs(sig)
 
 		// return to interactive shell
 		return
@@ -163,7 +175,7 @@ func getTotalCommandCount(c *command) int {
 func printPrompt() string {
 	colorProfileMutex.Lock()
 	defer colorProfileMutex.Unlock()
-	return cp.colorPrompt + zeusPrompt + " » " + cp.colorText
+	return cp.prompt + zeusPrompt + " » " + cp.text
 }
 
 // pass the command to the underlying shell
@@ -244,14 +256,19 @@ func isEndTag(s string) bool {
 func validCommandChain(args []string, silent bool) bool {
 
 	var (
-		chain       = strings.Join(args, " ")
-		job         = p.AddJob(chain, silent)
-		commandList = parseCommandChain(chain)
+		chain = strings.Join(args, " ")
+		job   = p.AddJob(chain, silent)
 	)
+
+	commandList, err := parseCommandChain(chain)
+	if err != nil {
+		Log.WithError(err).Error("failed to parse command chain")
+		return false
+	}
 
 	defer p.RemoveJob(job)
 
-	_, err := job.getCommandChain(commandList, nil)
+	_, err = job.getCommandChain(commandList, nil)
 	if err != nil {
 		if !silent {
 			Log.WithError(err).Error("failed to get command chain")
@@ -279,8 +296,8 @@ func handleHelpCommand(args []string) {
 }
 
 func printHelpUsageErr() {
-	Log.Error(ErrInvalidUsage)
-	Log.Info("usage: help <command>")
+	l.Println(ErrInvalidUsage)
+	l.Println("usage: help <command>")
 }
 
 // check if the argument type matches the expected one
@@ -393,15 +410,15 @@ func watchScripts(eventID string) {
 }
 
 // dump datastructure as YAML - useful for debugging
-// func dumpYAML(i interface{}) {
-// 	out, err := yaml.Marshal(i)
-// 	if err != nil {
-// 		log.Println("ERROR: failed to marshal to YAML:", err)
-// 		return
-// 	}
+func dumpYAML(i interface{}) {
+	out, err := yaml.Marshal(i)
+	if err != nil {
+		log.Println("ERROR: failed to marshal to YAML:", err)
+		return
+	}
 
-// 	fmt.Println(string(out))
-// }
+	fmt.Println(string(out))
+}
 
 // print file content with linenumbers to stdout - useful for debugging
 func printFileContents(data []byte) {

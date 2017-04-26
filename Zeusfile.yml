@@ -5,18 +5,27 @@
 # globals for all build commands
 
 globals: |
-    buildDir=bin/
+    buildDir=bin
 
 # all commands
 commands: 
     build:
         args: name:String
-        chain: clean
-        help: build project
+        chain: clean -> configure
+        help: build project for current OS
 		buildNumber: true
         run: |
-            echo "building $name"
-			godep go build -o $buildDir$name
+            echo "building $name for current OS"
+            rice embed-go
+			godep go build -o ${buildDir}/$name
+    build-linux:
+        chain: clean -> configure
+        help: build project for linux amd64
+		buildNumber: true
+        run: |
+            echo "building for linux amd64"
+            rice embed-go
+			GOOS=linux GOARCH=amd64 godep go build -o ${buildDir}/zeus-linux
     optional:
         args: name:String? = "defaultName", bla:String, ok:Bool?, count:Int?, req:String
         help: test optionals

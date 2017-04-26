@@ -38,8 +38,8 @@ import (
 )
 
 var (
-	// ErrEmptyName means the script has an empty name. thats cant be correct
-	ErrEmptyName = errors.New("script has an empty name - wtf")
+	// ErrInvalidCommand means the command name is invalid, most likely empty.
+	ErrInvalidCommand = errors.New("invalid command")
 
 	// ErrInvalidArgumentType means the argument type does not match the expected type
 	ErrInvalidArgumentType = errors.New("invalid argument type")
@@ -78,6 +78,9 @@ type command struct {
 	// commandChain contains commands that will be executed before the command runs
 	commandChain commandChain
 
+	// async means the command will be spawned in the background
+	async bool
+
 	// completer for interactive shell
 	PrefixCompleter *readline.PrefixCompleter
 
@@ -99,7 +102,19 @@ type command struct {
 }
 
 // Run executes the command
-func (c *command) Run(args []string) error {
+func (c *command) Run(args []string, async bool) error {
+
+	// spawn async commands in a new goroutine
+	if async {
+		go func() {
+			err := c.Run(args, false)
+			if err != nil {
+				Log.WithError(err).Error("failed to run command: " + c.name)
+			}
+		}()
+		time.Sleep(50 * time.Millisecond)
+		return nil
+	}
 
 	var (
 		cLog  = Log.WithField("prefix", c.name)
@@ -148,13 +163,15 @@ func (c *command) Run(args []string) error {
 
 			// dont pass the commandline args down the commandChain
 			// if the following commands have required arguments they are set on the params fields
-			err := cmd.Run([]string{})
+			err := cmd.Run([]string{}, cmd.async)
 			if err != nil {
 				cLog.WithError(err).Error("failed to execute " + cmd.name)
 				return err
 			}
 		}
 	}
+
+	currentCommand++
 
 	argBuffer, err := c.parseArguments(args)
 	if err != nil {
@@ -166,13 +183,12 @@ func (c *command) Run(args []string) error {
 		return err
 	}
 
-	// set up environment
-	cmd.Stdout = os.Stdout
-	cmd.Stdin = os.Stdin
-	cmd.Stderr = os.Stderr
 	cmd.Env = os.Environ()
-
-	currentCommand++
+	if !c.async {
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		cmd.Stdin = os.Stdin
+	}
 
 	if c.buildNumber {
 		projectDataMutex.Lock()
@@ -181,8 +197,12 @@ func (c *command) Run(args []string) error {
 		projectData.update()
 	}
 
-	l.Print(cp.colorText)
-	l.Println(printPrompt() + "[" + strconv.Itoa(currentCommand) + "/" + strconv.Itoa(numCommands) + "] executing " + cp.colorPrompt + c.name + ansi.Reset)
+	l.Print(cp.text)
+	if c.async {
+		l.Println(printPrompt() + "[" + strconv.Itoa(currentCommand) + "/" + strconv.Itoa(numCommands) + "] detaching " + cp.prompt + c.name + ansi.Reset)
+	} else {
+		l.Println(printPrompt() + "[" + strconv.Itoa(currentCommand) + "/" + strconv.Itoa(numCommands) + "] executing " + cp.prompt + c.name + ansi.Reset)
+	}
 
 	// lets go
 	err = cmd.Start()
@@ -191,8 +211,15 @@ func (c *command) Run(args []string) error {
 	}
 
 	// add to processMap
-	id := processID(randomString())
-	addProcess(id, c.name, cmd.Process)
+	var (
+		id  = processID(randomString())
+		pid = cmd.Process.Pid
+	)
+	Log.Debug("PID: ", pid)
+	addProcess(id, c.name, cmd.Process, pid)
+
+	// after command has finished running, remove from processMap
+	defer deleteProcessByPID(pid)
 
 	// wait for command to finish execution
 	err = cmd.Wait()
@@ -208,22 +235,41 @@ func (c *command) Run(args []string) error {
 		}
 
 		if conf.DumpScriptOnError {
-			dumpScript(script)
+			dumpScript(script, err)
 		}
 
-		cLog.WithError(err).Error("failed to wait for command: " + c.name)
 		return err
 	}
 
-	// after command has finished running, remove from processMap
-	deleteProcess(id)
+	if c.async {
+		// add to process map PID +1
+		Log.Debug("detached PID: ", pid+1)
+		addProcess(id, c.name, nil, pid+1)
 
-	// print stats
-	l.Println(
-		printPrompt()+"["+strconv.Itoa(currentCommand)+"/"+strconv.Itoa(numCommands)+"] finished "+cp.colorPrompt+c.name+cp.colorText+" in"+cp.colorPrompt,
-		time.Now().Sub(start),
-		ansi.Reset,
-	)
+		func() {
+			for {
+
+				// check if detached process is still alive
+				// If  sig is 0, then no signal is sent, but error checking is still performed
+				// this can be used to check for the existence of a process ID or process group ID
+				err := exec.Command("kill", "-0", strconv.Itoa(pid+1)).Run()
+				if err != nil {
+					Log.Debug("detached process with PID " + strconv.Itoa(pid+1) + "exited")
+					deleteProcessByPID(pid + 1)
+					return
+				}
+
+				time.Sleep(2 * time.Second)
+			}
+		}()
+	} else {
+		// print stats
+		l.Println(
+			printPrompt()+"["+strconv.Itoa(currentCommand)+"/"+strconv.Itoa(numCommands)+"] finished "+cp.prompt+c.name+cp.text+" in"+cp.prompt,
+			time.Now().Sub(start),
+			ansi.Reset,
+		)
+	}
 
 	return nil
 }
@@ -273,12 +319,12 @@ func (c *command) handleDependencies() error {
 
 					// pass args if there are any
 					if len(fields) > 1 {
-						err = cmd.Run(fields[1:])
+						err = cmd.Run(fields[1:], c.async)
 					} else {
-						err = cmd.Run([]string{})
+						err = cmd.Run([]string{}, c.async)
 					}
 					if err != nil {
-						Log.WithError(err).Error("failed to execute dependency command")
+						Log.WithError(err).Error("failed to execute dependency command: " + cmd.name)
 						return err
 					}
 				}
@@ -367,13 +413,23 @@ func (c *command) parseArguments(args []string) (string, error) {
 
 func (c *command) createCommand(argBuffer string) (cmd *exec.Cmd, script string, err error) {
 
+	var shellCommand []string
+
+	if c.async {
+		shellCommand = append(shellCommand, []string{"screen", "-L", "-S", c.name, "-dm"}...)
+	}
+
+	if conf.StopOnError {
+		shellCommand = append(shellCommand, []string{p.interpreter, "-e", "-c"}...)
+	} else {
+		shellCommand = append(shellCommand, []string{p.interpreter, "-c"}...)
+	}
+
 	if c.runCommand != "" {
-		script += string(globalsContent) + "\n#!/bin/bash\n" + argBuffer + "\n" + c.runCommand
-		if conf.StopOnError {
-			cmd = exec.Command(p.interpreter, []string{"-e", "-c", script}...)
-		} else {
-			cmd = exec.Command(p.interpreter, "-c", script)
-		}
+		script += string(globalsContent) + argBuffer + "\n" + c.runCommand
+		shellCommand = append(shellCommand, script)
+		Log.Debug("shellCommand: ", shellCommand)
+		cmd = exec.Command(shellCommand[0], shellCommand[1:]...)
 	} else {
 		// make script executable
 		err := os.Chmod(c.path, 0700)
@@ -393,30 +449,21 @@ func (c *command) createCommand(argBuffer string) (cmd *exec.Cmd, script string,
 
 			// add the globals, append argument buffer and then append script contents
 			script = string(append(append(globalsContent, []byte(argBuffer)...), target...))
-
-			// create command instance and pass new script to bash
-			if conf.StopOnError {
-				cmd = exec.Command(p.interpreter, "-e", "-c", script)
-			} else {
-				cmd = exec.Command(p.interpreter, "-c", script)
-			}
+			shellCommand = append(shellCommand, script)
+			Log.Debug("shellCommand: ", shellCommand)
+			cmd = exec.Command(shellCommand[0], shellCommand[1:]...)
 		} else {
 
 			// add argument buffer and then append script contents
 			script = string(append([]byte(argBuffer), target...))
-
-			// create command instance
-			// no globals - only execute target script
-			if conf.StopOnError {
-				cmd = exec.Command(p.interpreter, []string{"-e", "-c", script}...)
-			} else {
-				cmd = exec.Command(p.interpreter, "-c", script)
-			}
+			shellCommand = append(shellCommand, script)
+			Log.Debug("shellCommand: ", shellCommand)
+			cmd = exec.Command(shellCommand[0], shellCommand[1:]...)
 		}
 	}
 
 	if conf.Debug {
-		printScript(script)
+		printScript(script, c.name)
 	}
 
 	return
@@ -444,6 +491,13 @@ func getDefaultValue(arg *commandArg) string {
 // addCommand parses the script at path, adds it to the commandMap and sets up the shell completer
 // if force is set to true the command will parsed again even when it already has been parsed
 func addCommand(path string, force bool) error {
+
+	// check if command is currently being parsed
+	if p.JobExists(path) {
+		Log.Warn("addCommand: JOB EXISTS: ", path)
+		p.WaitForJob(path)
+		return nil
+	}
 
 	var (
 		cLog = Log.WithField("prefix", "addCommand")
@@ -487,7 +541,7 @@ func addCommand(path string, force bool) error {
 	commands[cmd.name] = cmd
 	commandMutex.Unlock()
 
-	cLog.Debug("added " + cmd.name + " to the command map")
+	cLog.Debug("added " + ansi.Red + cmd.name + ansi.Reset + " to the command map")
 
 	return nil
 }
@@ -599,8 +653,13 @@ func (job *parseJob) newCommand(path string) (*command, error) {
 		return nil, err
 	}
 
+	chain, err := parseCommandChain(d.Chain)
+	if err != nil {
+		return nil, err
+	}
+
 	// get build chain
-	commandChain, err := job.getCommandChain(parseCommandChain(d.Chain), nil)
+	commandChain, err := job.getCommandChain(chain, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -608,7 +667,7 @@ func (job *parseJob) newCommand(path string) (*command, error) {
 	// get name for command
 	name := strings.TrimSuffix(strings.TrimPrefix(path, zeusDir+"/"), f.fileExtension)
 	if name == "" {
-		return nil, ErrEmptyName
+		return nil, ErrInvalidCommand
 	}
 
 	return &command{
@@ -631,6 +690,7 @@ func (job *parseJob) newCommand(path string) (*command, error) {
 		buildNumber:  d.BuildNumber,
 		dependencies: d.Dependencies,
 		outputs:      d.Outputs,
+		async:        d.Async,
 	}, nil
 }
 
@@ -671,11 +731,10 @@ func (job *parseJob) getCommandChain(parsedCommands [][]string, zeusfile *Zeusfi
 
 		job.commands = append(job.commands, args)
 
-		// // check if command is currently being parsed
-		// if p.JobExists(zeusDir + "/" + args[0]) {
-		// 	Log.Warn("JOB EXISTS: ", zeusDir+"/"+args[0])
-		// 	p.WaitForJob(zeusDir + "/" + args[0])
-		// }
+		var jobPath = zeusDir + "/" + args[0] + f.fileExtension
+		if zeusfile != nil {
+			jobPath = "zeusfile." + args[0]
+		}
 
 		// check if command has already been parsed
 		commandMutex.Lock()
@@ -684,54 +743,66 @@ func (job *parseJob) getCommandChain(parsedCommands [][]string, zeusfile *Zeusfi
 
 		if !ok {
 
-			if zeusfile != nil {
+			// check if command is currently being parsed
+			if p.JobExists(jobPath) {
+				Log.Warn("getCommandChain: JOB EXISTS: ", jobPath)
+				p.WaitForJob(jobPath)
 
-				d := zeusfile.Commands[args[0]]
-				if d == nil {
-					return nil, errors.New("invalid command in commandChain: " + args[0])
-				}
-
-				// assemble commands args
-				arguments, err := validateArgs(d.Args)
-				if err != nil {
-					return commandChain, err
-				}
-
-				// create command
-				cmd = &command{
-					path:            "",
-					name:            args[0],
-					args:            arguments,
-					manual:          d.Manual,
-					help:            d.Help,
-					commandChain:    commandChain,
-					PrefixCompleter: readline.PcItem(args[0]),
-					buildNumber:     d.BuildNumber,
-					dependencies:    d.Dependencies,
-					outputs:         d.Outputs,
-					runCommand:      d.Run,
-				}
+				// now the command is there
+				commandMutex.Lock()
+				cmd, ok = commands[args[0]]
+				commandMutex.Unlock()
 			} else {
-				// add new command
-				cmd, err = job.newCommand(zeusDir + "/" + args[0] + f.fileExtension)
-				if err != nil {
-					if !job.silent {
-						cLog.WithError(err).Debug("failed to create command")
+				if zeusfile != nil {
+
+					d := zeusfile.Commands[args[0]]
+					if d == nil {
+						return nil, errors.New("invalid command in commandChain: " + args[0])
 					}
-					return commandChain, err
+
+					// assemble commands args
+					arguments, err := validateArgs(d.Args)
+					if err != nil {
+						return commandChain, err
+					}
+
+					// create command
+					cmd = &command{
+						path:            "",
+						name:            args[0],
+						args:            arguments,
+						manual:          d.Manual,
+						help:            d.Help,
+						commandChain:    commandChain,
+						PrefixCompleter: readline.PcItem(args[0]),
+						buildNumber:     d.BuildNumber,
+						dependencies:    d.Dependencies,
+						outputs:         d.Outputs,
+						runCommand:      d.Run,
+						async:           d.Async,
+					}
+				} else {
+					// add new command
+					cmd, err = job.newCommand(zeusDir + "/" + args[0] + f.fileExtension)
+					if err != nil {
+						if !job.silent {
+							cLog.WithError(err).Debug("failed to create command")
+						}
+						return commandChain, err
+					}
 				}
+				commandMutex.Lock()
+
+				// add the completer
+				completer.Children = append(completer.Children, cmd.PrefixCompleter)
+
+				// add to command map
+				commands[args[0]] = cmd
+
+				commandMutex.Unlock()
+
+				cLog.Debug("added " + ansi.Red + cmd.name + ansi.Reset + " to the command map")
 			}
-			commandMutex.Lock()
-
-			// add the completer
-			completer.Children = append(completer.Children, cmd.PrefixCompleter)
-
-			// add to command map
-			commands[args[0]] = cmd
-
-			commandMutex.Unlock()
-
-			cLog.Debug("added " + cmd.name + " to the command map")
 		}
 
 		cLog.Debug("adding command to build chain: ", args)
@@ -774,22 +845,32 @@ func executeCommandChain(chain string) {
 		job  = p.AddJob(chain, false)
 	)
 
-	commandList := parseCommandChain(chain)
+	defer p.RemoveJob(job)
+
+	commandList, err := parseCommandChain(chain)
+	if err != nil {
+		cLog.WithError(err).Error("failed to parse command chain")
+		return
+	}
+
 	commandChain, err := job.getCommandChain(commandList, nil)
 	if err != nil {
 		cLog.WithError(err).Error("failed to get command chain")
+		return
 	}
-
-	p.RemoveJob(job)
 
 	numCommands = countCommandChain(commandChain)
 
 	for _, c := range commandChain {
-		err := c.Run([]string{})
+		err := c.Run([]string{}, c.async)
 		if err != nil {
 			cLog.WithError(err).Error("failed to execute " + c.name)
 		}
 	}
+
+	// reset counters
+	numCommands = 0
+	currentCommand = 0
 }
 
 // walk all scripts in the zeus dir and setup commandMap and globals
@@ -799,7 +880,6 @@ func findCommands() {
 		cLog    = Log.WithField("prefix", "findCommands")
 		start   = time.Now()
 		scripts []string
-		// wg      sync.WaitGroup
 		// keep track of scripts that couldn't be parsed
 		parseErrors      = make(map[string]error, 0)
 		parseErrorsMutex = &sync.Mutex{}
@@ -843,64 +923,59 @@ func findCommands() {
 		cLog.WithError(err).Fatal("failed to walk zeus directory")
 	}
 
-	// Asynchronous approach
+	if len(scripts) > 10 {
 
-	// wg.Add(1)
+		Log.Debug("parsing scripts asynchronously")
 
-	// if conf.Debug {
-	// 	l.Println("# -------------------------------------------------------------------------- #")
-	// 	l.Println("# GOROUTINE #1:", scripts[:len(scripts)/2])
-	// 	l.Println("# -------------------------------------------------------------------------- #")
-	// }
+		// Asynchronous approach
 
-	// // first half
-	// go func() {
-	// 	for _, path := range scripts[:len(scripts)/2] {
-	// 		err := addCommand(path, false)
-	// 		if err != nil {
-	// 			Log.WithError(err).Debug("failed to add command")
-	// 			parseErrorsMutex.Lock()
-	// 			parseErrors[path] = err
-	// 			parseErrorsMutex.Unlock()
-	// 		}
-	// 	}
-	// 	wg.Done()
-	// }()
+		var wg sync.WaitGroup
+		wg.Add(1)
 
-	// if conf.Debug {
-	// 	// in debug mode wait for the first goroutine
-	// 	wg.Wait()
-	// 	l.Println("# -------------------------------------------------------------------------- #")
-	// 	l.Println("# GOROUTINE #2:", scripts[len(scripts)/2:])
-	// 	l.Println("# -------------------------------------------------------------------------- #")
-	// }
+		// first half
+		go func() {
+			for _, path := range scripts[:len(scripts)/2] {
+				err := addCommand(path, false)
+				if err != nil {
+					Log.WithError(err).Debug("failed to add command")
+					parseErrorsMutex.Lock()
+					parseErrors[path] = err
+					parseErrorsMutex.Unlock()
+				}
+			}
+			wg.Done()
+		}()
 
-	// wg.Add(1)
+		wg.Add(1)
 
-	// // second half
-	// go func() {
-	// 	for _, path := range scripts[len(scripts)/2:] {
-	// 		err := addCommand(path, false)
-	// 		if err != nil {
-	// 			Log.WithError(err).Debug("failed to add command")
-	// 			parseErrorsMutex.Lock()
-	// 			parseErrors[path] = err
-	// 			parseErrorsMutex.Unlock()
-	// 		}
-	// 	}
-	// 	wg.Done()
-	// }()
+		// second half
+		go func() {
+			for _, path := range scripts[len(scripts)/2:] {
+				err := addCommand(path, false)
+				if err != nil {
+					Log.WithError(err).Debug("failed to add command")
+					parseErrorsMutex.Lock()
+					parseErrors[path] = err
+					parseErrorsMutex.Unlock()
+				}
+			}
+			wg.Done()
+		}()
 
-	// wg.Wait()
+		wg.Wait()
+	} else {
 
-	// sequential approach
-	for _, path := range scripts {
-		err := addCommand(path, false)
-		if err != nil {
-			Log.WithError(err).Debug("failed to add command")
-			parseErrorsMutex.Lock()
-			parseErrors[path] = err
-			parseErrorsMutex.Unlock()
+		Log.Debug("parsing scripts sequentially")
+
+		// sequential approach
+		for _, path := range scripts {
+			err := addCommand(path, false)
+			if err != nil {
+				Log.WithError(err).Debug("failed to add command")
+				parseErrorsMutex.Lock()
+				parseErrors[path] = err
+				parseErrorsMutex.Unlock()
+			}
 		}
 	}
 
@@ -915,7 +990,7 @@ func findCommands() {
 
 	// only print info when using the interactive shell
 	if len(os.Args) == 1 {
-		l.Println(cp.colorText+"initialized "+cp.colorPrompt, len(commands), cp.colorText+" commands in: "+cp.colorPrompt, time.Now().Sub(start), ansi.Reset+"\n")
+		l.Println(cp.text+"initialized "+cp.prompt, len(commands), cp.text+" commands in: "+cp.prompt, time.Now().Sub(start), ansi.Reset+"\n")
 	}
 
 	// check if custom command conflicts with builtin name
@@ -954,6 +1029,7 @@ func (c *command) dump() {
 		cmd.dump()
 	}
 	fmt.Println("buildNumber:", c.buildNumber)
+	fmt.Println("async:", c.async)
 	fmt.Println("dependencies:", c.dependencies)
 	fmt.Println("outputs:", c.outputs)
 	fmt.Println("runCommand:", c.runCommand)

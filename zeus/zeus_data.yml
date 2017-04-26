@@ -1,6 +1,30 @@
-BuildNumber: 5
+BuildNumber: 23
 Deadline: ""
-Milestones: []
+Milestones:
+- name: reports
+  date: 2017-05-10T00:00:00Z
+  description: implement markdown report generation
+  percentcomplete: 0
+- name: encrypted-storage
+  date: 2017-05-15T00:00:00Z
+  description: implement encrypted storage
+  percentcomplete: 0
+- name: improve-tests
+  date: 2017-05-20T00:00:00Z
+  description: improve unit tests
+  percentcomplete: 0
+- name: python-support
+  date: 2017-05-25T00:00:00Z
+  description: implement python scripting
+  percentcomplete: 0
+- name: js-support
+  date: 2017-05-25T00:00:00Z
+  description: add javascript support
+  percentcomplete: 0
+- name: fix-readline
+  date: 2017-05-25T00:00:00Z
+  description: fix readline path completion
+  percentcomplete: 0
 Aliases:
   gs: git status
   td: todo
@@ -27,6 +51,6 @@ Events:
     op: 2
     fileextension: ""
     command: internal
-Author: ""
+Author: Philipp Mieden
 KeyBindings:
   Ctrl-T: clean -> test

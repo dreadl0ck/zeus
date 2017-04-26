@@ -1,3 +1,9 @@
+<!--
+  Title: ZEUS
+  Description: An Electrifying Build System
+  Author: dreadl0ck
+-->
+
 # ZEUS
 
     ________ ____  __ __  ______  __  ___
@@ -50,18 +56,23 @@ The name ZEUS refers to the ancient greek god of the *sky and thunder*.
 When starting the interactive shell there is a good chance you will be struck by a *lighting* and bitten by a *cobra*,
 which could lead to enourmous **super coding powers**!
 
-A sneak preview of the dark mode, running in the ZEUS project directory:
-
-![alt text](https://github.com/dreadl0ck/zeus/blob/master/wiki/docs/zeus.gif "ZEUS Preview")
-
-The Dark Mode does not work in terminals with a black background, because it contains black text colors.
-I recommend using the solarized dark terminal theme, if you want to use the dark mode.
+[Project Page](https://dreadl0ck.github.io/zeus/)
+[Wiki](https://github.com/dreadl0ck/zeus/wiki/)
 
 > NOTE:
 > ZEUS is still under active development and this is an early release dedicated to testers.
 > There will be regular updates so make sure to update your build from time to time.
 > Please read the BUGS section to see whats causing trouble
 > as well as the COMING SOON section to get an impression of whats coming up for version 1.0
+
+**CAUTION: Newer builds may break compatibilty with previous ones, and require to remove or add certain config fields, or delete your zeus_data.yml. Breaking changes will be announced here, so have a look after updating your build. Feel free to contact me by mail if something is not working.**
+
+A sneak preview of the dark mode, running in the ZEUS project directory:
+
+![alt text](https://github.com/dreadl0ck/zeus/blob/master/wiki/docs/zeus.gif "ZEUS Preview")
+
+The Dark Mode does not work in terminals with a black background, because it contains black text colors.
+I recommend using the solarized dark terminal theme, if you want to use the dark mode.
 
 ## Installation
 
@@ -177,6 +188,9 @@ Command            | Description
 *create*           | bootstrap a single command
 *migrate-zeusfile* | migrate Zeusfile to zeusDir
 *git-filter*       | filter git log output
+*todo*             | manage todos
+*update*           | update zeus build
+*procs*            | manage spawned processes
 
 you can list them by using the **builtins** command.
 
@@ -209,8 +223,9 @@ Field                 | Description
 *@zeus-deps*          | dependencies for the command
 *@zeus-outputs*       | output files of the command
 *@zeus-build-number*  | increase build number when this field is present
+*@zeus-async*         | detach script into background
 
-All header fields are optional.
+*All header fields are optional.*
 
 The contents between the 2nd and 3rd separator lines,
 are the manual text for the command.
@@ -529,11 +544,12 @@ Just use $label to access them, at the end of the day they are normal shell vari
 ## Auto Sanitizing
 
 ZEUS is error prone.
-It checks automatically for cyclos in build chains,
-and corrects typos in the ZEUS header.
 
-If this fails for you, please let me know.
+It checks automatically for cyclos in build chains,
+and corrects typos in the ZEUS header fields.
+
 You can disable this behaviour in the config.
+
 
 ## Shell Integration
 
@@ -545,6 +561,28 @@ There is path and command completion for basic shell commands (cat, ls, ssh, git
 
 > Remember: Events, Aliases and Keybindings can contain shell commands!
 
+## Bash Completions
+
+If you also want tab completion when not using the interactive shell,
+install the bash-completion package which is available for most linux distros and macOS.
+
+on macOS you can install it with brew:
+
+```
+brew install bash-completion
+```
+
+on linux use the package manager of your distro.
+
+Then add the completion file **files/zeus** to:
+
+- macOS: /usr/local/etc/bash_completion.d/
+- Linux: /etc/bash_completion.d/
+
+and source it with:
+
+- macOS: . /usr/local/etc/bash_completion.d/zeus
+- Linux: . /etc/bash_completion.d/zeus
 
 ## Makefile Integration
 
@@ -631,8 +669,6 @@ Colors                | bool   | enable / disable ANSI colors
 PassCommandsToShell   | bool   | enable / disable passing unknown commands to the shell
 WebInterface          | bool   | enable / disable running the webinterface on startup
 Interactive           | bool   | enable / disable interactive mode
-LogToFileColor        | bool   | enable / disable logging colored logging to file
-LogToFile             | bool   | enable / disable logging to file
 Debug                 | bool   | enable / disable debug mode
 RecursionDepth        | int    | set the amount of repetitive commands allowed
 ProjectNamePrompt     | bool   | print the projects name as prompt for the interactive shell
@@ -644,15 +680,10 @@ ExitOnInterrupt       | bool   | exit the interactive shell with an SIGINT (Ctrl
 DisableTimestamps     | bool   | disable timestamps when logging
 StopOnError           | bool   | stop script execution when theres an error inside a script
 DumpScriptOnError     | bool   | dump the currently processed script into a file if an error occurs
+DateFormat            | string | set the format string for dates, used by deadline and milestones
+TodoFilePath          | string | set the path for your TODO file, default is: "TODO.md"
 
 > NOTE: when modifying the Debug or Colors field, you need to restart zeus in order for the changes to take effect. That's because the Log instance is a global variable, and manipulating it on the fly produces data races.
-
-## Logging
-
-ZEUS can write its output into a logfile.
-This could be used for archiving test results for example.
-
-You can choose wheter the output should be colorized or not in the config.
 
 
 ## Direct Command Execution
@@ -665,6 +696,7 @@ $ zeus [commandName] [args]
 ```
 
 This is useful for scripting or using ZEUS from another programming language.
+Note that you can use the bash-completions package and the completion script **files/zeus** to get tab completion on the shell.
 
 
 ## Bootstrapping
@@ -737,8 +769,6 @@ which makes creating good project docs very easy.
 
 The **wiki/INDEX.md** file will be converted to HTML and inserted in main wiki page.
 
-> NOTE: This is still work in progress
-
 ## OS Support
 
 ZEUS was developed on OSX, and thus supports OSX and Linux.
@@ -807,11 +837,19 @@ zeus » migrate-zeusfile
 migrated  10  commands from Zeusfile in:  4.575956ms
 ```
 
+## Async commands
+
+The **@zeus-async** header field allows to run a command in the background.
+It will be detached with the UNIX *screen* command and you can attach to its output at any time using the **procs** builtin.
+
+This can be used to speed up builds with lots of targets that dont have dependencies between them,
+or to start a server in the background.
+
+The **procs** builtin can be used to list all running commands, to attach to them or to detach non-async commands in the background.
+
 ## Internals
 
 For parsing the header fields, golang RE2 regular expressions are used.
-
-On startup two goroutines will be spawned for parsing the scripts concurrently.
 
 ANSI Escape Sequences are from the [ansi](https://github.com/mgutz/ansi) package.
 
@@ -824,32 +862,13 @@ Heres a simple overview of the architecure:
 
 ![alt text](https://github.com/dreadl0ck/zeus/blob/master/wiki/docs/zeus_overview.jpg "ZEUS Overview")
 
-## Bash Completions
-
-If you also want tab completion when not using the interactive shell,
-install the bash-completion package which is available for most linux distros and macOS.
-
-on macOS you can install it with brew:
-
-```
-brew install bash-completion
-```
-
-on linux use the package manager of your distro.
-
-Then add the completion file **files/zeus** to:
-
-- macOS: /usr/local/etc/bash_completion.d/
-- Linux: /etc/bash_completion.d/
-
-and source it with:
-
-- macOS: . /usr/local/etc/bash_completion.d/zeus
-- Linux: . /etc/bash_completion.d/zeus
-
 ## Notes
 
-- spawned jobs inside a script (for example with: &) will cause ZEUS to wait for them to return (the exec.Wait() call waits for all child processes to complete)
+### Background Processes spawned inside scripts
+
+Spawning jobs inside a script with & is a good idea if you want to interact with them in the context of the current command (for example to use sudo to start your server on a privileged port)
+
+But keep in mind that ZEUS will not wait for these background processes and they will not be tracked in the processMap.
 
 ## Coming Soon
 
@@ -861,11 +880,6 @@ After that the 1.0 Release is expected.
      A generated Markdown build report that can be converted to HTML,
      which allows adding nice fonts and syntax highlighting for dumped output.
      I think this is especially interesting for archiving unit test results.
-
-- Parallel Builds
-
-     A new header field will allow to run commands in the background,
-     to speed up builds with lots of targets that dont have dependencies between them
 
 - Encrypted Storage
 
@@ -902,21 +916,21 @@ If the interactive shell misbehaves after loading project data with keybindings,
 
 ## Project Stats
 
-     -------------------------------------------------------------------------------
-     Language                     files          blank        comment           code
-     -------------------------------------------------------------------------------
-     Go                              28           1182           1116           4119
-     Markdown                         5            307              0            696
-     JSON                             4              0              0            229
-     SASS                             1             21              1            143
-     YAML                             4              1              0            128
-     Bourne Shell                    27             54            200             71
-     JavaScript                       1             17             21             51
-     HTML                             2              9              2             41
-     make                             1              6              6             10
-     -------------------------------------------------------------------------------
-     SUM:                            73           1597           1346           5488
-     -------------------------------------------------------------------------------
+    -------------------------------------------------------------------------------
+    Language                     files          blank        comment           code
+    -------------------------------------------------------------------------------
+    Go                              28           1375           1225           5090
+    Markdown                         6            664              0           1531
+    YAML                             7             11              7            231
+    JSON                             1              0              0            149
+    SASS                             1             21              1            143
+    Bourne Shell                    31             77            234             97
+    HTML                             3             14              2             82
+    JavaScript                       1             17             21             51
+    make                             1              6              6             10
+    -------------------------------------------------------------------------------
+    SUM:                            79           2185           1496           7384
+    -------------------------------------------------------------------------------
 
 ## License
 

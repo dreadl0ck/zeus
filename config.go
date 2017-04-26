@@ -104,8 +104,8 @@ func newConfig() *config {
 }
 
 func printConfigUsageErr() {
-	Log.Error(ErrInvalidUsage)
-	Log.Info("usage: config [get <field>] [set <field> <value>]")
+	l.Println(ErrInvalidUsage)
+	l.Println("usage: config [get <field>] [set <field> <value>]")
 }
 
 // parse the global JSON config
@@ -426,12 +426,14 @@ func (c *config) handle() {
 func printConfiguration() {
 
 	configMutex.Lock()
+	defer configMutex.Unlock()
+
+	l.Println()
 
 	b, err := yaml.Marshal(conf)
 	if err != nil {
 		Log.WithError(err).Fatal("failed to marshal config to JSON")
 	}
 
-	configMutex.Unlock()
 	l.Println(string(b))
 }

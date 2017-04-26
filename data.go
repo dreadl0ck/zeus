@@ -207,6 +207,8 @@ func printProjectData() {
 	projectDataMutex.Lock()
 	defer projectDataMutex.Unlock()
 
+	l.Println()
+
 	// make it pretty
 	b, err := yaml.Marshal(projectData)
 	if err != nil {

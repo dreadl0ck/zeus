@@ -24,6 +24,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"regexp"
+	"strconv"
 	"strings"
 	"sync"
 
@@ -72,12 +73,13 @@ type parser struct {
 	zeusFieldBuildNumber  string
 	zeusFieldDependencies string
 	zeusFieldOutputs      string
+	zeusFieldAsync        string
 
 	// separator for build chain commands
 	separator string
 
 	// jobs
-	jobs map[string]*parseJob
+	jobs map[parseJobID]*parseJob
 
 	// locking for map access
 	mutex sync.Mutex
@@ -102,9 +104,10 @@ func newParser() *parser {
 		zeusFieldBuildNumber:  "zeus-build-number",
 		zeusFieldDependencies: "zeus-deps",
 		zeusFieldOutputs:      "zeus-outputs",
+		zeusFieldAsync:        "zeus-async",
 
 		separator:      "->",
-		jobs:           map[string]*parseJob{},
+		jobs:           map[parseJobID]*parseJob{},
 		mutex:          sync.Mutex{},
 		recursionDepth: 1,
 	}
@@ -126,6 +129,9 @@ type commandData struct {
 
 	// BuildNumber yes or no
 	BuildNumber bool `yaml:"buildNumber"`
+
+	// Async yes or no
+	Async bool `yaml:"async"`
 
 	// Dependencies for the current target
 	Dependencies []string `yaml:"deps"`
@@ -280,6 +286,9 @@ func (p *parser) parseScript(path string, job *parseJob) (*commandData, error) {
 			case strings.Contains(line, p.zeusFieldBuildNumber):
 				d.BuildNumber = true
 
+			case strings.Contains(line, p.zeusFieldAsync):
+				d.Async = true
+
 			case strings.Contains(line, p.zeusFieldDependencies):
 				for _, dep := range strings.Split(strings.TrimSpace(trimZeusPrefix(line)), ",") {
 					d.Dependencies = append(d.Dependencies, dep)
@@ -344,7 +353,7 @@ func validHeaderType(line string) bool {
 }
 
 // parse the command chain string
-func parseCommandChain(line string) (parsedCommands [][]string) {
+func parseCommandChain(line string) (parsedCommands [][]string, err error) {
 
 	var (
 		// trim whitespace and zeus prefix
@@ -367,13 +376,13 @@ func parseCommandChain(line string) (parsedCommands [][]string) {
 		}
 
 		// range them
-		for _, name := range cmds {
+		for i, name := range cmds {
 
 			// get arguments for commands
 			var args = strings.Fields(name)
 
 			if len(args) == 0 {
-				Log.Fatal(ErrEmptyName)
+				return nil, errors.New(ErrInvalidCommand.Error() + " at index: " + strconv.Itoa(i))
 			}
 
 			parsedCommands = append(parsedCommands, args)

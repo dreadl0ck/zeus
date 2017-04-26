@@ -28,6 +28,8 @@ import (
 	"strings"
 	"sync"
 
+	"time"
+
 	"github.com/dreadl0ck/readline"
 	"github.com/mgutz/ansi"
 )
@@ -95,7 +97,7 @@ func readlineLoop() error {
 			if err == readline.ErrInterrupt {
 
 				if conf.ExitOnInterrupt {
-					clearProcessMap(nil)
+					clearProcessMap()
 					os.Exit(0)
 				} else {
 					Log.Info("ExitOnInterrupt is disabled, type 'exit' if you want to leave.")
@@ -117,20 +119,20 @@ func handleLine(line string) {
 	line = strings.TrimSpace(line)
 
 	// set the color
-	print(cp.colorCommandOutput)
+	print(cp.cmdOutput)
 
 	switch line {
 	case exitCommand:
-		l.Println(cp.colorText + "Bye.")
-		clearProcessMap(nil)
+		l.Println(cp.text + "Bye.")
+		clearProcessMap()
 		os.Exit(0)
 
 	case helpCommand:
 
 		clearScreen()
 
-		l.Println(cp.colorText + asciiArt + ansi.Reset + "\n")
-		l.Println(cp.colorText + "Project Name: " + cp.colorPrompt + filepath.Base(workingDir) + cp.colorText + "\n")
+		l.Println(cp.text + asciiArt + ansi.Reset + "\n")
+		l.Println(cp.text + "Project Name: " + cp.prompt + filepath.Base(workingDir) + cp.text + "\n")
 
 		configMutex.Lock()
 		if conf.PrintBuiltins {
@@ -169,6 +171,9 @@ func handleLine(line string) {
 	case dataCommand:
 		printProjectData()
 
+	case updateCommand:
+		updateZeus()
+
 	case versionCommand:
 		l.Println(version)
 
@@ -176,8 +181,8 @@ func handleLine(line string) {
 
 		clearScreen()
 
-		l.Println(cp.colorText + asciiArt + ansi.Reset + "\n")
-		l.Println(cp.colorText + "Project Name: " + cp.colorPrompt + filepath.Base(workingDir) + cp.colorText + "\n")
+		l.Println(cp.text + asciiArt + ansi.Reset + "\n")
+		l.Println(cp.text + "Project Name: " + cp.prompt + filepath.Base(workingDir) + cp.text + "\n")
 
 	case builtinsCommand:
 		printBuiltins()
@@ -210,6 +215,8 @@ func handleLine(line string) {
 			handleGitFilterCommand(args)
 		case milestonesCommand:
 			handleMilestonesCommand(args)
+		case procsCommand:
+			handleProcsCommand(args)
 		case helpCommand:
 			handleHelpCommand(args)
 		case colorsCommand:
@@ -261,12 +268,16 @@ func handleLine(line string) {
 				return
 			}
 
-			numCommands = getTotalCommandCount(cmd)
+			numCommands = numCommands + getTotalCommandCount(cmd)
 
 			// run the command
-			err := cmd.Run(args)
+			err := cmd.Run(args, cmd.async)
 			if err != nil {
-				fmt.Printf("error: %v\n", err)
+				fmt.Printf("command "+cmd.name+" failed. error: %v\n", err)
+			}
+
+			if cmd.async {
+				time.Sleep(100 * time.Millisecond)
 			}
 
 			// reset counters

@@ -21,8 +21,8 @@ package main
 import "time"
 
 func printDeadlineUsageErr() {
-	Log.Error(ErrInvalidUsage)
-	Log.Info("usage: deadline [remove] [set <date>]")
+	l.Println(ErrInvalidUsage)
+	l.Println("usage: deadline [remove] [set <date>]")
 }
 
 // handle deadline shell command
@@ -87,7 +87,7 @@ func removeDeadline() {
 
 func printDeadline() {
 	if projectData.Deadline != "" {
-		l.Println("Deadline: " + cp.colorPrompt + projectData.Deadline + cp.colorText + "\n")
+		l.Println("Deadline: " + cp.prompt + projectData.Deadline + cp.text + "\n")
 	} else {
 		l.Println("no deadline set.")
 	}

@@ -55,6 +55,7 @@ const (
 	gitFilterCommand  = "git-filter"
 	todoCommand       = "todo"
 	updateCommand     = "update"
+	procsCommand      = "procs"
 )
 
 var builtins = map[string]string{
@@ -83,6 +84,7 @@ var builtins = map[string]string{
 	gitFilterCommand:  "filter git log output",
 	todoCommand:       "manage todos",
 	updateCommand:     "update zeus version",
+	procsCommand:      "manage spawned processes",
 }
 
 // executed when running the info command
@@ -126,18 +128,23 @@ func printBuiltins() {
 	// sort alphabetically
 	sort.Strings(names)
 
-	l.Println(cp.colorText + "builtins:")
+	l.Println()
+	l.Println(cp.text + "builtins")
 
 	// print
 	for _, name := range names {
 		description := builtins[name]
-		l.Println(cp.colorCommandName + pad(name, width) + cp.colorText + description)
+		l.Println(cp.cmdName + pad(name, width) + cp.text + description)
 	}
-	l.Println("")
+	l.Println()
 }
 
 // print all available commands
 func printCommands() {
+
+	if len(commands) == 0 {
+		return
+	}
 
 	commandMutex.Lock()
 	defer commandMutex.Unlock()
@@ -145,10 +152,14 @@ func printCommands() {
 	var (
 		sortedCommandKeys = make([]string, len(commands))
 		index             = 0
+		maxLen            int
 	)
 
 	// copy command names into array for sorting
 	for key := range commands {
+		if len(key) > maxLen {
+			maxLen = len(key)
+		}
 		sortedCommandKeys[index] = key
 		index++
 	}
@@ -157,24 +168,59 @@ func printCommands() {
 	sort.Strings(sortedCommandKeys)
 
 	// print them
-	l.Println(cp.colorText + "commands:")
-	for _, key := range sortedCommandKeys {
+	l.Println(cp.text + "commands")
+	for i, key := range sortedCommandKeys {
 
-		cmd := commands[key]
+		var (
+			lastElem = i == len(sortedCommandKeys)-1
+			cmd      = commands[key]
+		)
 
-		// check if there are arguments
-		if len(cmd.args) != 0 {
-			l.Print(cp.colorText + "├~» " + cp.colorCommandName + pad(cmd.name+" "+getArgumentString(cmd.args), 20) + cp.colorText)
+		if lastElem {
+			l.Print(cp.text + "└─── " + cp.cmdName + cmd.name + " " + getArgumentString(cmd.args) + cp.text)
 		} else {
-			l.Print(cp.colorText + "├~» " + cp.colorCommandName + pad(cmd.name, 20) + cp.colorText)
+			l.Print(cp.text + "├─── " + cp.cmdName + cmd.name + " " + getArgumentString(cmd.args) + cp.text)
 		}
 
 		if len(cmd.commandChain) > 0 {
-			l.Println(cp.colorText + "├──── " + pad("chain:", 18) + cp.colorCommandChain + formatcommandChain(cmd.commandChain))
+			if lastElem {
+				l.Println(cp.text + "     ├─── " + pad("chain", maxLen) + cp.cmdFields + formatcommandChain(cmd.commandChain))
+			} else {
+				l.Println(cp.text + "|    ├─── " + pad("chain", maxLen) + cp.cmdFields + formatcommandChain(cmd.commandChain))
+			}
+		}
+
+		if len(cmd.outputs) > 0 {
+			if lastElem {
+				l.Println(cp.text+"     ├─── "+pad("out", maxLen)+cp.cmdFields, cmd.outputs)
+			} else {
+				l.Println(cp.text+"|    ├─── "+pad("out", maxLen)+cp.cmdFields, cmd.outputs)
+			}
+		}
+
+		if len(cmd.dependencies) > 0 {
+			if lastElem {
+				l.Println(cp.text+"     ├─── "+pad("deps", maxLen)+cp.cmdFields, cmd.dependencies)
+			} else {
+				l.Println(cp.text+"|    ├─── "+pad("deps", maxLen)+cp.cmdFields, cmd.dependencies)
+			}
+		}
+
+		if cmd.async {
+			if lastElem {
+				l.Println(cp.text + "     ├─── " + cp.cmdFields + "async")
+			} else {
+				l.Println(cp.text + "|    ├─── " + cp.cmdFields + "async")
+			}
 		}
 
 		// print help section
-		l.Println(cp.colorText + "├──── " + pad("help:", 18) + cmd.help)
+		if lastElem {
+			l.Println(cp.text + "     └─── " + pad("help", maxLen) + cmd.help)
+		} else {
+			l.Println(cp.text + "|    └─── " + pad("help", maxLen) + cmd.help)
+			l.Println("|")
+		}
 	}
 	l.Println("")
 }
@@ -182,13 +228,17 @@ func printCommands() {
 // format argStr
 func getArgumentString(args map[string]*commandArg) string {
 
+	if len(args) == 0 {
+		return ""
+	}
+
 	var (
-		argStr = "("
+		argStr = cp.cmdArgs + "("
 		count  = 1
 	)
 
 	for _, arg := range args {
-		var t = strings.Title(arg.argType.String())
+		var t = cp.cmdArgType + strings.Title(arg.argType.String()) + cp.cmdArgs
 		if arg.optional {
 			if arg.defaultValue != "" {
 				t += "? =" + arg.defaultValue
@@ -212,7 +262,8 @@ func listGlobals() {
 	if len(globalsContent) > 0 {
 		c, err := ioutil.ReadFile(zeusDir + "/globals.sh")
 		if err != nil {
-			l.Fatal("failed to read globals: ", err)
+			l.Println("failed to read globals: ", err)
+			return
 		}
 		l.Println(string(c))
 	} else {
@@ -225,9 +276,14 @@ func printGitFilterCommandUsageErr() {
 	l.Println("usage: git-filter [keyword]")
 }
 
+// @TODO: parse output and format correctly + add colors and commit hashes
 func handleGitFilterCommand(args []string) {
 
-	out, err := exec.Command("git", "log", "--pretty=format:[%cd] author: %cn, subject: %s").CombinedOutput()
+	l.Println()
+
+	w := 35
+	l.Println(cp.prompt + pad("time", w) + pad("author", 41) + "subject")
+	out, err := exec.Command("git", "log", "--pretty=format:"+cp.text+pad("[%ci]", 13)+pad("%cn", w)+"%s").CombinedOutput()
 	if err != nil {
 		l.Println(err)
 		return
@@ -272,6 +328,25 @@ func printTodos() {
 			l.Println(pad(strconv.Itoa(index)+")", 4) + strings.TrimPrefix(line, "- "))
 		}
 	}
+}
+
+func printTodoCount() {
+
+	contents, err := ioutil.ReadFile(conf.TodoFilePath)
+	if err != nil {
+		l.Println(err)
+		return
+	}
+
+	var count int
+
+	for _, line := range strings.Split(string(contents), "\n") {
+		if strings.HasPrefix(line, "- ") {
+			count++
+		}
+	}
+
+	l.Println(cp.text + pad("TODOs", 14) + cp.prompt + strconv.Itoa(count))
 }
 
 func handleTodoCommand(args []string) {

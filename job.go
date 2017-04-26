@@ -18,13 +18,24 @@
 
 package main
 
+import (
+	"github.com/Sirupsen/logrus"
+	"github.com/mgutz/ansi"
+)
+
+type parseJobID string
+
 // parseJob represents a parse process for a specific script
+// or a command parsed from a zeusfile
 // it keeps track of all parsed commands to prevent cycles
 // parseJobs can run concurrently
 type parseJob struct {
 
-	// path for script to parse
+	// path for script to parse, empty if its a command from zesufile
 	path string
+
+	// unique identifier
+	id parseJobID
 
 	// command array with arguments
 	commands [][]string
@@ -32,7 +43,7 @@ type parseJob struct {
 	// log parse errors to stdout
 	silent bool
 
-	// job waiting for command parsed by this job
+	// jobs waiting for command currently being parsed by this job
 	waiters []chan bool
 }
 
@@ -40,6 +51,7 @@ type parseJob struct {
 func newJob(path string, silent bool) *parseJob {
 	return &parseJob{
 		path:     path,
+		id:       parseJobID(randomString()),
 		commands: make([][]string, 0),
 		silent:   silent,
 	}
@@ -51,10 +63,13 @@ func (p *parser) AddJob(path string, silent bool) (job *parseJob) {
 
 	job = newJob(path, silent)
 
-	Log.Debug("adding job: ", job.path)
+	Log.WithFields(logrus.Fields{
+		"ID":   job.id,
+		"path": path,
+	}).Debug("adding job")
 
 	p.mutex.Lock()
-	p.jobs[path] = job
+	p.jobs[job.id] = job
 	p.mutex.Unlock()
 
 	return job
@@ -64,7 +79,11 @@ func (p *parser) AddJob(path string, silent bool) (job *parseJob) {
 // thread safe
 func (p *parser) RemoveJob(job *parseJob) {
 
-	Log.Debug("removing job: ", job.path)
+	Log.WithFields(logrus.Fields{
+		"ID":      job.id,
+		"path":    job.path,
+		"waiters": len(job.waiters),
+	}).Debug("removing job")
 
 	// notify waiters
 	for _, c := range job.waiters {
@@ -72,34 +91,69 @@ func (p *parser) RemoveJob(job *parseJob) {
 	}
 
 	p.mutex.Lock()
-	delete(p.jobs, job.path)
+	delete(p.jobs, job.id)
 	p.mutex.Unlock()
 }
 
 func (p *parser) JobExists(path string) bool {
+
+	Log.WithFields(logrus.Fields{
+		"path": path,
+	}).Debug("job exists?")
+
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
-	if _, ok := p.jobs[path]; ok {
-		return true
+
+	for _, job := range p.jobs {
+		if job.path == path {
+			return true
+		}
 	}
+
 	return false
 }
 
+// wait for a running parseJob
 func (p *parser) WaitForJob(path string) {
+
+	p.printJobs()
 
 	c := make(chan bool)
 
 	p.mutex.Lock()
-	if job, ok := p.jobs[path]; ok {
-		// add channel to waiters
-		job.waiters = append(job.waiters, c)
-	} else {
-		// job does not exist
-		return
+
+	for _, job := range p.jobs {
+		if job.path == path {
+
+			// add channel to waiters
+			job.waiters = append(job.waiters, c)
+
+			Log.WithFields(logrus.Fields{
+				"ID":   job.id,
+				"path": job.path,
+			}).Debug("waiting for job")
+
+			p.mutex.Unlock()
+			<-c
+
+			Log.WithFields(logrus.Fields{
+				"ID":   job.id,
+				"path": job.path,
+			}).Debug(ansi.Yellow + "job complete" + ansi.Reset)
+
+			return
+		}
 	}
 	p.mutex.Unlock()
+}
 
-	Log.Info("waiting for job: ", path)
+func (p *parser) printJobs() {
 
-	<-c
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
+
+	l.Println(cp.prompt + pad("ID", 20) + " path" + cp.text)
+	for _, job := range p.jobs {
+		l.Println(pad(string(job.id), 20), job.path)
+	}
 }

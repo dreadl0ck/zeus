@@ -37,45 +37,53 @@ var (
 )
 
 type colorProfile struct {
-	colorText          string
-	colorPrompt        string
-	colorCommandOutput string
-	colorCommandName   string
-	colorCommandChain  string
+	text       string
+	prompt     string
+	cmdOutput  string
+	cmdName    string
+	cmdFields  string
+	cmdArgs    string
+	cmdArgType string
 }
 
 func printColorsUsageErr() {
-	Log.Error(ErrInvalidUsage)
-	Log.Info("usage: colors <default | dark | light>")
+	l.Println(ErrInvalidUsage)
+	l.Println("usage: colors <default | dark | light>")
 }
 
 func darkProfile() *colorProfile {
 	return &colorProfile{
-		colorText:          ansi.Black,
-		colorPrompt:        ansi.Blue,
-		colorCommandOutput: ansi.White,
-		colorCommandName:   ansi.Blue,
-		colorCommandChain:  ansi.White,
+		text:       ansi.Black,
+		prompt:     ansi.Blue,
+		cmdOutput:  ansi.White,
+		cmdName:    ansi.Blue,
+		cmdFields:  ansi.Yellow,
+		cmdArgs:    ansi.White,
+		cmdArgType: ansi.Green,
 	}
 }
 
 func lightProfile() *colorProfile {
 	return &colorProfile{
-		colorText:          ansi.Black,
-		colorPrompt:        ansi.Green,
-		colorCommandOutput: ansi.Black,
-		colorCommandName:   ansi.Blue,
-		colorCommandChain:  ansi.Green,
+		text:       ansi.Black,
+		prompt:     ansi.Green,
+		cmdOutput:  ansi.Black,
+		cmdName:    ansi.Blue,
+		cmdFields:  ansi.Green,
+		cmdArgs:    ansi.Cyan,
+		cmdArgType: ansi.Green,
 	}
 }
 
 func defaultProfile() *colorProfile {
 	return &colorProfile{
-		colorText:          ansi.Green,
-		colorPrompt:        ansi.Red,
-		colorCommandOutput: ansi.White,
-		colorCommandName:   ansi.Red,
-		colorCommandChain:  ansi.White,
+		text:       ansi.Green,
+		prompt:     ansi.Red,
+		cmdOutput:  ansi.White,
+		cmdName:    ansi.Red,
+		cmdFields:  ansi.Yellow,
+		cmdArgs:    ansi.White,
+		cmdArgType: ansi.Green,
 	}
 }
 
@@ -119,8 +127,8 @@ func handleColorsCommand(args []string) {
 		readlineMutex.Unlock()
 		clearScreen()
 
-		l.Println(cp.colorText + asciiArt + ansi.Reset + "\n")
-		l.Println(cp.colorText + "Project Name: " + cp.colorPrompt + filepath.Base(workingDir) + cp.colorText + "\n")
+		l.Println(cp.text + asciiArt + ansi.Reset + "\n")
+		l.Println(cp.text + "Project Name: " + cp.prompt + filepath.Base(workingDir) + cp.text + "\n")
 
 		printBuiltins()
 		printCommands()

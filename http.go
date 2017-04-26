@@ -231,7 +231,7 @@ func startJSWatcher() {
 		cLog.WithError(err).Error("JavaScript watcher failed")
 	}
 
-	addProcess(id, "jswatcher", cmd.Process)
+	addProcess(id, "jswatcher", cmd.Process, cmd.Process.Pid)
 	defer deleteProcess(id)
 
 	err = cmd.Wait()
@@ -262,7 +262,7 @@ func startSassWatcher() {
 		cLog.WithError(err).Error("sass watcher failed")
 	}
 
-	addProcess(id, "sasswatcher", cmd.Process)
+	addProcess(id, "sasswatcher", cmd.Process, cmd.Process.Pid)
 	defer deleteProcess(id)
 
 	err = cmd.Wait()

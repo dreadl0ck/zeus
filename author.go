@@ -21,13 +21,13 @@ package main
 import "strings"
 
 func printAuthorUsageErr() {
-	Log.Error(ErrInvalidUsage)
-	Log.Info("usage: author [set <name>] [remove]")
+	l.Println(ErrInvalidUsage)
+	l.Println("usage: author [set <name>] [remove]")
 }
 
 func printAuthor() {
 	if projectData.Author != "" {
-		l.Println("Author: ", cp.colorPrompt+projectData.Author)
+		l.Println(pad("Author", 14) + cp.prompt + projectData.Author)
 	}
 }
 

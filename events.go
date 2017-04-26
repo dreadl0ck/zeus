@@ -71,8 +71,8 @@ type Event struct {
 }
 
 func printEventsUsageErr() {
-	Log.Error(ErrInvalidUsage)
-	Log.Info("usage: events [add <optype> <path> <filetype> <commandChain>] [remove <path>]")
+	l.Println(ErrInvalidUsage)
+	l.Println("usage: events [add <optype> <path> <filetype> <commandChain>] [remove <path>]")
 }
 
 // handle events command
@@ -189,9 +189,9 @@ func listEvents() {
 
 	w := 20
 
-	l.Println(cp.colorPrompt + pad("name", w) + pad("ID", w) + pad("operation", w) + pad("command", w) + pad("filetype", w) + pad("path", w))
+	l.Println(cp.prompt + pad("name", w) + pad("ID", w) + pad("operation", w) + pad("command", w) + pad("filetype", w) + pad("path", w))
 	for _, e := range projectData.Events {
-		l.Println(cp.colorText + pad(e.Name, w) + pad(e.ID, w) + pad(e.Op.String(), w) + pad(e.Command, w) + pad(e.FileExtension, w) + pad(e.Path, w))
+		l.Println(cp.text + pad(e.Name, w) + pad(e.ID, w) + pad(e.Op.String(), w) + pad(e.Command, w) + pad(e.FileExtension, w) + pad(e.Path, w))
 	}
 }
 

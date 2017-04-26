@@ -7,6 +7,19 @@
           \/    \/           \/   /\\/\ //\
                 An Electrifying Build System
 
+## 26.04.17
+
+- refactored UI
+- improved zeus_error_dump
+- implemented async header field
+- added procs builtin
+- added completions for help command
+- fixed async parsing bug
+- added TODO count to projectHeader
+- refactored colorProfiles
+- SEO optimizations for github page
+- added downloadable binaries
+
 ## 19.04.17
 
 - improved Zeusfile parse error feedback

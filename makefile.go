@@ -44,7 +44,7 @@ func printMakefileCommandOverview() {
 
 	b, err := ioutil.ReadFile("Makefile")
 	if err != nil {
-		Log.WithError(err).Debug("unable to read Makefile")
+		l.Println("failed to read Makefile:", err)
 		return
 	}
 

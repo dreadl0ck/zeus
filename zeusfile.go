@@ -76,10 +76,15 @@ func parseZeusfile(path string) error {
 	for name, d := range zeusfile.Commands {
 
 		// create parse job
-		var job = p.AddJob(randomString(), false)
+		var job = p.AddJob("zeusfile."+name, false)
+
+		chain, err := parseCommandChain(d.Chain)
+		if err != nil {
+			return err
+		}
 
 		// get build chain
-		commandChain, err := job.getCommandChain(parseCommandChain(d.Chain), zeusfile)
+		commandChain, err := job.getCommandChain(chain, zeusfile)
 		if err != nil {
 			return errors.New("Zeusfile, command " + name + ": " + err.Error())
 		}
@@ -112,6 +117,7 @@ func parseZeusfile(path string) error {
 			dependencies: d.Dependencies,
 			outputs:      d.Outputs,
 			runCommand:   d.Run,
+			async:        d.Async,
 		}
 
 		// job done
@@ -131,7 +137,7 @@ func parseZeusfile(path string) error {
 
 	// only print info when using the interactive shell
 	if len(os.Args) == 1 {
-		l.Println(cp.colorText+"initialized "+cp.colorPrompt, len(commands), cp.colorText+" commands from Zeusfile in: "+cp.colorPrompt, time.Now().Sub(start), ansi.Reset+"\n")
+		l.Println(cp.text+"initialized "+cp.prompt, len(commands), cp.text+" commands from Zeusfile in: "+cp.prompt, time.Now().Sub(start), ansi.Reset+"\n")
 	}
 
 	// watch file for changes in interactive mode
@@ -236,10 +242,15 @@ func migrateZeusfile() error {
 	for name, d := range zeusfile.Commands {
 
 		// create parse job
-		var job = p.AddJob(randomString(), false)
+		var job = p.AddJob("zeusfile."+name, false)
+
+		chain, err := parseCommandChain(d.Chain)
+		if err != nil {
+			return err
+		}
 
 		// validate build chain
-		_, err = job.getCommandChain(parseCommandChain(d.Chain), zeusfile)
+		_, err = job.getCommandChain(chain, zeusfile)
 		if err != nil {
 			return err
 		}
@@ -276,7 +287,7 @@ func migrateZeusfile() error {
 		f.Close()
 	}
 
-	l.Println(cp.colorText+"migrated "+cp.colorPrompt, len(commands), cp.colorText+" commands from Zeusfile in: "+cp.colorPrompt, time.Now().Sub(start), ansi.Reset+"\n")
+	l.Println(cp.text+"migrated "+cp.prompt, len(commands), cp.text+" commands from Zeusfile in: "+cp.prompt, time.Now().Sub(start), ansi.Reset+"\n")
 
 	return os.Rename(filename, "Zeusfile_old.yml")
 }

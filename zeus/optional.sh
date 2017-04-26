@@ -2,6 +2,7 @@
 
 # ---------------------------------------------------------------------- #
 # @zeus-help: test optionals
+# @zeus-chain: background-job
 # @zeus-args: name:String? = "defaultName", bla:String, ok:Bool?, count:Int?, req:String
 # ---------------------------------------------------------------------- #
 #

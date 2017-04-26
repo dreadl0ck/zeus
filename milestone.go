@@ -43,8 +43,8 @@ func newMilestone(name string, date time.Time, description []string) *milestone 
 }
 
 func printMilestoneUsageErr() {
-	Log.Error(ErrInvalidUsage)
-	Log.Info("usage: milestones [remove <name>] [set <name> <0-100>] [add <name> <date> [description]]")
+	l.Println(ErrInvalidUsage)
+	l.Println("usage: milestones [remove <name>] [set <name> <0-100>] [add <name> <date> [description]]")
 }
 
 // handle milestones shell command
@@ -193,12 +193,14 @@ func listMilestones() {
 
 	if len(projectData.Milestones) > 0 {
 
-		l.Println(cp.colorText + "Milestones:")
-		for i, m := range projectData.Milestones {
+		w := 30
+		l.Println(cp.text + "Milestones")
+		l.Println(cp.prompt + pad("status", 30) + pad("name", w) + pad("date", w) + "description" + cp.text)
+		for _, m := range projectData.Milestones {
 			if len(m.Description) > 0 {
-				l.Println("#", i, getStatusBar(m.PercentComplete), "name:", m.Name, "date:", cp.colorPrompt+m.Date.Format(conf.DateFormat)+cp.colorText, "description:", m.Description)
+				l.Println(pad(getStatusBar(m.PercentComplete), 30) + pad(m.Name, w) + pad(m.Date.Format(conf.DateFormat), w) + m.Description)
 			} else {
-				l.Println("#", i, getStatusBar(m.PercentComplete), "name:", m.Name, "date:", cp.colorPrompt+m.Date.Format(conf.DateFormat)+cp.colorText)
+				l.Println(pad(getStatusBar(m.PercentComplete), 30) + pad(m.Name, w) + m.Date.Format(conf.DateFormat))
 			}
 		}
 		l.Println("")
