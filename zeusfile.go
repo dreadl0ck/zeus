@@ -78,7 +78,7 @@ func parseZeusfile(path string) error {
 		// create parse job
 		var job = p.AddJob("zeusfile."+name, false)
 
-		chain, err := parseCommandChain(d.Chain)
+		chain, err := job.parseCommandChain(d.Chain)
 		if err != nil {
 			return err
 		}
@@ -123,21 +123,28 @@ func parseZeusfile(path string) error {
 		// job done
 		p.RemoveJob(job)
 
-		commandMutex.Lock()
-
 		// Add the completer.
+		completer.Lock()
 		completer.Children = append(completer.Children, cmd.PrefixCompleter)
+		completer.Unlock()
 
 		// add to command map
-		commands[cmd.name] = cmd
-		commandMutex.Unlock()
+		cmdMap.Lock()
+		cmdMap.items[cmd.name] = cmd
+		cmdMap.Unlock()
 
-		Log.Debug("added " + cmd.name + " to the command map")
+		Log.WithField("prefix", "parseZeusfile").Debug("added " + cp.cmdName + cmd.name + ansi.Reset + " to the command map")
+		if debug {
+			cmd.dump()
+		}
 	}
+
+	cmdMap.Lock()
+	defer cmdMap.Unlock()
 
 	// only print info when using the interactive shell
 	if len(os.Args) == 1 {
-		l.Println(cp.text+"initialized "+cp.prompt, len(commands), cp.text+" commands from Zeusfile in: "+cp.prompt, time.Now().Sub(start), ansi.Reset+"\n")
+		l.Println(cp.text+"initialized "+cp.prompt, len(cmdMap.items), cp.text+" commands from Zeusfile in: "+cp.prompt, time.Now().Sub(start), ansi.Reset+"\n")
 	}
 
 	// watch file for changes in interactive mode
@@ -152,20 +159,20 @@ func parseZeusfile(path string) error {
 func watchZeusfile(path, eventID string) {
 
 	// dont add a new watcher when the event exists
-	projectDataMutex.Lock()
+	projectData.Lock()
 	for _, e := range projectData.Events {
 		if e.Name == "zeusfile watcher" {
-			projectDataMutex.Unlock()
+			projectData.Unlock()
 			return
 		}
 	}
-	projectDataMutex.Unlock()
+	projectData.Unlock()
 
 	Log.Debug("watching zeusfile at ", path)
 
 	err := addEvent(newEvent(path, fsnotify.Write, "zeusfile watcher", "", eventID, "internal", func(e fsnotify.Event) {
 
-		Log.Debug("received zeusfile event")
+		Log.Debug("received zeusfile event: ", e.Name)
 
 		err := parseZeusfile(path)
 		if err != nil {
@@ -183,13 +190,13 @@ func migrateZeusfile() error {
 	var eventID string
 
 	// remove zeusfile watcher
-	projectDataMutex.Lock()
+	projectData.Lock()
 	for id, e := range projectData.Events {
 		if e.Name == "zeusfile watcher" {
 			eventID = id
 		}
 	}
-	projectDataMutex.Unlock()
+	projectData.Unlock()
 
 	removeEvent(eventID)
 
@@ -244,7 +251,7 @@ func migrateZeusfile() error {
 		// create parse job
 		var job = p.AddJob("zeusfile."+name, false)
 
-		chain, err := parseCommandChain(d.Chain)
+		chain, err := job.parseCommandChain(d.Chain)
 		if err != nil {
 			return err
 		}
@@ -287,7 +294,10 @@ func migrateZeusfile() error {
 		f.Close()
 	}
 
-	l.Println(cp.text+"migrated "+cp.prompt, len(commands), cp.text+" commands from Zeusfile in: "+cp.prompt, time.Now().Sub(start), ansi.Reset+"\n")
+	cmdMap.Lock()
+	defer cmdMap.Unlock()
+
+	l.Println(cp.text+"migrated "+cp.prompt, len(cmdMap.items), cp.text+" commands from Zeusfile in: "+cp.prompt, time.Now().Sub(start), ansi.Reset+"\n")
 
 	return os.Rename(filename, "Zeusfile_old.yml")
 }

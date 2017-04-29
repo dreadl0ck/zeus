@@ -125,6 +125,11 @@ func StartWebListener(openInBrowser bool) {
 // serve index page
 var serveHTTP = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
+	if r.Method != "GET" {
+		http.Error(w, "invalid method, only GET allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
 	c, err := distBox.Bytes("html/index.html")
 	if err != nil {
 		Log.WithError(err).Error("failed to serve index page")
@@ -275,6 +280,11 @@ func startSassWatcher() {
 
 // handle /quit route and exit application
 var quitHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
+	if r.Method != "GET" {
+		http.Error(w, "invalid method, only GET allowed", http.StatusMethodNotAllowed)
+		return
+	}
 
 	Log.Info("exiting, Bye.")
 

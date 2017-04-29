@@ -20,3 +20,4 @@ StopOnError: true
 DumpScriptOnError: true
 DateFormat: 02.01.06
 TodoFilePath: wiki/docs/TODO.md
+rwmutex: {}

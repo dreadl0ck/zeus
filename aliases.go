@@ -45,7 +45,7 @@ func validateAlias(name string) error {
 	}
 
 	// check for conflict with user command
-	if command, ok := commands[name]; ok {
+	if command, ok := cmdMap.items[name]; ok {
 		Log.Error("alias ", name, " conflicts with command: ", command.path)
 		return ErrInvalidAlias
 	}
@@ -63,22 +63,22 @@ func addAlias(name, command string) {
 	}
 
 	// add to project data
-	projectDataMutex.Lock()
+	projectData.Lock()
 	projectData.Aliases[name] = command
-	projectDataMutex.Unlock()
+	projectData.Unlock()
 
 	projectData.update()
 
 	// add to completer
-	completerLock.Lock()
+	completer.Lock()
 	completer.Children = append(completer.Children, readline.PcItem(name))
-	completerLock.Unlock()
+	completer.Unlock()
 }
 
 func deleteAlias(name string) {
-	projectDataMutex.Lock()
+	projectData.Lock()
 	delete(projectData.Aliases, name)
-	projectDataMutex.Unlock()
+	projectData.Unlock()
 }
 
 // print alias names to stdout
@@ -86,7 +86,7 @@ func printAliases() {
 
 	var maxLen int
 
-	projectDataMutex.Lock()
+	projectData.Lock()
 	for name := range projectData.Aliases {
 		if len(name) > maxLen {
 			maxLen = len(name)
@@ -97,7 +97,7 @@ func printAliases() {
 		l.Println(pad(name, maxLen+1), "=", command)
 	}
 
-	projectDataMutex.Unlock()
+	projectData.Unlock()
 }
 
 // handle alias shell command

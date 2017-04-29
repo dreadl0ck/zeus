@@ -54,3 +54,4 @@ Events:
 Author: Philipp Mieden
 KeyBindings:
   Ctrl-T: clean -> test
+rwmutex: {}

@@ -44,14 +44,14 @@ func handleAuthorCommand(args []string) {
 			printAuthorUsageErr()
 			return
 		}
-		projectDataMutex.Lock()
+		projectData.Lock()
 		projectData.Author = strings.Join(args[2:], " ")
-		projectDataMutex.Unlock()
+		projectData.Unlock()
 		projectData.update()
 	case "remove":
-		projectDataMutex.Lock()
+		projectData.Lock()
 		projectData.Author = ""
-		projectDataMutex.Unlock()
+		projectData.Unlock()
 		projectData.update()
 	default:
 		printAuthorUsageErr()

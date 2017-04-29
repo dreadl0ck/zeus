@@ -29,6 +29,7 @@ import (
 	"sync"
 
 	"github.com/fsnotify/fsnotify"
+	prefixed "github.com/x-cray/logrus-prefixed-formatter"
 	"gopkg.in/yaml.v2"
 )
 
@@ -45,8 +46,6 @@ var (
 
 	// regex for matching top level YAML keys from config file contents
 	yamlField = regexp.MustCompile("(\\s)*[a-z]?(.|\\s)*:")
-
-	configMutex = &sync.Mutex{}
 )
 
 // config contains configurable parameters
@@ -73,6 +72,7 @@ type config struct {
 	DumpScriptOnError   bool   `yaml:"DumpScriptOnError"`
 	DateFormat          string `yaml:"DateFormat"`
 	TodoFilePath        string `yaml:"TodoFilePath"`
+	sync.RWMutex
 }
 
 // newConfig returns the default configuration in case there is no config file
@@ -160,7 +160,7 @@ func validateConfig(path string) ([]byte, error) {
 					foundField = true
 				}
 			}
-			if !foundField {
+			if !foundField && field != "rwmutex" {
 				Log.Warn("line "+strconv.Itoa(i)+": unknown config field: ", field)
 			}
 			foundField = false
@@ -195,6 +195,7 @@ func parseProjectConfig() (*config, error) {
 	if err != nil {
 		Log.WithError(err).Fatal("failed to unmarshal confg - invalid YAML:")
 		printFileContents(contents)
+		return nil, err
 	}
 
 	c.handle()
@@ -206,7 +207,7 @@ func parseProjectConfig() (*config, error) {
 func handleConfigCommand(args []string) {
 
 	if len(args) < 2 {
-		printConfiguration()
+		conf.dump()
 		return
 	}
 
@@ -232,12 +233,12 @@ func handleConfigCommand(args []string) {
 // update config on disk
 func (c *config) update() {
 
-	configMutex.Lock()
-	defer configMutex.Unlock()
+	c.Lock()
+	defer c.Unlock()
 
-	b, err := yaml.Marshal(conf)
+	b, err := yaml.Marshal(c)
 	if err != nil {
-		Log.WithError(err).Fatal("failed to marshal config YAM:")
+		Log.WithError(err).Fatal("failed to marshal config YAML:")
 	}
 
 	if _, err := os.Stat(zeusDir); err != nil {
@@ -264,13 +265,13 @@ func (c *config) update() {
 func cleanFormatterEvent() string {
 
 	var id string
-	projectDataMutex.Lock()
+	projectData.Lock()
 	for _, e := range projectData.Events {
 		if e.Name == "formatter watcher" {
 			id = e.ID
 		}
 	}
-	projectDataMutex.Unlock()
+	projectData.Unlock()
 
 	if id != "" {
 		removeEvent(id)
@@ -283,14 +284,14 @@ func cleanFormatterEvent() string {
 func (c *config) watch(eventID string) {
 
 	// dont add a new watcher when the event exists
-	projectDataMutex.Lock()
+	projectData.Lock()
 	for _, e := range projectData.Events {
 		if e.Name == "config watcher" {
-			projectDataMutex.Unlock()
+			projectData.Unlock()
 			return
 		}
 	}
-	projectDataMutex.Unlock()
+	projectData.Unlock()
 
 	Log.Debug("watching config at " + projectConfigPath)
 
@@ -300,15 +301,20 @@ func (c *config) watch(eventID string) {
 
 		b, err := validateConfig(projectConfigPath)
 		if err != nil {
-			Log.WithError(err).Fatal("failed to read config")
+			Log.WithError(err).Error("failed to read config")
+			return
 		}
 
-		configMutex.Lock()
+		// lock config
+		c.Lock()
+
 		err = yaml.Unmarshal(b, c)
 		if err != nil {
 			Log.WithError(err).Error("config parse error")
+			c.Unlock()
+			return
 		}
-		configMutex.Unlock()
+		c.Unlock()
 
 		// handle updated values
 		c.handle()
@@ -321,8 +327,8 @@ func (c *config) watch(eventID string) {
 // get type and current vlaue information for a given field on the config struct
 func (c *config) getFieldInfo(field string) string {
 
-	configMutex.Lock()
-	defer configMutex.Unlock()
+	c.Lock()
+	defer c.Unlock()
 
 	f := reflect.Indirect(reflect.ValueOf(c)).FieldByName(field)
 	switch f.Kind() {
@@ -341,12 +347,12 @@ func (c *config) getFieldInfo(field string) string {
 // set a config field to a specified value by its name
 func (c *config) setValue(field, value string) {
 
-	configMutex.Lock()
+	c.Lock()
 
 	// check if the named field exists on the struct
 	f := reflect.Indirect(reflect.ValueOf(c)).FieldByName(field)
 
-	configMutex.Unlock()
+	c.Unlock()
 
 	if !f.IsValid() {
 		Log.Error("invalid config field: ", field)
@@ -389,10 +395,16 @@ func (c *config) setValue(field, value string) {
 // handle the config by applying updated values
 func (c *config) handle() {
 
-	configMutex.Lock()
-	defer configMutex.Unlock()
+	// lock config
+	c.Lock()
+	defer c.Unlock()
 
-	// this produces a data race
+	// lock Logger
+	Log.Lock()
+	defer Log.Unlock()
+
+	// handle debug mode
+	// @TODO: this produces a data race
 	// if c.Debug {
 	// 	Log.Level = logrus.DebugLevel
 	// } else {
@@ -404,36 +416,36 @@ func (c *config) handle() {
 		c.DumpScriptOnError = true
 	}
 
-	// this produces a data race
-	// Log.Lock()
-	// Log = logrus.New()
+	// disable colors if requested
+	if !c.Colors {
 
-	// // disable colors if requested
-	// if !c.Colors {
-	// 	Log.Formatter = &prefixed.TextFormatter{
-	// 		DisableColors: true,
-	// 	}
-	// } else {
-	// 	Log.Formatter = &prefixed.TextFormatter{}
-	// }
+		// lock once
+		cp.Lock()
+		cp = colorsOffProfile()
+
+		Log.Formatter = &prefixed.TextFormatter{
+			DisableColors:    true,
+			DisableTimestamp: c.DisableTimestamps,
+		}
+	}
 
 	if !c.AutoFormat {
 		cleanFormatterEvent()
 	}
 }
 
-// print the current configuration as JSON to stdout
-func printConfiguration() {
+// print the current configuration as YAML to stdout
+func (c *config) dump() {
 
-	configMutex.Lock()
-	defer configMutex.Unlock()
+	c.Lock()
+	defer c.Unlock()
 
 	l.Println()
 
-	b, err := yaml.Marshal(conf)
+	b, err := yaml.Marshal(c)
 	if err != nil {
-		Log.WithError(err).Fatal("failed to marshal config to JSON")
+		Log.WithError(err).Error("failed to marshal config to YAML")
+	} else {
+		l.Println(string(b))
 	}
-
-	l.Println(string(b))
 }

@@ -178,7 +178,7 @@ func handleProcsCommand(args []string) {
 	switch args[1] {
 	// detach any command async
 	case "detach":
-		if cmd, ok := commands[args[2]]; ok {
+		if cmd, ok := cmdMap.items[args[2]]; ok {
 			cmd.async = true
 			err := cmd.Run(args[3:], true)
 			if err != nil {

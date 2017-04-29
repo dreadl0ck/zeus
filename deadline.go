@@ -58,9 +58,9 @@ func addDeadline(args []string) {
 		return
 	}
 
-	configMutex.Lock()
+	conf.Lock()
 	format := conf.DateFormat
-	configMutex.Unlock()
+	conf.Unlock()
 
 	// check if date is valid
 	t, err := time.Parse(format, args[0])
@@ -69,18 +69,18 @@ func addDeadline(args []string) {
 		return
 	}
 
-	projectDataMutex.Lock()
+	projectData.Lock()
 	projectData.Deadline = t.Format(conf.DateFormat)
-	projectDataMutex.Unlock()
+	projectData.Unlock()
 	projectData.update()
 	Log.Info("added deadline for ", args[0])
 }
 
 // remove the deadline from project data
 func removeDeadline() {
-	projectDataMutex.Lock()
+	projectData.Lock()
 	projectData.Deadline = ""
-	projectDataMutex.Unlock()
+	projectData.Unlock()
 	projectData.update()
 	Log.Info("removed deadline")
 }

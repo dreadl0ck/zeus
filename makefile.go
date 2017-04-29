@@ -60,14 +60,14 @@ func printMakefileCommandOverview() {
 }
 
 // migrate Makefile into a zeus command folder
-func migrateMakefile() {
+func migrateMakefile(zeusDirectory string) {
 
 	var (
 		file            *os.File
 		writeInProgress bool
 		err             error
 		perm            = os.FileMode(0700)
-		dir             = zeusDir
+		dir             = zeusDirectory
 	)
 
 	Log.WithField("dir", dir).Info("Makefile migration started.")
@@ -85,7 +85,7 @@ func migrateMakefile() {
 	// create dir
 	err = os.Mkdir(dir, perm)
 	if err != nil {
-		Log.WithError(err).Error("failed to create: ", zeusDir)
+		Log.WithError(err).Error("failed to create: ", dir)
 		return
 	}
 
@@ -219,7 +219,7 @@ func handleMakefileCommand(args []string) {
 	}
 
 	if args[1] == "migrate" {
-		migrateMakefile()
+		migrateMakefile(zeusDir)
 		return
 	}
 

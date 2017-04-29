@@ -30,6 +30,11 @@ import (
 // serve wiki index page
 var wikiIndexHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
+	if r.Method != "GET" {
+		http.Error(w, "method not allowed, only GET here", http.StatusMethodNotAllowed)
+		return
+	}
+
 	w.Header().Set("Content-Type", "text/html")
 
 	index, err := ioutil.ReadFile("wiki/INDEX.md")

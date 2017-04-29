@@ -198,7 +198,7 @@ func listEvents() {
 // remove the event for the given path
 func removeEvent(id string) {
 
-	projectDataMutex.Lock()
+	projectData.Lock()
 
 	// check if event exists
 	if e, ok := projectData.Events[id]; ok {
@@ -210,7 +210,7 @@ func removeEvent(id string) {
 
 		// delete event
 		delete(projectData.Events, id)
-		projectDataMutex.Unlock()
+		projectData.Unlock()
 
 		Log.Debug("removed event with name ", e.Name)
 
@@ -218,7 +218,7 @@ func removeEvent(id string) {
 		projectData.update()
 		return
 	}
-	projectDataMutex.Unlock()
+	projectData.Unlock()
 
 	Log.Error("event with ID ", id, " does not exist")
 }
@@ -251,19 +251,20 @@ func addEvent(e *Event) error {
 	var cLog = Log.WithField("prefix", "addEvent")
 	Log.WithField("path", e.Path).Debug("adding event")
 
-	// add to events
-	projectDataMutex.Lock()
-	projectData.Events[e.ID] = e
-	projectDataMutex.Unlock()
-
-	projectData.update()
-
 	// init new watcher
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
 		return err
 	}
 	defer watcher.Close()
+
+	// add to events
+	projectData.Lock()
+	projectData.Events[e.ID] = e
+	projectData.Unlock()
+
+	// update projectData on disk
+	projectData.update()
 
 	// listen for events
 	done := make(chan bool)

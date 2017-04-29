@@ -9,18 +9,20 @@
 
 ## next up
 
-- fix colors off by disabling all colors in color profile
-- rename run field in zeusfile to exec?
+- code cleanup & comments
 - improve git filter: parse output and format correctly + add colors + commit hashes, options: author=, date=, subject=, grep=
 - improve create builtin: bootstrap headers interactively + bootstrap zeusfile entry
-- merge dependencies and chains
-- make date optional for milestones
+
 - make colorprofiles configurable in zeus config
+- rename run field in zeusfile to exec
+- merge dependencies and chains
+
+- make date optional for milestones
 - generate reports
 - improve tests
 - improve parse error feedback
-- code cleanup & comments
 
+- integrate config-bob & vault
 - integrate fstree & fsdiff as builtins
 - add encrypted storage
 - add scripting engine for using builtins during scripts

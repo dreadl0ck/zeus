@@ -173,31 +173,19 @@ func getTotalCommandCount(c *command) int {
 
 // print the prompt for the interactive shell
 func printPrompt() string {
-	colorProfileMutex.Lock()
-	defer colorProfileMutex.Unlock()
 	return cp.prompt + zeusPrompt + " » " + cp.text
 }
 
-// pass the command to the underlying shell
-// arguments that contain string literals " or ' will be grouped before passing them to shell
+// pass the command to the bash
 func passCommandToShell(commandName string, args []string) error {
 
-	// handle string literals
-	args = fixArgs(args)
-
-	var cmd *exec.Cmd
-
-	// if there are arguments pass them
-	if len(args) > 0 {
-		cmd = exec.Command(commandName, args...)
-	} else {
-		cmd = exec.Command(commandName)
-	}
+	cmd := exec.Command("/bin/bash", "-e", "-c", commandName+" "+strings.Join(args, " "))
 
 	// setup environment
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
+	cmd.Env = os.Environ()
 
 	return cmd.Run()
 }
@@ -260,7 +248,7 @@ func validCommandChain(args []string, silent bool) bool {
 		job   = p.AddJob(chain, silent)
 	)
 
-	commandList, err := parseCommandChain(chain)
+	commandList, err := job.parseCommandChain(chain)
 	if err != nil {
 		Log.WithError(err).Error("failed to parse command chain")
 		return false
@@ -287,7 +275,7 @@ func handleHelpCommand(args []string) {
 		return
 	}
 
-	if c, ok := commands[args[1]]; ok {
+	if c, ok := cmdMap.items[args[1]]; ok {
 		l.Println("\n" + c.manual)
 		return
 	}
@@ -374,14 +362,14 @@ func randomString() string {
 func watchScripts(eventID string) {
 
 	// dont add a new watcher when the event exists
-	projectDataMutex.Lock()
+	projectData.Lock()
 	for _, e := range projectData.Events {
 		if e.Name == "script watcher" {
-			projectDataMutex.Unlock()
+			projectData.Unlock()
 			return
 		}
 	}
-	projectDataMutex.Unlock()
+	projectData.Unlock()
 
 	err := addEvent(newEvent(zeusDir, fsnotify.Write, "script watcher", f.fileExtension, eventID, "internal", func(e fsnotify.Event) {
 

@@ -34,8 +34,7 @@ import (
 
 var (
 	// path for the project data YAML
-	projectDataPath  string
-	projectDataMutex sync.Mutex
+	projectDataPath string
 
 	// ErrEmptyZeusData occurs when the zeus_data file is empty
 	ErrEmptyZeusData = errors.New("zeus data file is empty")
@@ -61,6 +60,8 @@ type data struct {
 
 	// keys mapped to commands
 	KeyBindings map[string]string `yaml:"KeyBindings"`
+
+	sync.RWMutex
 }
 
 func newData() *data {
@@ -78,18 +79,19 @@ func newData() *data {
 // update project data on disk
 func (d *data) update() {
 
-	projectDataMutex.Lock()
+	d.Lock()
+	defer d.Unlock()
 
 	b, err := yaml.Marshal(d)
 	if err != nil {
-		projectDataMutex.Unlock()
-		Log.WithError(err).Fatal("failed to marshal zeus data")
+		Log.WithError(err).Error("failed to marshal zeus data")
+		return
 	}
 
 	f, err := os.OpenFile(projectDataPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0700)
 	if err != nil {
-		projectDataMutex.Unlock()
-		Log.WithError(err).Fatal("failed to open zeus data")
+		Log.WithError(err).Error("failed to open zeus data")
+		return
 	}
 
 	disableWriteEventMutex.Lock()
@@ -98,10 +100,9 @@ func (d *data) update() {
 
 	_, err = f.Write(b)
 	if err != nil {
-		projectDataMutex.Unlock()
-		Log.WithError(err).Fatal("failed to write zeus data")
+		Log.WithError(err).Error("failed to write zeus data")
+		return
 	}
-	projectDataMutex.Unlock()
 
 	disableWriteEventMutex.Lock()
 	disableWriteEvent = false
@@ -141,7 +142,7 @@ func parseProjectData() (*data, error) {
 // load user events from projectData and create the watchers
 func loadEvents() {
 
-	projectDataMutex.Lock()
+	projectData.Lock()
 	for _, e := range projectData.Events {
 
 		// reload internal watchers from project data
@@ -194,7 +195,7 @@ func loadEvents() {
 			}
 		}()
 	}
-	projectDataMutex.Unlock()
+	projectData.Unlock()
 
 	// event creating is async
 	// wait a little bit to avoid duplicate internal events
@@ -204,8 +205,8 @@ func loadEvents() {
 // print the current project data as YAML to stdout
 func printProjectData() {
 
-	projectDataMutex.Lock()
-	defer projectDataMutex.Unlock()
+	projectData.Lock()
+	defer projectData.Unlock()
 
 	l.Println()
 

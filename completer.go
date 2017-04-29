@@ -24,6 +24,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/dreadl0ck/readline"
 )
@@ -43,6 +44,18 @@ var (
 		readline.PcItemDynamic(commandCompleter),
 	)
 )
+
+type atomicCompleter struct {
+	*readline.PrefixCompleter
+	sync.RWMutex
+}
+
+func newAtomicCompleter() *atomicCompleter {
+	return &atomicCompleter{
+		newCompleter(),
+		sync.RWMutex{},
+	}
+}
 
 // assemble and return all items for config item completion
 // also used for validating the config YAML for unknown fields
@@ -238,8 +251,8 @@ func newCompleter() *readline.PrefixCompleter {
 
 // complete eventIDs for removing events
 func eventIDCompleter(path string) (res []string) {
-	projectDataMutex.Lock()
-	defer projectDataMutex.Unlock()
+	projectData.Lock()
+	defer projectData.Unlock()
 	for _, e := range projectData.Events {
 		res = append(res, e.ID)
 	}
@@ -248,9 +261,9 @@ func eventIDCompleter(path string) (res []string) {
 
 // complete available commands
 func commandCompleter(path string) (res []string) {
-	commandMutex.Lock()
-	defer commandMutex.Unlock()
-	for name := range commands {
+	cmdMap.Lock()
+	defer cmdMap.Unlock()
+	for name := range cmdMap.items {
 		res = append(res, name)
 	}
 	return
@@ -265,9 +278,9 @@ func commandChainCompleter(path string) (res []string) {
 	}
 
 	// return all available commands
-	commandMutex.Lock()
-	defer commandMutex.Unlock()
-	for name := range commands {
+	cmdMap.Lock()
+	defer cmdMap.Unlock()
+	for name := range cmdMap.items {
 		res = append(res, name)
 	}
 	return
@@ -291,8 +304,8 @@ func todoIndexCompleter(path string) (res []string) {
 
 // complete PIDs for killing processes
 func pIDCompleter(path string) (res []string) {
-	projectDataMutex.Lock()
-	defer projectDataMutex.Unlock()
+	projectData.Lock()
+	defer projectData.Unlock()
 	for _, p := range processMap {
 		res = append(res, strconv.Itoa(p.PID))
 	}

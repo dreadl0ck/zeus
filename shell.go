@@ -64,9 +64,9 @@ func readlineLoop() error {
 		historyFileName = zeusDir + "/zeus_history"
 	}
 
-	configMutex.Lock()
+	conf.Lock()
 	historyLimit := conf.HistoryLimit
-	configMutex.Unlock()
+	conf.Unlock()
 
 	readlineMutex.Lock()
 	// prepare readline
@@ -76,7 +76,7 @@ func readlineLoop() error {
 		HistoryLimit:    historyLimit,
 		HistoryFile:     historyFileName,
 		Listener:        listener,
-		InterruptPrompt: "\nBye.",
+		InterruptPrompt: "\nBye." + ansi.Reset,
 	})
 	readlineMutex.Unlock()
 	if err != nil {
@@ -123,7 +123,7 @@ func handleLine(line string) {
 
 	switch line {
 	case exitCommand:
-		l.Println(cp.text + "Bye.")
+		l.Println(cp.text + "Bye." + ansi.Reset)
 		clearProcessMap()
 		os.Exit(0)
 
@@ -134,11 +134,11 @@ func handleLine(line string) {
 		l.Println(cp.text + asciiArt + ansi.Reset + "\n")
 		l.Println(cp.text + "Project Name: " + cp.prompt + filepath.Base(workingDir) + cp.text + "\n")
 
-		configMutex.Lock()
+		conf.Lock()
 		if conf.PrintBuiltins {
 			printBuiltins()
 		}
-		configMutex.Unlock()
+		conf.Unlock()
 		printCommands()
 
 	case infoCommand:
@@ -159,7 +159,7 @@ func handleLine(line string) {
 		listGlobals()
 
 	case configCommand:
-		printConfiguration()
+		conf.dump()
 
 	case wikiCommand:
 		go StartWebListener(false)
@@ -240,21 +240,27 @@ func handleLine(line string) {
 			// remove the command name from the slice
 			args = args[1:]
 
+			cmdMap.Lock()
+
 			// try to find the command in the commands map
-			cmd, ok := commands[commandName]
+			cmd, ok := cmdMap.items[commandName]
 			if !ok {
+				cmdMap.Unlock()
+
+				projectData.Lock()
 
 				// check if its an alias
 				if command, ok := projectData.Aliases[commandName]; ok {
 
+					projectData.Unlock()
 					handleLine(command)
 
 					// reset counters
 					numCommands = 0
 					currentCommand = 0
 					return
-
 				}
+				projectData.Unlock()
 
 				// not an alias - pass to shell
 				if conf.PassCommandsToShell {
@@ -267,6 +273,7 @@ func handleLine(line string) {
 				}
 				return
 			}
+			cmdMap.Unlock()
 
 			numCommands = numCommands + getTotalCommandCount(cmd)
 

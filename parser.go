@@ -24,7 +24,6 @@ import (
 	"path/filepath"
 	"reflect"
 	"regexp"
-	"strconv"
 	"strings"
 	"sync"
 
@@ -349,52 +348,6 @@ func validHeaderType(line string) bool {
 	default:
 		return false
 	}
-
-}
-
-// parse the command chain string
-func parseCommandChain(line string) (parsedCommands [][]string, err error) {
-
-	var (
-		// trim whitespace and zeus prefix
-		// then get commands separated by parser separator
-		cmds = strings.Split(strings.TrimSpace(trimZeusPrefix(line)), p.separator)
-
-		cLog = Log.WithFields(logrus.Fields{
-			"prefix": "parseCommandChain",
-			"cmds":   cmds,
-		})
-	)
-
-	cLog.Debug("starting to parse command chain")
-
-	if len(cmds) > 0 {
-
-		// when there are no commands specified, the resulting slice from the split contains 1 empty string
-		if cmds[0] == "" {
-			return
-		}
-
-		// range them
-		for i, name := range cmds {
-
-			// get arguments for commands
-			var args = strings.Fields(name)
-
-			if len(args) == 0 {
-				return nil, errors.New(ErrInvalidCommand.Error() + " at index: " + strconv.Itoa(i))
-			}
-
-			parsedCommands = append(parsedCommands, args)
-
-			cLog.WithFields(logrus.Fields{
-				"command": args[0],
-				"args":    args,
-			}).Debug("found command")
-		}
-	}
-
-	return
 }
 
 // trim the zeus prefix from the beginning of a line

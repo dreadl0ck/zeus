@@ -28,13 +28,12 @@ import (
 	"sync"
 
 	"github.com/Sirupsen/logrus"
-	"github.com/fatih/color"
-	"github.com/mgutz/ansi"
 
 	"flag"
 
 	rice "github.com/GeertJohan/go.rice"
 	"github.com/dreadl0ck/readline"
+	"github.com/mgutz/ansi"
 	prefixed "github.com/x-cray/logrus-prefixed-formatter"
 )
 
@@ -44,7 +43,7 @@ var (
 	version = "0.7.3"
 
 	// Log instance for internal logs
-	Log = logrus.New()
+	Log = newAtomicLogger()
 
 	// logging instance for terminal UI
 	l = log.New(os.Stdout, "", 0)
@@ -52,12 +51,10 @@ var (
 	// all available build target commands
 	// does not include the built-ins!
 	// command names mapped to command structs
-	commands     = make(map[string]*command, 0)
-	commandMutex = &sync.Mutex{}
+	cmdMap = newCommandMap()
 
 	// readline auto completion
-	completer     = newCompleter()
-	completerLock = &sync.Mutex{}
+	completer = newAtomicCompleter()
 
 	// assets folder
 	assetBox = rice.MustFindBox("assets")
@@ -87,6 +84,18 @@ var (
 	// running a test?
 	testingMode bool
 )
+
+type atomicLogger struct {
+	*logrus.Logger
+	sync.Mutex
+}
+
+func newAtomicLogger() *atomicLogger {
+	return &atomicLogger{
+		logrus.New(),
+		sync.Mutex{},
+	}
+}
 
 func init() {
 
@@ -136,7 +145,7 @@ func main() {
 
 	if len(os.Args) > 2 {
 		if os.Args[1] == "makefile" && os.Args[2] == "migrate" {
-			migrateMakefile()
+			migrateMakefile(zeusDir)
 			return
 		}
 	}
@@ -166,8 +175,12 @@ func main() {
 		}
 	}
 
+	initColorProfile()
+
 	// load persisted events from project data
 	loadEvents()
+
+	projectData.Lock()
 
 	// validate aliases
 	for name := range projectData.Aliases {
@@ -179,6 +192,8 @@ func main() {
 		// add to completer
 		completer.Children = append(completer.Children, readline.PcItem(name))
 	}
+
+	projectData.Unlock()
 
 	// get debug value from config
 	debug = conf.Debug
@@ -194,21 +209,20 @@ func main() {
 		Log.Formatter = formatter
 	}
 
-	// disable colorized output if requested
-	color.NoColor = !conf.Colors
-
-	// disable ansi package colors manually
+	// disable colors
 	if !conf.Colors {
-		ansi.Red = ansi.ColorCode("off")
-		ansi.Green = ansi.ColorCode("off")
+
+		print(ansi.Reset)
+
+		// lock once
+		cp.Lock()
+		cp = colorsOffProfile()
 
 		Log.Formatter = &prefixed.TextFormatter{
 			DisableColors:    true,
 			DisableTimestamp: conf.DisableTimestamps,
 		}
 	}
-
-	initColorProfile()
 
 	// set working directory
 	workingDir, err = os.Getwd()
@@ -428,11 +442,11 @@ func handleArgs() {
 		default:
 			handleSignals()
 
-			commandMutex.Lock()
+			cmdMap.Lock()
 
 			// check if the command exists
-			if cmd, ok := commands[os.Args[1]]; ok {
-				commandMutex.Unlock()
+			if cmd, ok := cmdMap.items[os.Args[1]]; ok {
+				cmdMap.Unlock()
 
 				validCommand = true
 				numCommands = getTotalCommandCount(cmd)
@@ -444,7 +458,7 @@ func handleArgs() {
 					os.Exit(1)
 				}
 			} else {
-				commandMutex.Unlock()
+				cmdMap.Unlock()
 			}
 
 			// check if its a commandchain supplied with "" or ''

@@ -106,9 +106,9 @@ func addMilestone(args []string) {
 		return
 	}
 
-	configMutex.Lock()
+	conf.Lock()
 	format := conf.DateFormat
-	configMutex.Unlock()
+	conf.Unlock()
 
 	// check if date is valid
 	t, err := time.Parse(format, args[1])
@@ -127,9 +127,9 @@ func addMilestone(args []string) {
 		m = newMilestone(args[0], t, []string{})
 	}
 
-	projectDataMutex.Lock()
+	projectData.Lock()
 	projectData.Milestones = append(projectData.Milestones, m)
-	projectDataMutex.Unlock()
+	projectData.Unlock()
 	projectData.update()
 
 	Log.Info("added milestone ", args[0])
@@ -147,14 +147,14 @@ func setMilestone(name, percent string) {
 
 	var ok bool
 
-	projectDataMutex.Lock()
+	projectData.Lock()
 	for i := range projectData.Milestones {
 		if projectData.Milestones[i].Name == name {
 			projectData.Milestones[i].PercentComplete = int(p)
 			ok = true
 		}
 	}
-	projectDataMutex.Unlock()
+	projectData.Unlock()
 
 	if !ok {
 		Log.Info("unknown milestone: ", name)
@@ -172,24 +172,24 @@ func removeMilestone(name string) {
 		return
 	}
 
-	projectDataMutex.Lock()
+	projectData.Lock()
 	for i, m := range projectData.Milestones {
 		if m.Name == name {
 			projectData.Milestones = append(projectData.Milestones[:i], projectData.Milestones[i+1:]...)
-			projectDataMutex.Unlock()
+			projectData.Unlock()
 			projectData.update()
 			Log.Info("remove milestone ", name)
 			return
 		}
 	}
-	projectDataMutex.Unlock()
+	projectData.Unlock()
 }
 
 // print all milestones to stdout
 func listMilestones() {
 
-	projectDataMutex.Lock()
-	defer projectDataMutex.Unlock()
+	projectData.Lock()
+	defer projectData.Unlock()
 
 	if len(projectData.Milestones) > 0 {
 

@@ -51,6 +51,17 @@ var (
 	ErrInvalidDependency = errors.New("invalid dependency")
 )
 
+type commandMap struct {
+	items map[string]*command
+	sync.RWMutex
+}
+
+func newCommandMap() *commandMap {
+	return &commandMap{
+		items: make(map[string]*command, 0),
+	}
+}
+
 type commandChain []*command
 
 // command represents a parsed script in memory
@@ -145,10 +156,10 @@ func (c *command) Run(args []string, async bool) error {
 	}
 
 	cLog.WithFields(logrus.Fields{
-		"name":   c.name,
+		"prefix": "exec",
 		"args":   args,
 		"params": c.params,
-	}).Debug("running command")
+	}).Debug(cp.cmdName + c.name + ansi.Reset)
 
 	// check if parameters are set on the command
 	// in this case ignore the arguments from the commandline and pass the predefined ones
@@ -191,9 +202,9 @@ func (c *command) Run(args []string, async bool) error {
 	}
 
 	if c.buildNumber {
-		projectDataMutex.Lock()
+		projectData.Lock()
 		projectData.BuildNumber++
-		projectDataMutex.Unlock()
+		projectData.Unlock()
 		projectData.update()
 	}
 
@@ -297,7 +308,7 @@ func (c *command) handleDependencies() error {
 			}
 
 			// look up command name
-			if cmd, ok = commands[fields[0]]; !ok {
+			if cmd, ok = cmdMap.items[fields[0]]; !ok {
 				return ErrInvalidDependency
 			}
 
@@ -336,8 +347,6 @@ func (c *command) handleDependencies() error {
 }
 
 func (c *command) parseArguments(args []string) (string, error) {
-
-	Log.Debug("parsing args: ", args, " cmd: ", c.name)
 
 	var (
 		argStr = strings.Join(args, " ")
@@ -428,11 +437,11 @@ func (c *command) createCommand(argBuffer string) (cmd *exec.Cmd, script string,
 	if c.runCommand != "" {
 		script += string(globalsContent) + argBuffer + "\n" + c.runCommand
 		shellCommand = append(shellCommand, script)
-		Log.Debug("shellCommand: ", shellCommand)
+		// Log.Debug("shellCommand: ", shellCommand)
 		cmd = exec.Command(shellCommand[0], shellCommand[1:]...)
 	} else {
 		// make script executable
-		err := os.Chmod(c.path, 0700)
+		err = os.Chmod(c.path, 0700)
 		if err != nil {
 			Log.Error("failed to make script executable")
 			return nil, "", err
@@ -450,14 +459,14 @@ func (c *command) createCommand(argBuffer string) (cmd *exec.Cmd, script string,
 			// add the globals, append argument buffer and then append script contents
 			script = string(append(append(globalsContent, []byte(argBuffer)...), target...))
 			shellCommand = append(shellCommand, script)
-			Log.Debug("shellCommand: ", shellCommand)
+			// Log.Debug("shellCommand: ", shellCommand)
 			cmd = exec.Command(shellCommand[0], shellCommand[1:]...)
 		} else {
 
 			// add argument buffer and then append script contents
 			script = string(append([]byte(argBuffer), target...))
 			shellCommand = append(shellCommand, script)
-			Log.Debug("shellCommand: ", shellCommand)
+			// Log.Debug("shellCommand: ", shellCommand)
 			cmd = exec.Command(shellCommand[0], shellCommand[1:]...)
 		}
 	}
@@ -509,9 +518,9 @@ func addCommand(path string, force bool) error {
 	if !force {
 
 		commandName := strings.TrimSuffix(filepath.Base(path), f.fileExtension)
-		commandMutex.Lock()
-		_, ok := commands[commandName]
-		commandMutex.Unlock()
+		cmdMap.Lock()
+		_, ok := cmdMap.items[commandName]
+		cmdMap.Unlock()
 
 		if ok {
 			return nil
@@ -531,30 +540,32 @@ func addCommand(path string, force bool) error {
 	// when being forced the command has already been parsed
 	// so we dont need to add it again
 	if !force {
-		completerLock.Lock()
+		completer.Lock()
 		completer.Children = append(completer.Children, cmd.PrefixCompleter)
-		completerLock.Unlock()
+		completer.Unlock()
 	}
 
-	commandMutex.Lock()
+	cmdMap.Lock()
 	// add to command map
-	commands[cmd.name] = cmd
-	commandMutex.Unlock()
+	cmdMap.items[cmd.name] = cmd
+	cmdMap.Unlock()
 
-	cLog.Debug("added " + ansi.Red + cmd.name + ansi.Reset + " to the command map")
+	cp.Lock()
+	cLog.Debug("added " + cp.cmdName + cmd.name + ansi.Reset + " to the command map")
+	cp.Unlock()
 
 	return nil
 }
 
 // validate arg string and return the validatedArgs as map
-func validateArgs(args string) (validatedArgs map[string]*commandArg, err error) {
+func validateArgs(args string) (map[string]*commandArg, error) {
 
 	// init map
-	validatedArgs = make(map[string]*commandArg, 0)
+	validatedArgs := make(map[string]*commandArg, 0)
 
 	// empty string - empty args
 	if len(args) == 0 {
-		return
+		return nil, nil
 	}
 
 	// parse arg string
@@ -625,216 +636,7 @@ func validateArgs(args string) (validatedArgs map[string]*commandArg, err error)
 		}
 	}
 
-	return
-}
-
-// newCommand creates a new command instance for the script at path
-// a parseJob will be created
-func (job *parseJob) newCommand(path string) (*command, error) {
-
-	var (
-		cLog = Log.WithField("prefix", "newCommand")
-	)
-
-	// parse the script
-	d, err := p.parseScript(path, job)
-	if err != nil {
-		if !job.silent {
-			cLog.WithFields(logrus.Fields{
-				"path": path,
-			}).Debug("Parse error")
-		}
-		return nil, err
-	}
-
-	// assemble commands args
-	args, err := validateArgs(d.Args)
-	if err != nil {
-		return nil, err
-	}
-
-	chain, err := parseCommandChain(d.Chain)
-	if err != nil {
-		return nil, err
-	}
-
-	// get build chain
-	commandChain, err := job.getCommandChain(chain, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	// get name for command
-	name := strings.TrimSuffix(strings.TrimPrefix(path, zeusDir+"/"), f.fileExtension)
-	if name == "" {
-		return nil, ErrInvalidCommand
-	}
-
-	return &command{
-		path:         path,
-		name:         name,
-		args:         args,
-		manual:       d.Manual,
-		help:         d.Help,
-		commandChain: commandChain,
-		PrefixCompleter: readline.PcItem(name,
-			readline.PcItemDynamic(func(path string) (res []string) {
-				for _, a := range args {
-					if !strings.Contains(path, a.name+"=") {
-						res = append(res, a.name+"=")
-					}
-				}
-				return
-			}),
-		),
-		buildNumber:  d.BuildNumber,
-		dependencies: d.Dependencies,
-		outputs:      d.Outputs,
-		async:        d.Async,
-	}, nil
-}
-
-// assemble a commandChain with a list of parsed commands and their arguments
-func (job *parseJob) getCommandChain(parsedCommands [][]string, zeusfile *Zeusfile) (commandChain commandChain, err error) {
-
-	var cLog = Log.WithFields(logrus.Fields{
-		"prefix":         "getCommandChain",
-		"parsedCommands": parsedCommands,
-	})
-
-	cLog.Debug("creating commandChain, job.commands: ", job.commands)
-
-	// empty commandChain is OK
-	for _, args := range parsedCommands {
-
-		var count int
-
-		// check if there are repetitive targets in the chain - this is not allowed to prevent cycles
-		for _, c := range job.commands {
-
-			// check if the key (commandName) is already there
-			if c[0] == args[0] {
-				count++
-			}
-		}
-
-		if count > p.recursionDepth {
-			cLog.WithFields(logrus.Fields{
-				"count":          count,
-				"path":           job.path,
-				"parsedCommands": parsedCommands,
-				"job.commands":   job.commands,
-			}).Error("CYCLE DETECTED! -> ", args[0], " appeared more than ", p.recursionDepth, " times - thats invalid.")
-			cleanup()
-			os.Exit(1)
-		}
-
-		job.commands = append(job.commands, args)
-
-		var jobPath = zeusDir + "/" + args[0] + f.fileExtension
-		if zeusfile != nil {
-			jobPath = "zeusfile." + args[0]
-		}
-
-		// check if command has already been parsed
-		commandMutex.Lock()
-		cmd, ok := commands[args[0]]
-		commandMutex.Unlock()
-
-		if !ok {
-
-			// check if command is currently being parsed
-			if p.JobExists(jobPath) {
-				Log.Warn("getCommandChain: JOB EXISTS: ", jobPath)
-				p.WaitForJob(jobPath)
-
-				// now the command is there
-				commandMutex.Lock()
-				cmd, ok = commands[args[0]]
-				commandMutex.Unlock()
-			} else {
-				if zeusfile != nil {
-
-					d := zeusfile.Commands[args[0]]
-					if d == nil {
-						return nil, errors.New("invalid command in commandChain: " + args[0])
-					}
-
-					// assemble commands args
-					arguments, err := validateArgs(d.Args)
-					if err != nil {
-						return commandChain, err
-					}
-
-					// create command
-					cmd = &command{
-						path:            "",
-						name:            args[0],
-						args:            arguments,
-						manual:          d.Manual,
-						help:            d.Help,
-						commandChain:    commandChain,
-						PrefixCompleter: readline.PcItem(args[0]),
-						buildNumber:     d.BuildNumber,
-						dependencies:    d.Dependencies,
-						outputs:         d.Outputs,
-						runCommand:      d.Run,
-						async:           d.Async,
-					}
-				} else {
-					// add new command
-					cmd, err = job.newCommand(zeusDir + "/" + args[0] + f.fileExtension)
-					if err != nil {
-						if !job.silent {
-							cLog.WithError(err).Debug("failed to create command")
-						}
-						return commandChain, err
-					}
-				}
-				commandMutex.Lock()
-
-				// add the completer
-				completer.Children = append(completer.Children, cmd.PrefixCompleter)
-
-				// add to command map
-				commands[args[0]] = cmd
-
-				commandMutex.Unlock()
-
-				cLog.Debug("added " + ansi.Red + cmd.name + ansi.Reset + " to the command map")
-			}
-		}
-
-		cLog.Debug("adding command to build chain: ", args)
-
-		// this command has argument parameters in its commandChain
-		// set them on the command
-		if len(args) > 1 {
-
-			cLog.WithFields(logrus.Fields{
-				"command": args[0],
-				"params":  args[1:],
-			}).Debug("setting parameters")
-
-			// creating a hard copy of the struct here,
-			// otherwise params would be set for every execution of the command
-			cmd = &command{
-				name:            cmd.name,
-				path:            cmd.path,
-				params:          args[1:],
-				args:            cmd.args,
-				manual:          cmd.manual,
-				help:            cmd.help,
-				commandChain:    cmd.commandChain,
-				PrefixCompleter: cmd.PrefixCompleter,
-				buildNumber:     cmd.buildNumber,
-			}
-		}
-
-		// append command to build chain
-		commandChain = append(commandChain, cmd)
-	}
-	return
+	return validatedArgs, nil
 }
 
 // parse and execute a given commandChain string
@@ -847,7 +649,7 @@ func executeCommandChain(chain string) {
 
 	defer p.RemoveJob(job)
 
-	commandList, err := parseCommandChain(chain)
+	commandList, err := job.parseCommandChain(chain)
 	if err != nil {
 		cLog.WithError(err).Error("failed to parse command chain")
 		return
@@ -887,6 +689,10 @@ func findCommands() {
 
 	// walk zeus directory and initialize scripts
 	err := filepath.Walk(zeusDir, func(path string, info os.FileInfo, err error) error {
+
+		if err != nil {
+			return err
+		}
 
 		// ignore self
 		if path != zeusDir {
@@ -988,20 +794,23 @@ func findCommands() {
 		println()
 	}
 
+	cmdMap.Lock()
+	defer cmdMap.Unlock()
+
 	// only print info when using the interactive shell
 	if len(os.Args) == 1 {
-		l.Println(cp.text+"initialized "+cp.prompt, len(commands), cp.text+" commands in: "+cp.prompt, time.Now().Sub(start), ansi.Reset+"\n")
+		l.Println(cp.text+"initialized "+cp.prompt, len(cmdMap.items), cp.text+" commands in: "+cp.prompt, time.Now().Sub(start), ansi.Reset+"\n")
 	}
 
 	// check if custom command conflicts with builtin name
 	for _, name := range builtins {
-		if _, ok := commands[name]; ok {
+		if _, ok := cmdMap.items[name]; ok {
 			cLog.Error("command ", name, " conflicts with a builtin command. Please choose a different name.")
 		}
 	}
 
 	var commandCompletions []readline.PrefixCompleterInterface
-	for _, c := range commands {
+	for _, c := range cmdMap.items {
 		commandCompletions = append(commandCompletions, readline.PcItem(c.name))
 	}
 
@@ -1014,24 +823,36 @@ func findCommands() {
 }
 
 func (c *command) dump() {
-	fmt.Println("-----------------------------------------------------------")
-	fmt.Println("name:", c.name)
-	fmt.Println("path:", c.path)
-	for _, arg := range c.args {
-		fmt.Println(arg.name, "~>", arg.argType.String(), "optional:", arg.optional)
+	w := 15
+	fmt.Println("# ---------------------------------------------------------------------------------------------------------------------- #")
+	fmt.Println(pad("#  cmdName", w), cp.cmdName+c.name+ansi.Reset)
+	fmt.Println("# ---------------------------------------------------------------------------------------------------------------------- #")
+	fmt.Println(pad("#  path", w), c.path)
+	fmt.Println(pad("#  args", w), getArgumentString(c.args)+ansi.Reset)
+	fmt.Println(pad("#  params", w), c.params)
+	fmt.Println(pad("#  help", w), c.help)
+	fmt.Println(pad("#  manual", w), c.manual)
+	if len(c.commandChain) > 0 {
+		fmt.Println(pad("#  len(cmdChain)", w), len(c.commandChain))
+		fmt.Println("# ====================================================================================================================== #")
+		for i, cmd := range c.commandChain {
+			fmt.Println("#  cmdChain[" + cp.cmdName + strconv.Itoa(i) + ansi.Reset + "]")
+			cmd.dump()
+		}
+		fmt.Println("# ====================================================================================================================== #")
+	} else {
+		fmt.Println(pad("#  cmdChain", w), "<empty>")
 	}
-	fmt.Println("params:", c.params)
-	fmt.Println("help:", c.help)
-	fmt.Println("manual:", c.manual)
-	fmt.Println("commandChain:")
-	for i, cmd := range c.commandChain {
-		fmt.Println("command" + strconv.Itoa(i) + ":")
-		cmd.dump()
+	fmt.Println(pad("#  buildNumber", w), c.buildNumber)
+	fmt.Println(pad("#  async", w), c.async)
+	fmt.Println(pad("#  dependencies", w), c.dependencies)
+	fmt.Println(pad("#  outputs", w), c.outputs)
+	if c.runCommand != "" {
+		fmt.Println(pad("#  runCommand", w))
+		for _, line := range strings.Split(c.runCommand, "\n") {
+			l.Println("#      " + line)
+		}
+	} else {
+		fmt.Println(pad("#  runCommand", w), "")
 	}
-	fmt.Println("buildNumber:", c.buildNumber)
-	fmt.Println("async:", c.async)
-	fmt.Println("dependencies:", c.dependencies)
-	fmt.Println("outputs:", c.outputs)
-	fmt.Println("runCommand:", c.runCommand)
-	fmt.Println("-----------------------------------------------------------")
 }

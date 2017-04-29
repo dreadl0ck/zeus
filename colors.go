@@ -28,12 +28,10 @@ import (
 
 var (
 	// global ANSI terminal color profile
-	cp *colorProfile
+	cp = colorsOffProfile()
 
 	// ErrUnknownColorProfile means the color profile does not exist
 	ErrUnknownColorProfile = errors.New("unknown color profile")
-
-	colorProfileMutex = &sync.Mutex{}
 )
 
 type colorProfile struct {
@@ -44,6 +42,7 @@ type colorProfile struct {
 	cmdFields  string
 	cmdArgs    string
 	cmdArgType string
+	sync.RWMutex
 }
 
 func printColorsUsageErr() {
@@ -87,6 +86,18 @@ func defaultProfile() *colorProfile {
 	}
 }
 
+func colorsOffProfile() *colorProfile {
+	return &colorProfile{
+		text:       ansi.ColorCode("off"),
+		prompt:     ansi.ColorCode("off"),
+		cmdOutput:  ansi.ColorCode("off"),
+		cmdName:    ansi.ColorCode("off"),
+		cmdFields:  ansi.ColorCode("off"),
+		cmdArgs:    ansi.ColorCode("off"),
+		cmdArgType: ansi.ColorCode("off"),
+	}
+}
+
 // handle colors shell command
 func handleColorsCommand(args []string) {
 
@@ -97,7 +108,8 @@ func handleColorsCommand(args []string) {
 
 	profile := args[1]
 
-	colorProfileMutex.Lock()
+	// lock once
+	cp.Lock()
 
 	switch profile {
 	case "dark":
@@ -107,17 +119,17 @@ func handleColorsCommand(args []string) {
 	case "default":
 		cp = defaultProfile()
 	default:
+		// no change to colorProfile - Unlock it
+		cp.Unlock()
 		Log.Error(ErrUnknownColorProfile)
-		colorProfileMutex.Unlock()
 		return
 	}
-	colorProfileMutex.Unlock()
 
 	Log.Info("color profile set to: ", profile)
 
-	configMutex.Lock()
+	conf.Lock()
 	conf.ColorProfile = profile
-	configMutex.Unlock()
+	conf.Unlock()
 
 	conf.update()
 
@@ -144,6 +156,6 @@ func initColorProfile() {
 	case "default":
 		cp = defaultProfile()
 	default:
-		Log.Fatal(ErrUnknownColorProfile, " : ", conf.ColorProfile)
+		Log.Error(ErrUnknownColorProfile, " : ", conf.ColorProfile)
 	}
 }

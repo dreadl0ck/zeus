@@ -142,21 +142,21 @@ func printBuiltins() {
 // print all available commands
 func printCommands() {
 
-	if len(commands) == 0 {
+	cmdMap.Lock()
+	defer cmdMap.Unlock()
+
+	if len(cmdMap.items) == 0 {
 		return
 	}
 
-	commandMutex.Lock()
-	defer commandMutex.Unlock()
-
 	var (
-		sortedCommandKeys = make([]string, len(commands))
+		sortedCommandKeys = make([]string, len(cmdMap.items))
 		index             = 0
 		maxLen            int
 	)
 
 	// copy command names into array for sorting
-	for key := range commands {
+	for key := range cmdMap.items {
 		if len(key) > maxLen {
 			maxLen = len(key)
 		}
@@ -173,7 +173,7 @@ func printCommands() {
 
 		var (
 			lastElem = i == len(sortedCommandKeys)-1
-			cmd      = commands[key]
+			cmd      = cmdMap.items[key]
 		)
 
 		if lastElem {

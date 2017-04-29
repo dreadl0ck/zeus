@@ -27,6 +27,8 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
+var zeusDirMutex sync.Mutex
+
 // Test main entrypoint
 // must be executed prior to other tests
 // because it handles command and config parsing
@@ -52,16 +54,16 @@ func TestMain(t *testing.T) {
 
 		time.Sleep(500 * time.Millisecond)
 
-		commandMutex.Lock()
-		c.So(len(commands), ShouldBeGreaterThan, 0)
-		commandMutex.Unlock()
+		cmdMap.Lock()
+		c.So(len(cmdMap.items), ShouldBeGreaterThan, 0)
+		cmdMap.Unlock()
 
 		// config should be initialized
-		configMutex.Lock()
+		conf.Lock()
 		c.So(conf, ShouldNotBeNil)
 		// enable debug mode
 		conf.Debug = true
-		configMutex.Unlock()
+		conf.Unlock()
 
 		// manipulate Zeusfile path to not use the ZEUS projects Zeusfile for the tests
 		zeusfilePath = "tests/Zeusfile.yml"
@@ -174,11 +176,13 @@ func printEvents() {
 func TestEvents(t *testing.T) {
 	Convey("Testing events", t, func(c C) {
 
+		// print events
 		handleLine("events")
 
+		// check number of events
 		func() {
-			projectDataMutex.Lock()
-			defer projectDataMutex.Unlock()
+			projectData.Lock()
+			defer projectData.Unlock()
 
 			printEvents()
 
@@ -189,28 +193,30 @@ func TestEvents(t *testing.T) {
 		handleLine("events asdfasd")
 
 		Log.Info("adding event for tests dir")
-
 		handleLine("events add WRITE tests .xyz error")
 
 		// event creation is async. wait a little bit.
 		time.Sleep(100 * time.Millisecond)
 
-		var id string
-
+		// check number of events
 		func() {
-			projectDataMutex.Lock()
-			defer projectDataMutex.Unlock()
+			projectData.Lock()
+			defer projectData.Unlock()
 
-			printEvents()
+			// printEvents()
 
 			c.So(len(projectData.Events), ShouldEqual, 3)
 		}()
 
+		projectData.Lock()
+
+		var id string
 		for eID, e := range projectData.Events {
 			if e.Path == "tests" {
 				id = eID
 			}
 		}
+		projectData.Unlock()
 
 		Log.Info("removing event for tests dir")
 
@@ -219,8 +225,8 @@ func TestEvents(t *testing.T) {
 		time.Sleep(100 * time.Millisecond)
 
 		func() {
-			projectDataMutex.Lock()
-			defer projectDataMutex.Unlock()
+			projectData.Lock()
+			defer projectData.Unlock()
 
 			c.So(len(projectData.Events), ShouldEqual, 2)
 		}()
@@ -279,12 +285,10 @@ func TestCompleters(t *testing.T) {
 
 func TestMakefileMigration(t *testing.T) {
 	Convey("Testing makefile migration", t, func() {
+
 		os.Remove("tests/zeus")
-		zeusDir = "tests/zeus"
-		migrateMakefile()
-		zeusDir = "zeus"
+		migrateMakefile("tests/zeus")
 		os.Remove("tests/zeus")
-		zeusDir = "tests"
 	})
 }
 
@@ -345,13 +349,13 @@ func TestZeusfile(t *testing.T) {
 	var eventID string
 
 	// remove zeusfile watcher
-	projectDataMutex.Lock()
+	projectData.Lock()
 	for id, e := range projectData.Events {
 		if e.Name == "zeusfile watcher" {
 			eventID = id
 		}
 	}
-	projectDataMutex.Unlock()
+	projectData.Unlock()
 
 	removeEvent(eventID)
 

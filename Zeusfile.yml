@@ -13,19 +13,19 @@ commands:
         args: name:String
         chain: configure
         help: build project for current OS
-		buildNumber: true
+        buildNumber: true
         run: |
             echo "building $name for current OS"
             rice embed-go
-			godep go build -o ${buildDir}/$name
+            godep go build -o ${buildDir}/$name
     build-linux:
         chain: configure
         help: build project for linux amd64
-		buildNumber: true
+        buildNumber: true
         run: |
             echo "building for linux amd64"
             rice embed-go
-			GOOS=linux GOARCH=amd64 godep go build -o ${buildDir}/zeus-linux
+            GOOS=linux GOARCH=amd64 godep go build -o ${buildDir}/zeus-linux
     optional:
         args: name:String? = "defaultName", bla:String, ok:Bool?, count:Int?, req:String
         help: test optionals
@@ -35,19 +35,19 @@ commands:
             echo "ok=$ok"
             echo "count=$count"
             echo "req=$req"
-	build-race:
+    build-race:
         chain: clean
         help: build race detection enabled binary
         manual: |
-			zeus build-race script
-			this script produces the zeus binary with race detection enabled
+            zeus build-race script
+            this script produces the zeus binary with race detection enabled
         run: go build -race
-	clean:
+    clean:
         help: clean up to prepare for build
         run: |
             rm -rf bin/*
             rm -rf tests/*.yml
-	configure:
+    configure:
         help: prepare JS and CSS and move assets into wiki/docs
         manual: Generate Javascript and CSS
         run: |
@@ -58,30 +58,30 @@ commands:
             cp -f README.md wiki/docs
 
             jsobfus -d frontend/src/js/:frontend/dist/js
-			sasscompile -d frontend/src/sass:frontend/dist/css
-	dev:
+            sasscompile -d frontend/src/sass:frontend/dist/css
+    dev:
         help: start the dev mode
-		chain: clean -> configure
+        chain: clean -> configure
         manual: |
-			zeus development mode script
-			this script compiles the binary without assets
+            zeus development mode script
+            this script compiles the binary without assets
         run: |
-			rm -f rice-box.go
-			go install
+            rm -f rice-box.go
+            go install
     install:
         chain: clean -> configure
         help: install to $PATH
         manual: Install the application to the default system location
         run: |
             echo "installing zeus"
-			rice embed-go
-			godep go install
-	reset:
+            rice embed-go
+            godep go install
+    reset:
         chain: clean
         help: reset and delete all generated files
         manual: zeus reset script
         run: rm -f rice-box.go
-	
+    
     # run the test with race detection enabled
     test-race:
         chain: clean
@@ -90,7 +90,7 @@ commands:
         run: go test -v -race
 
     # run the tests
-	test:
+    test:
         chain: clean
         help: run automated tests
         manual: zeus automated tests

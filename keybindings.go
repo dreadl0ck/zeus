@@ -107,16 +107,16 @@ func handleKeysCommand(args []string) {
 			return
 		}
 
-		projectDataMutex.Lock()
+		projectData.Lock()
 		projectData.KeyBindings[args[2]] = strings.Join(args[3:], " ")
-		projectDataMutex.Unlock()
+		projectData.Unlock()
 		projectData.update()
 
 		Log.Info("key binding added")
 	} else if args[1] == "remove" {
-		projectDataMutex.Lock()
+		projectData.Lock()
 		delete(projectData.KeyBindings, args[2])
-		projectDataMutex.Unlock()
+		projectData.Unlock()
 		projectData.update()
 
 		Log.Info("key binding removed")

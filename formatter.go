@@ -212,14 +212,14 @@ func (f *formatter) formatCommand() {
 func (f *formatter) watchzeusDir(eventID string) {
 
 	// dont add a new watcher when the event exists
-	projectDataMutex.Lock()
+	projectData.Lock()
 	for _, e := range projectData.Events {
 		if e.Name == "formatter watcher" {
-			projectDataMutex.Unlock()
+			projectData.Unlock()
 			return
 		}
 	}
-	projectDataMutex.Unlock()
+	projectData.Unlock()
 
 	err := addEvent(newEvent(zeusDir, fsnotify.Write, "formatter watcher", "", eventID, "internal", func(event fsnotify.Event) {
 
