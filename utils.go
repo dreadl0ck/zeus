@@ -296,11 +296,11 @@ func validArgType(in string, k reflect.Kind) bool {
 	switch k {
 	case reflect.Bool:
 		_, err = strconv.ParseBool(in)
-	case reflect.Float64:
-		_, err = strconv.ParseFloat(in, 64)
-	case reflect.String:
 	case reflect.Int:
-		_, err = strconv.ParseInt(in, 64, 0)
+		_, err = strconv.ParseInt(in, 10, 0)
+	case reflect.Float64:
+		_, err = strconv.ParseFloat(in, 10)
+	case reflect.String:
 	default:
 		return false
 	}
@@ -308,6 +308,7 @@ func validArgType(in string, k reflect.Kind) bool {
 	if err == nil {
 		return true
 	}
+	Log.WithField("prefix", "validArgType").WithError(err).Error("invalid arg value")
 	return false
 }
 

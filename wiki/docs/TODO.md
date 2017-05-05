@@ -16,8 +16,8 @@
 - make colorprofiles configurable in zeus config
 - rename run field in zeusfile to exec
 - merge dependencies and chains
-
 - make date optional for milestones
+
 - generate reports
 - improve tests
 - improve parse error feedback
@@ -33,3 +33,9 @@
 - fix dynamic command chain completer
 - fix path completion bug
 - fix argument completion
+
+## future plans
+
+- svg dependency tree
+- buildserver daemon
+- web panel for all projects

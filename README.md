@@ -279,8 +279,8 @@ This works by prepending the **globals.sh** script in the **zeus** directory to 
 
 When using a Zeusfile, they can be declared in the *globals* setion.
 
-> NOTE: if you need to access globals variables or function from your **.bashrc / .bash_profile**,
-> simply add 'source ~/.bash_profile' to your **zeus/globals.sh**
+> NOTE: You current shells environment will be passed to each executed command.
+> That means global variables from ~/.bashrc or ~/.bash_profile are accessible by default
 
 ## Aliases
 

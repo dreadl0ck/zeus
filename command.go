@@ -378,7 +378,7 @@ func (c *command) parseArguments(args []string) (string, error) {
 				Log.WithError(ErrInvalidArgumentType).WithFields(logrus.Fields{
 					"value": argSlice[1],
 					"label": cmdArg.name,
-				}).Error("expected type: ", cmdArg.argType.String())
+				}).Error("expected type: ", cmdArg.argType.String(), ", got: ", reflect.TypeOf(argSlice[1]).String())
 				return "", ErrInvalidArgumentType
 			}
 
@@ -503,7 +503,6 @@ func addCommand(path string, force bool) error {
 
 	// check if command is currently being parsed
 	if p.JobExists(path) {
-		Log.Warn("addCommand: JOB EXISTS: ", path)
 		p.WaitForJob(path)
 		return nil
 	}
