@@ -22,7 +22,7 @@ It parses the **zeus** directory in your project,
 to find commands either via a single file (Zeusfile.yml) or via scripts in the **zeus/scripts** directory.
 
 A command can have *typed parameters* and commands can be *chained*.
-Each command can have dependencies which will be resolved prior to execution, similiar to GNU Make targets.
+Each command can have dependencies which will be resolved prior to execution, similar to GNU Make targets.
 
 The scripts supply information by using ZEUS headers.
 You can export global variables and functions visible to all scripts.
@@ -46,7 +46,7 @@ The 1.0 Release will feature an optional *webinterface*, *markdown / HTML report
 The name ZEUS refers to the ancient greek god of the *sky and thunder*.
 
 When starting the interactive shell there is a good chance you will be struck by a *lighting* and bitten by a *cobra*,
-which could lead to enourmous **super coding powers**!
+which could lead to enormous **super coding powers**!
 
 [Project Page](https://dreadl0ck.github.io/zeus/)
 
@@ -56,7 +56,7 @@ which could lead to enourmous **super coding powers**!
 > Please read the BUGS section to see whats causing trouble
 > as well as the COMING SOON section to get an impression of whats coming up for version 1.0
 
-**CAUTION: Newer builds may break compatibilty with previous ones, and require to remove or add certain config fields, or delete your zeus/data.yml. Breaking changes will be announced here, so have a look after updating your build. Feel free to contact me by mail if something is not working.**
+**CAUTION: Newer builds may break compatibility with previous ones, and require to remove or add certain config fields, or delete your zeus/data.yml. Breaking changes will be announced here, so have a look after updating your build. Feel free to contact me by mail if something is not working.**
 
 A sneak preview of the dark mode, running in the ZEUS project directory:
 
@@ -130,7 +130,7 @@ After the initial install simply run **zeus** inside the project directory,
 to get the command overview.
 
 I also recommend installing the amazing [micro](https://github.com/zyedidia/micro) text editor,
-as this is the default editor for the edit command. Dont worry you can also use vim if desired.
+as this is the default editor for the edit command. Don't worry you can also use vim if desired.
 
 Also nice to have is the [cloc](https://github.com/AlDanial/cloc) tool,
 which means count lines of code and is used for the *info* builtin.
@@ -281,7 +281,7 @@ Notice: `Meta`+`B` is equals with `Alt`+`B` in windows.
 
 ## Builtins
 
-ZEUS includes alot of useful builtins,
+ZEUS includes a lot of useful builtins,
 the following builtin commands are available:
 
 | Command            | Description                              |
@@ -374,7 +374,7 @@ You can specify a custom path in the config, using the *TodoFilePath* field.
     usage: procs [detach <command>] [attach <pid>] [kill <pid>]
 
 The procs builtin allows you to detached commands (execute them async),
-list or kill spawned proceses and attach Stdin + Stdout + Stderr to a running process.
+list or kill spawned processes and attach Stdin + Stdout + Stderr to a running process.
 
 > NOTE: there are tab completions for PIDs
 
@@ -460,7 +460,7 @@ and offers the following keybindings:
 
 ## Headers
 
-Scripts supply informations via their ZEUS header.
+Scripts supply information via their ZEUS header.
 
 This is basically just a piece of YAML,
 which defines their dependencies, outputs, description etc
@@ -539,7 +539,7 @@ There are two kinds of globals:
 1 **zeus/globals.yml** for global variables visible to all scripts
 2 **zeus/globals.[scriptExtension]** for language specific code such as functions
 
-When using a Zeusfile, the global variables can be declared in the *globals* setion.
+When using a Zeusfile, the global variables can be declared in the *globals* section.
 
 > NOTE: You current shells environment will be passed to each executed command.
 > That means global variables from ~/.bashrc or ~/.bash_profile are accessible by default
@@ -708,7 +708,7 @@ The Auto Formatter watches the scripts inside the **zeus** directory and formats
 Currently this is only available for Shellscripts, but I plan to add formatters for more languages & add an option to add custom ones.
 
 However changing the file contents while your IDE holds a buffer of it in memory,
-does not play well with all IDEs and Editors and should ideally be implemented as IDE PLugin.
+does not play well with all IDEs and Editors and should ideally be implemented as IDE Plugin.
 
 My IDE (VSCode) complains sometimes that the content on disk is newer,
 but most of the time its works ok.
@@ -724,7 +724,7 @@ so when editing your scripts with the **edit** builtin, try it out!
 
 ## ANSI Color Profiles
 
-Colors are used for good readabilty and can be configured by using the config file.
+Colors are used for good readability and can be configured by using the config file.
 
 You can add multiple color profiles and configure them to your taste.
 
@@ -1005,7 +1005,7 @@ it features tab completion for all config fields, actions and values.
 | HistoryLimit        | int                      | history entry limit                      |
 | ExitOnInterrupt     | bool                     | exit the interactive shell with an SIGINT (Ctrl-C) |
 | DisableTimestamps   | bool                     | disable timestamps when logging          |
-| StopOnError         | bool                     | stop script execution when theres an error inside a script |
+| StopOnError         | bool                     | stop script execution when there's an error inside a script |
 | DumpScriptOnError   | bool                     | dump the currently processed script into a file if an error occurs |
 | DateFormat          | string                   | set the format string for dates, used by deadline and milestones |
 | TodoFilePath        | string                   | set the path for your TODO file, default is: "TODO.md" |
@@ -1018,7 +1018,7 @@ it features tab completion for all config fields, actions and values.
 
 ## Direct Command Execution
 
-you dont need the interactive shell to run commands, just use the following syntax:
+You don't need the interactive shell to run commands, just use the following syntax:
 
 ```shell
 $ zeus [commandName] [args]
@@ -1075,7 +1075,7 @@ run the tests with:
 zeus » test
 ```
 
-Without failed assertions, on macOS the coverage report will be openened in your Browser.
+Without failed assertions, on macOS the coverage report will be opened in your Browser.
 
 On Linux you will need to open it manually, using the generated html file.
 
@@ -1150,7 +1150,7 @@ example:
 #     - bin/file2
 ```
 
-The *dependencies* header field allows to specficy multiple commands, by supplying a commandChain or a single command.
+The *dependencies* header field allows you to specify multiple commands, by supplying a commandChain or a single command.
 
 Each element in the commandChain will be executed in order, prior to the execution of the current script,
 and skipped if all its outputs files or directories exist.
@@ -1165,7 +1165,7 @@ example:
 
 ## Zeusfile
 
-Similiar to GNU Make, ZEUS allows adding all targets to a single file named Zeusfile.yml inside the **zeus** directory.
+Similar to GNU Make, ZEUS allows adding all targets to a single file named Zeusfile.yml inside the **zeus** directory.
 This is useful for small projects and you can still use the interactive shell if desired.
 
 The File follows the [YAML](http://yaml.org) specification.
@@ -1187,7 +1187,7 @@ migrated  10  commands from Zeusfile in:  4.575956ms
 The **async** header field allows to run a command in the background.
 It will be detached with the UNIX *screen* command and you can attach to its output at any time using the **procs** builtin.
 
-This can be used to speed up builds with lots of targets that dont have dependencies between them,
+This can be used to speed up builds with lots of targets that don't have dependencies between them,
 or to start multiple services in the background.
 
 The **procs** builtin can be used to list all running commands, to attach to them or to detach non-async commands in the background.
@@ -1203,7 +1203,7 @@ although some modifications were made to make the path completion work.
 
 For shell script formatting the [syntax](https://godoc.org/github.com/mvdan/sh/syntax) package is used.
 
-Heres a simple overview of the architecure:
+Here's a simple overview of the architecture:
 
 ![alt text](https://github.com/dreadl0ck/zeus/blob/master/wiki/docs/zeus_overview.jpg "ZEUS Overview")
 
@@ -1234,7 +1234,7 @@ After that the 1.0 Release is expected.
 
      283,905 results. Oops.
 
-     Oh wait, theres more: [click](http://thehackernews.com/2013/01/hundreds-of-ssh-private-keys-exposed.html)
+     Oh wait, there's more: [click](http://thehackernews.com/2013/01/hundreds-of-ssh-private-keys-exposed.html)
 
      ZEUS 1.0 will feature encrypted storage inside the project data,
      that can be accessed and modified using the interactive shell.
