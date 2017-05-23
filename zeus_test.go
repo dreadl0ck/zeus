@@ -81,14 +81,6 @@ func TestMain(t *testing.T) {
 			go StartWebListener(false)
 
 			time.Sleep(500 * time.Millisecond)
-
-			// glueServerMutex.Lock()
-			// So(glueServer, ShouldNotBeNil)
-			// glueServerMutex.Unlock()
-
-			// socketstoreMutex.Lock()
-			// So(socketstore, ShouldNotBeNil)
-			// socketstoreMutex.Unlock()
 		})
 	}
 }
@@ -490,7 +482,7 @@ func TestZeusfileMigration(t *testing.T) {
 
 		zeusDir = "tests/zeus-migration-test"
 
-		So(migrateZeusfile(), ShouldBeNil)
+		c.So(migrateZeusfile(), ShouldBeNil)
 
 		zeusDir = "tests"
 

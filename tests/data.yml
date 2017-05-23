@@ -3,19 +3,19 @@ Deadline: ""
 Milestones: []
 Aliases: {}
 Events:
-  2b8909006cf89b8e:
-    name: script watcher
-    id: 2b8909006cf89b8e
-    path: tests/scripts
-    op: 2
-    fileextension: ""
-    command: internal
-  11e14e722da544ee:
+  8e0e61de3e8096fc:
     name: config watcher
-    id: 11e14e722da544ee
+    id: 8e0e61de3e8096fc
     path: tests/config.yml
     op: 2
     fileextension: .yml
+    command: internal
+  9aa11ada3a44cd95:
+    name: script watcher
+    id: 9aa11ada3a44cd95
+    path: tests/scripts
+    op: 2
+    fileextension: ""
     command: internal
 Author: ""
 KeyBindings: {}
