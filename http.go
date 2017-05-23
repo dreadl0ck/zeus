@@ -87,7 +87,7 @@ func StartWebListener(openInBrowser bool) {
 
 		if openInBrowser {
 			if runtime.GOOS == "darwin" {
-				open("http://" + hostName + ":" + strconv.Itoa(conf.PortWebPanel))
+				open("http://" + hostName + ":" + strconv.Itoa(conf.fields.PortWebPanel))
 			}
 			return
 		}
@@ -98,7 +98,7 @@ func StartWebListener(openInBrowser bool) {
 
 	distBox = rice.MustFindBox("frontend/dist")
 
-	showNote("serving on "+strconv.Itoa(conf.PortWebPanel), "starting server...")
+	showNote("serving on "+strconv.Itoa(conf.fields.PortWebPanel), "starting server...")
 
 	socketstoreMutex.Lock()
 	socketstore = NewSocketStore()
@@ -109,14 +109,14 @@ func StartWebListener(openInBrowser bool) {
 	// init router
 	r := createRouter()
 
-	if conf.Debug {
+	if conf.fields.Debug {
 		// start asset watchers for development
 		go startJSWatcher()
 		go startSassWatcher()
 	}
 
 	// listen and serve
-	err := http.ListenAndServe(":"+strconv.Itoa(conf.PortWebPanel), r)
+	err := http.ListenAndServe(":"+strconv.Itoa(conf.fields.PortWebPanel), r)
 	if err != nil {
 		cLog.WithError(err).Error("failed to listen")
 	}
@@ -191,7 +191,7 @@ func runGlue() {
 
 	// create a new glue server
 	glueServer = glue.NewServer(glue.Options{
-		HTTPListenAddress: ":" + strconv.Itoa(conf.PortGlueServer),
+		HTTPListenAddress: ":" + strconv.Itoa(conf.fields.PortGlueServer),
 	})
 
 	// release the glue server on defer

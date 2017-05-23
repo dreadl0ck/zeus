@@ -34,7 +34,7 @@ var (
 		}
 
 		if keyName, ok := keyMap[key]; ok {
-			if command, ok := projectData.KeyBindings[keyName]; ok {
+			if command, ok := projectData.fields.KeyBindings[keyName]; ok {
 				println()
 				handleLine(command)
 			}
@@ -108,14 +108,14 @@ func handleKeysCommand(args []string) {
 		}
 
 		projectData.Lock()
-		projectData.KeyBindings[args[2]] = strings.Join(args[3:], " ")
+		projectData.fields.KeyBindings[args[2]] = strings.Join(args[3:], " ")
 		projectData.Unlock()
 		projectData.update()
 
 		Log.Info("key binding added")
 	} else if args[1] == "remove" {
 		projectData.Lock()
-		delete(projectData.KeyBindings, args[2])
+		delete(projectData.fields.KeyBindings, args[2])
 		projectData.Unlock()
 		projectData.update()
 
@@ -131,7 +131,7 @@ func printKeybindingsCommmandUsageErr() {
 }
 
 func printKeybindings() {
-	for key, cmd := range projectData.KeyBindings {
+	for key, cmd := range projectData.fields.KeyBindings {
 		l.Println(key, "=", cmd)
 	}
 }

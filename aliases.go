@@ -64,7 +64,7 @@ func addAlias(name, command string) {
 
 	// add to project data
 	projectData.Lock()
-	projectData.Aliases[name] = command
+	projectData.fields.Aliases[name] = command
 	projectData.Unlock()
 
 	projectData.update()
@@ -77,7 +77,7 @@ func addAlias(name, command string) {
 
 func deleteAlias(name string) {
 	projectData.Lock()
-	delete(projectData.Aliases, name)
+	delete(projectData.fields.Aliases, name)
 	projectData.Unlock()
 }
 
@@ -87,13 +87,13 @@ func printAliases() {
 	var maxLen int
 
 	projectData.Lock()
-	for name := range projectData.Aliases {
+	for name := range projectData.fields.Aliases {
 		if len(name) > maxLen {
 			maxLen = len(name)
 		}
 	}
 
-	for name, command := range projectData.Aliases {
+	for name, command := range projectData.fields.Aliases {
 		l.Println(pad(name, maxLen+1), "=", command)
 	}
 

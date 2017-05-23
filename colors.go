@@ -28,73 +28,117 @@ import (
 
 var (
 	// global ANSI terminal color profile
-	cp = colorsOffProfile()
+	cp = &ansiProfile{}
 
 	// ErrUnknownColorProfile means the color profile does not exist
 	ErrUnknownColorProfile = errors.New("unknown color profile")
 )
 
-type colorProfile struct {
-	text       string
-	prompt     string
-	cmdOutput  string
-	cmdName    string
-	cmdFields  string
-	cmdArgs    string
-	cmdArgType string
+// ANSI Escape Sequence Representation of a ColorProfile
+// contains a mutex to make changes on the fly possible
+// without a data race
+type ansiProfile struct {
+	Text       string
+	Prompt     string
+	CmdOutput  string
+	CmdName    string
+	CmdFields  string
+	CmdArgs    string
+	CmdArgType string
 	sync.RWMutex
 }
 
+// ColorProfile for terminal colors
+// it contains the colors following the ansi package style format
+// https://github.com/mgutz/ansi
+type ColorProfile struct {
+	Text       string `yaml:"Text"`
+	Prompt     string `yaml:"Prompt"`
+	CmdOutput  string `yaml:"CmdOutput"`
+	CmdName    string `yaml:"CmdName"`
+	CmdFields  string `yaml:"CmdFields"`
+	CmdArgs    string `yaml:"CmdArgs"`
+	CmdArgType string `yaml:"CmdArgType"`
+}
+
 func printColorsUsageErr() {
-	l.Println(ErrInvalidUsage)
-	l.Println("usage: colors <default | dark | light>")
+	conf.Lock()
+	l.Println("current color profile: " + conf.fields.ColorProfile)
+	conf.Unlock()
+	l.Println("usage: colors [default | off" + getAvailableColorProfiles() + "]")
 }
 
-func darkProfile() *colorProfile {
-	return &colorProfile{
-		text:       ansi.Black,
-		prompt:     ansi.Blue,
-		cmdOutput:  ansi.LightWhite,
-		cmdName:    ansi.Blue,
-		cmdFields:  ansi.Yellow,
-		cmdArgs:    ansi.LightBlack,
-		cmdArgType: ansi.Green,
+func getAvailableColorProfiles() (res string) {
+	conf.Lock()
+	defer conf.Unlock()
+	for name := range conf.fields.ColorProfiles {
+		res += " | " + name
+	}
+	return
+}
+
+// low contrast profile
+func darkProfile() *ColorProfile {
+	return &ColorProfile{
+		Text:       "black",
+		Prompt:     "blue",
+		CmdOutput:  "light+h",
+		CmdName:    "blue",
+		CmdFields:  "yellow",
+		CmdArgs:    "white+h",
+		CmdArgType: "green",
 	}
 }
 
-func lightProfile() *colorProfile {
-	return &colorProfile{
-		text:       ansi.Black,
-		prompt:     ansi.Green,
-		cmdOutput:  ansi.Black,
-		cmdName:    ansi.Blue,
-		cmdFields:  ansi.Green,
-		cmdArgs:    ansi.Cyan,
-		cmdArgType: ansi.Green,
+// high contrast profile
+func lightProfile() *ColorProfile {
+	return &ColorProfile{
+		Text:       "black",
+		Prompt:     "yellow",
+		CmdOutput:  "black+h",
+		CmdName:    "red",
+		CmdFields:  "blue",
+		CmdArgs:    "cyan",
+		CmdArgType: "green",
 	}
 }
 
-func defaultProfile() *colorProfile {
-	return &colorProfile{
-		text:       ansi.Green,
-		prompt:     ansi.Red,
-		cmdOutput:  ansi.LightWhite,
-		cmdName:    ansi.Red,
-		cmdFields:  ansi.Yellow,
-		cmdArgs:    ansi.Red,
-		cmdArgType: ansi.Green,
+// default terminal color profile
+func defaultProfile() *ColorProfile {
+	return &ColorProfile{
+		Text:       "green",
+		Prompt:     "red",
+		CmdOutput:  "white+h",
+		CmdName:    "red",
+		CmdFields:  "yellow",
+		CmdArgs:    "red",
+		CmdArgType: "cyan+h",
 	}
 }
 
-func colorsOffProfile() *colorProfile {
-	return &colorProfile{
-		text:       ansi.ColorCode("off"),
-		prompt:     ansi.ColorCode("off"),
-		cmdOutput:  ansi.ColorCode("off"),
-		cmdName:    ansi.ColorCode("off"),
-		cmdFields:  ansi.ColorCode("off"),
-		cmdArgs:    ansi.ColorCode("off"),
-		cmdArgType: ansi.ColorCode("off"),
+// black terminal color profile
+func blackProfile() *ColorProfile {
+	return &ColorProfile{
+		Text:       "black",
+		Prompt:     "black",
+		CmdOutput:  "black",
+		CmdName:    "black",
+		CmdFields:  "black",
+		CmdArgs:    "black",
+		CmdArgType: "black",
+	}
+}
+
+// profile with disabled colors
+func colorsOffProfile() *ColorProfile {
+	return &ColorProfile{
+		Text:       ansi.ColorCode("off"),
+		Prompt:     ansi.ColorCode("off"),
+		CmdOutput:  ansi.ColorCode("off"),
+		CmdName:    ansi.ColorCode("off"),
+		CmdFields:  ansi.ColorCode("off"),
+		CmdArgs:    ansi.ColorCode("off"),
+		CmdArgType: ansi.ColorCode("off"),
 	}
 }
 
@@ -108,29 +152,38 @@ func handleColorsCommand(args []string) {
 
 	profile := args[1]
 
-	// lock once
+	// lock to prevent a race on the global ansiProfile instance
 	cp.Lock()
-
 	switch profile {
-	case "dark":
-		cp = darkProfile()
-	case "light":
-		cp = lightProfile()
+	case "off":
+		cp = colorsOffProfile().parse()
 	case "default":
-		cp = defaultProfile()
+		cp = defaultProfile().parse()
+	case "black":
+		cp = blackProfile().parse()
 	default:
-		// no change to colorProfile - Unlock it
-		cp.Unlock()
-		Log.Error(ErrUnknownColorProfile)
-		return
-	}
 
+		// lookup profile name in config
+		conf.Lock()
+		if p, ok := conf.fields.ColorProfiles[profile]; ok {
+			conf.Unlock()
+			cp = p.parse()
+		} else {
+			// no change to colorProfile - Unlock it
+			cp.Unlock()
+			conf.Unlock()
+			Log.Error(ErrUnknownColorProfile)
+			return
+		}
+	}
 	Log.Info("color profile set to: ", profile)
 
+	// update value in config
 	conf.Lock()
-	conf.ColorProfile = profile
+	conf.fields.ColorProfile = profile
 	conf.Unlock()
 
+	// update config on disk
 	conf.update()
 
 	readlineMutex.Lock()
@@ -139,23 +192,53 @@ func handleColorsCommand(args []string) {
 		readlineMutex.Unlock()
 		clearScreen()
 
-		l.Println(cp.text + asciiArt + ansi.Reset + "\n")
-		l.Println(cp.text + "Project Name: " + cp.prompt + filepath.Base(workingDir) + cp.text + "\n")
+		l.Println(cp.Text + asciiArt + "v" + version)
+		l.Println(cp.Text + "Project Name: " + cp.Prompt + filepath.Base(workingDir) + cp.Text + "\n")
 
 		printBuiltins()
 		printCommands()
 	}
 }
 
+// init the current color profile from config
 func initColorProfile() {
-	switch conf.ColorProfile {
-	case "dark":
-		cp = darkProfile()
-	case "light":
-		cp = lightProfile()
+
+	conf.Lock()
+	defer conf.Unlock()
+
+	// look up current profile string from config
+	profile := conf.fields.ColorProfile
+
+	// lock to prevent a race on the global ansiProfile instance
+	cp.Lock()
+	switch profile {
+	case "off":
+		cp = colorsOffProfile().parse()
 	case "default":
-		cp = defaultProfile()
+		cp = defaultProfile().parse()
+	case "black":
+		cp = blackProfile().parse()
 	default:
-		Log.Error(ErrUnknownColorProfile, " : ", conf.ColorProfile)
+		if p, ok := conf.fields.ColorProfiles[profile]; ok {
+			cp = p.parse()
+		} else {
+			// no change to colorProfile - unlock it
+			cp.Unlock()
+			Log.Error(ErrUnknownColorProfile, " : ", conf.fields.ColorProfile)
+			return
+		}
+	}
+}
+
+// convert a ColorProfile to an ansiProfile
+func (cp *ColorProfile) parse() *ansiProfile {
+	return &ansiProfile{
+		Text:       ansi.ColorCode(cp.Text),
+		Prompt:     ansi.ColorCode(cp.Prompt),
+		CmdArgs:    ansi.ColorCode(cp.CmdArgs),
+		CmdArgType: ansi.ColorCode(cp.CmdArgType),
+		CmdFields:  ansi.ColorCode(cp.CmdFields),
+		CmdName:    ansi.ColorCode(cp.CmdName),
+		CmdOutput:  ansi.ColorCode(cp.CmdOutput),
 	}
 }

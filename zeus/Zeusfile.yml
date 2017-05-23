@@ -1,0 +1,120 @@
+###################
+# Zeusfile v0.7.4 #
+###################
+
+# default interpreter used for Zeusfile code is bash
+# that means all commands without the language field are tretead as shell scripts
+# to change the default script language, use the language field
+# to change the language of an individual command, use the language field directly on the command
+#language: bash
+
+# globals are visible for all commands
+# they can contain variables
+# for language specific code create a globals.[scriptExtension] file in the zeus directory
+globals:
+    "binaryName": zeus
+    "buildDir": bin
+
+# all commands
+commands:
+    clean:
+        description: clean up to prepare for build
+        help: clears bin/ directory and deletes generated config & data in tests
+        exec: |
+            rm -rf bin/*
+            rm -rf tests/config.yml
+            rm -rf tests/data.yml
+    configure:
+        description: prepare JS and CSS and move assets into wiki/docs
+        help: Generate Javascript and CSS
+        exec: |
+
+            echo "copying LICENSE and README.md"
+
+            cp -f LICENSE wiki/docs
+            cp -f README.md wiki/docs
+
+            jsobfus -d frontend/src/js/:frontend/dist/js
+            sasscompile -d frontend/src/sass:frontend/dist/css
+    build:
+        description: build project for current OS
+        help: compile binary for current OS into buildDir
+        dependencies: configure
+        buildNumber: true
+        outputs:
+            - bin/zeus
+        exec: |
+            echo "building $binaryName for current OS"
+            rice embed-go
+            godep go build -o ${buildDir}/$binaryName
+    build-linux:
+        description: build project for linux amd64
+        help: compile binary for linux amd64 into buildDir
+        dependencies: configure
+        buildNumber: true
+        outputs:
+            - bin/zeus-linux
+        exec: |
+            echo "building for linux amd64"
+            rice embed-go
+            GOOS=linux GOARCH=amd64 godep go build -o ${buildDir}/zeus-linux
+    build-race:
+        dependencies: clean
+        description: build race detection enabled binary
+        help: |
+            zeus build-race script
+            this script produces the zeus binary with race detection enabled
+        exec: go build -race
+    dev:
+        help: start the dev mode
+        help: |
+            zeus development mode script
+            clears bindata & installs to $GOPATH
+        dependencies: clean -> configure
+        exec: |
+            rm -f rice-box.go
+            go install
+    install:
+        description: install to $PATH
+        help: Install the application to the default system location
+        dependencies: clean -> configure
+        exec: |
+            echo "installing zeus"
+            rice embed-go
+            godep go install
+    reset:
+        description: reset and delete all generated files
+        dependencies: clean
+        exec: rm -f rice-box.go
+    
+    # run the test with race detection enabled
+    test-race:
+        description: start data race detection tests
+        dependencies: clean
+        exec: go test -v -race
+
+    # run the tests
+    test:
+        description: run automated tests
+        dependencies: clean
+        exec: |
+            echo "starting tests"
+
+            go test -v -coverprofile coverage.out -cover
+
+            if [[ $? == 0 ]]; then
+                go tool cover -html=coverage.out
+            fi
+    
+    # examples for multiple languages
+    python:
+        description: a python script
+        language: python
+        exec: |
+            say_hello()
+            print "hello from python!"
+    ruby:
+        description: a ruby script
+        language: ruby
+        exec: |
+            puts "hello from ruby!"

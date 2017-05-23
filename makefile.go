@@ -83,7 +83,7 @@ func migrateMakefile(zeusDirectory string) {
 	}
 
 	// create dir
-	err = os.Mkdir(dir, perm)
+	err = os.MkdirAll(dir, perm)
 	if err != nil {
 		Log.WithError(err).Error("failed to create: ", dir)
 		return
@@ -164,7 +164,7 @@ func migrateMakefile(zeusDirectory string) {
 			var (
 				args       = strings.Split(string(line), " ")
 				targetName = strings.TrimSuffix(args[0], ":")
-				filename   = dir + "/" + targetName + f.fileExtension
+				filename   = dir + "/" + targetName + ".sh"
 			)
 
 			file, err = os.OpenFile(filename, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, perm)
@@ -173,14 +173,13 @@ func migrateMakefile(zeusDirectory string) {
 			}
 			defer file.Close()
 
-			file.WriteString(p.bang + "\n\n")
-			file.WriteString("# -------------------------------------------------------------------------- #" + "\n")
-			file.WriteString("# @zeus-chain: " + strings.Join(args[1:], " -> ") + "\n")
-			file.WriteString("# @zeus-args: " + "\n")
-			file.WriteString("# @zeus-help: simple help text for command " + targetName + "\n")
-			file.WriteString("# -------------------------------------------------------------------------- #" + "\n")
-			file.WriteString("# manual text for command " + targetName + "\n")
-			file.WriteString("# -------------------------------------------------------------------------- #" + "\n\n")
+			file.WriteString("#!/bin/bash" + "\n\n")
+			file.WriteString("# {zeus}" + "\n")
+			file.WriteString("# dependencies: " + strings.Join(args[1:], " -> ") + "\n")
+			file.WriteString("# arguments: " + "\n")
+			file.WriteString("# description: simple help text for command " + targetName + "\n")
+			file.WriteString("# help: help text for command " + targetName + "\n")
+			file.WriteString("# {zeus}" + "\n\n")
 
 			writeInProgress = true
 		}
@@ -202,7 +201,7 @@ func migrateMakefile(zeusDirectory string) {
 			return
 		}
 		defer f.Close()
-		f.WriteString("#!/bin/bash\n")
+		f.WriteString("#!/bin/bash\n\n")
 		f.WriteString(globals + "\n")
 		l.Println("created " + dir + "/globals.sh")
 	}
@@ -219,7 +218,7 @@ func handleMakefileCommand(args []string) {
 	}
 
 	if args[1] == "migrate" {
-		migrateMakefile(zeusDir)
+		migrateMakefile(scriptDir)
 		return
 	}
 

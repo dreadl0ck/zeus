@@ -21,68 +21,81 @@ package main
 import (
 	"os"
 	"sync"
+	"syscall"
 	"testing"
 	"time"
+
+	"os/exec"
 
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-var zeusDirMutex sync.Mutex
+var (
+	// make sure backend is only started once
+	running bool
+)
 
 // Test main entrypoint
 // must be executed prior to other tests
 // because it handles command and config parsing
 func TestMain(t *testing.T) {
 
-	Log.Info("TEST MAIN")
+	if !running {
 
-	// switch to testing mode
-	testingMode = true
+		running = true
+		Log.Info("TEST MAIN")
 
-	// parse tests dir on startup
-	zeusDir = "tests"
+		// switch to testing mode
+		testingMode = true
 
-	// ignore zeusfile in the project dir for now, it will be tested separately with TestZeusfile()
-	zeusfilePath = ""
+		// parse tests dir on startup
+		zeusDir = "tests"
+		scriptDir = "tests/scripts"
 
-	Convey("When Starting main", t, func(c C) {
+		// ignore zeusfile in the project dir for now, it will be tested separately with TestZeusfile()
+		zeusfilePath = ""
 
-		// remove project data rom previous test runs
-		os.Remove("tests/zeus_data.yml")
+		Convey("When Starting main", t, func(c C) {
 
-		go main()
+			// remove project data from previous test runs
+			os.Remove("tests/data.yml")
 
-		time.Sleep(500 * time.Millisecond)
+			go main()
 
-		cmdMap.Lock()
-		c.So(len(cmdMap.items), ShouldBeGreaterThan, 0)
-		cmdMap.Unlock()
+			time.Sleep(500 * time.Millisecond)
 
-		// config should be initialized
-		conf.Lock()
-		c.So(conf, ShouldNotBeNil)
-		// enable debug mode
-		conf.Debug = true
-		conf.Unlock()
+			cmdMap.Lock()
+			c.So(len(cmdMap.items), ShouldBeGreaterThan, 0)
+			cmdMap.Unlock()
 
-		// manipulate Zeusfile path to not use the ZEUS projects Zeusfile for the tests
-		zeusfilePath = "tests/Zeusfile.yml"
+			// config should be initialized
+			conf.Lock()
+			c.So(conf, ShouldNotBeNil)
+			// enable debug mode
+			conf.fields.Debug = true
+			conf.Unlock()
 
-		go StartWebListener(false)
+			// manipulate Zeusfile path to not use the ZEUS projects Zeusfile for the tests
+			zeusfilePath = "tests/Zeusfile.yml"
 
-		time.Sleep(500 * time.Millisecond)
+			go StartWebListener(false)
 
-		// glueServerMutex.Lock()
-		// So(glueServer, ShouldNotBeNil)
-		// glueServerMutex.Unlock()
+			time.Sleep(500 * time.Millisecond)
 
-		// socketstoreMutex.Lock()
-		// So(socketstore, ShouldNotBeNil)
-		// socketstoreMutex.Unlock()
-	})
+			// glueServerMutex.Lock()
+			// So(glueServer, ShouldNotBeNil)
+			// glueServerMutex.Unlock()
+
+			// socketstoreMutex.Lock()
+			// So(socketstore, ShouldNotBeNil)
+			// socketstoreMutex.Unlock()
+		})
+	}
 }
 
 func TestCommandlineArgs(t *testing.T) {
+
+	TestMain(t)
 
 	var commands = []string{
 		"config",
@@ -112,29 +125,38 @@ func TestCommandlineArgs(t *testing.T) {
 }
 
 func TestAliases(t *testing.T) {
+
+	TestMain(t)
+
 	Convey("Testing aliases", t, func(c C) {
 		handleLine("alias asdfsdf")
-		c.So(projectData.Aliases, ShouldBeEmpty)
+		c.So(projectData.fields.Aliases, ShouldBeEmpty)
 		handleLine("alias set testAlias test")
-		c.So(len(projectData.Aliases), ShouldEqual, 1)
-		c.So(projectData.Aliases["testAlias"], ShouldEqual, "test")
+		c.So(len(projectData.fields.Aliases), ShouldEqual, 1)
+		c.So(projectData.fields.Aliases["testAlias"], ShouldEqual, "test")
 		handleLine("alias remove testAlias")
-		c.So(len(projectData.Aliases), ShouldEqual, 0)
+		c.So(len(projectData.fields.Aliases), ShouldEqual, 0)
 		handleLine("alias")
 	})
 }
 
 func TestConfig(t *testing.T) {
+
+	TestMain(t)
+
 	Convey("Testing config", t, func(c C) {
 		handleLine("config asdfasdf")
 		handleLine("config set WebInterface true")
-		c.So(conf.WebInterface, ShouldBeTrue)
+		c.So(conf.fields.WebInterface, ShouldBeTrue)
 		handleLine("config get WebInterface")
 		handleLine("config")
 	})
 }
 
 func TestCommands(t *testing.T) {
+
+	TestMain(t)
+
 	Convey("Testing commands", t, func() {
 		handleLine("help")
 		handleLine("help asdfasd")
@@ -143,37 +165,51 @@ func TestCommands(t *testing.T) {
 }
 
 func TestMilestones(t *testing.T) {
+
+	TestMain(t)
+
 	Convey("Testing milestones", t, func(c C) {
 		handleLine("milestones")
 		handleLine("milestones asdfasd")
 		handleLine("milestones add testMilestone 12-12-2012")
-		c.So(projectData.Milestones, ShouldNotBeEmpty)
+		c.So(projectData.fields.Milestones, ShouldNotBeEmpty)
 		handleLine("milestones set testMilestone 50")
-		c.So(projectData.Milestones[0].PercentComplete, ShouldEqual, 50)
+		c.So(projectData.fields.Milestones[0].PercentComplete, ShouldEqual, 50)
 		handleLine("milestones remove testMilestone")
-		c.So(projectData.Milestones, ShouldBeEmpty)
+		c.So(projectData.fields.Milestones, ShouldBeEmpty)
 	})
 }
 
 func TestDeadlines(t *testing.T) {
+
+	TestMain(t)
+
 	Convey("Testing deadline", t, func(c C) {
 		handleLine("deadline")
-		c.So(projectData.Deadline, ShouldBeEmpty)
+		c.So(projectData.fields.Deadline, ShouldBeEmpty)
 		handleLine("deadline asdfasd")
 		handleLine("deadline set 12-12-2012")
-		c.So(projectData.Deadline, ShouldEqual, "12-12-2012")
+		c.So(projectData.fields.Deadline, ShouldEqual, "12-12-2012")
 		handleLine("deadline remove")
-		c.So(projectData.Deadline, ShouldBeEmpty)
+		c.So(projectData.fields.Deadline, ShouldBeEmpty)
 	})
 }
 
+/*
+ *    Utils
+ */
+
 func printEvents() {
-	for id, e := range projectData.Events {
+
+	for id, e := range projectData.fields.Events {
 		Log.Info("ID: " + id + ", Name: " + e.Name + ", Command: " + e.Command)
 	}
 }
 
 func TestEvents(t *testing.T) {
+
+	TestMain(t)
+
 	Convey("Testing events", t, func(c C) {
 
 		// print events
@@ -187,7 +223,7 @@ func TestEvents(t *testing.T) {
 			printEvents()
 
 			// there should be only the config and the script or zeusfile watcher event
-			c.So(len(projectData.Events), ShouldEqual, 2)
+			c.So(len(projectData.fields.Events), ShouldEqual, 2)
 		}()
 
 		handleLine("events asdfasd")
@@ -205,13 +241,13 @@ func TestEvents(t *testing.T) {
 
 			// printEvents()
 
-			c.So(len(projectData.Events), ShouldEqual, 3)
+			c.So(len(projectData.fields.Events), ShouldEqual, 3)
 		}()
 
 		projectData.Lock()
 
 		var id string
-		for eID, e := range projectData.Events {
+		for eID, e := range projectData.fields.Events {
 			if e.Path == "tests" {
 				id = eID
 			}
@@ -228,12 +264,15 @@ func TestEvents(t *testing.T) {
 			projectData.Lock()
 			defer projectData.Unlock()
 
-			c.So(len(projectData.Events), ShouldEqual, 2)
+			c.So(len(projectData.fields.Events), ShouldEqual, 2)
 		}()
 	})
 }
 
 func TestShell(t *testing.T) {
+
+	TestMain(t)
+
 	Convey("Testing the interactive shell", t, func() {
 		commands := []string{
 			"help",
@@ -246,8 +285,15 @@ func TestShell(t *testing.T) {
 			"clear",
 			"builtins",
 			"clean",
+			"edit",
+			"todo",
+			"git-filter",
+			"procs",
+			"asdfasdfasdfasdfasdfasdfas",
+			"generate",
 		}
 
+		// execute builtins without parameters
 		for _, cmd := range commands {
 			Log.Info("testing builtin: ", cmd)
 			handleLine(cmd)
@@ -255,85 +301,117 @@ func TestShell(t *testing.T) {
 	})
 }
 
-func TestSanitzer(t *testing.T) {
-	Convey("Testing sanitizer", t, func(c C) {
-		sanitizeFile("tests/error.sh")
-
-		c.So(sanitizeField("# @zeus-chain: clean -> configure", "zeus-chain"), ShouldEqual, "# @zeus-chain: clean -> configure")
-		c.So(sanitizeField("# zeus-chain: clean -> configure", "zeus-chain"), ShouldEqual, "# @zeus-chain: clean -> configure")
-		c.So(sanitizeField("# @zeus-chain clean -> configure", "zeus-chain"), ShouldEqual, "# @zeus-chain: clean -> configure")
-		c.So(sanitizeField("# zeus-chain clean -> configure", "zeus-chain"), ShouldEqual, "# @zeus-chain: clean -> configure")
-	})
-}
-
 func TestColors(t *testing.T) {
+
+	TestMain(t)
+
 	Convey("Testing colors", t, func() {
+
+		// print colors
 		handleLine("colors")
+
+		// invalid input
 		handleLine("colors asdfasdf")
+
+		// switch some profiles
 		handleLine("colors light")
 		handleLine("colors dark")
 		handleLine("colors default")
 	})
 }
 
-func TestCompleters(t *testing.T) {
-	Convey("Testing completers", t, func() {
-		directoryCompleter("")
-		fileCompleter("")
-	})
-}
-
 func TestMakefileMigration(t *testing.T) {
+
+	TestMain(t)
+
 	Convey("Testing makefile migration", t, func() {
 
+		// remove previous generated directory
 		os.Remove("tests/zeus")
+
+		// migrate test Makefile into tests/zeus
 		migrateMakefile("tests/zeus")
+
+		// clean up
 		os.Remove("tests/zeus")
 	})
 }
 
 func TestAuthorCommand(t *testing.T) {
+
+	TestMain(t)
+
 	Convey("Testing author command", t, func(c C) {
+
+		// print author
 		handleLine("author")
+
+		// invalid input
 		handleLine("author asdfasdf")
-		c.So(projectData.Author, ShouldBeEmpty)
+		c.So(projectData.fields.Author, ShouldBeEmpty)
+
+		// set a new author
 		handleLine("author set Test Author")
-		c.So(projectData.Author, ShouldEqual, "Test Author")
+		c.So(projectData.fields.Author, ShouldEqual, "Test Author")
+
+		// remove author
 		handleLine("author remove")
-		c.So(projectData.Author, ShouldBeEmpty)
+		c.So(projectData.fields.Author, ShouldBeEmpty)
 	})
 }
 
 func TestKeybindings(t *testing.T) {
+
+	TestMain(t)
+
 	Convey("Testing keybindings", t, func(c C) {
+
+		// print keybindings
 		handleLine("keys")
+
+		// invalid input
 		handleLine("keys asdafsdf")
-		c.So(projectData.KeyBindings, ShouldBeEmpty)
+		c.So(projectData.fields.KeyBindings, ShouldBeEmpty)
+
+		// add keybinding
 		handleLine("keys set Ctrl-S git status")
-		c.So(projectData.KeyBindings, ShouldNotBeEmpty)
+		c.So(projectData.fields.KeyBindings, ShouldNotBeEmpty)
+
+		// add a second keybinding
 		handleLine("keys set Ctrl-H help")
-		c.So(projectData.KeyBindings, ShouldHaveLength, 2)
+		c.So(projectData.fields.KeyBindings, ShouldHaveLength, 2)
+
+		// remove one
 		handleLine("keys remove Ctrl-H")
-		c.So(projectData.KeyBindings, ShouldHaveLength, 1)
+		c.So(projectData.fields.KeyBindings, ShouldHaveLength, 1)
+
+		// remove the other
 		handleLine("keys remove Ctrl-S")
-		c.So(projectData.KeyBindings, ShouldBeEmpty)
+		c.So(projectData.fields.KeyBindings, ShouldBeEmpty)
 	})
 }
 
 func TestProjectData(t *testing.T) {
+
+	TestMain(t)
+
+	// print project data
 	handleLine("data")
 }
 
 func TestDependencies(t *testing.T) {
+
+	TestMain(t)
+
 	Convey("Testing Dependencies", t, func(c C) {
 
 		// create bin/dependency1
-		handleLine("dependency1")
+		handleLine("dependency1 bla=asdf")
 		_, err := os.Stat("bin/dependency1")
 		c.So(err, ShouldBeNil)
 
 		// create bin/dependency2
-		handleLine("dependency2")
+		handleLine("dependency2 bla=asdf")
 		_, err = os.Stat("bin/dependency2")
 		c.So(err, ShouldBeNil)
 
@@ -341,31 +419,136 @@ func TestDependencies(t *testing.T) {
 }
 
 func TestZeusfile(t *testing.T) {
+
+	TestMain(t)
+
 	Convey("Testing Zeusfile parsing", t, func(c C) {
-		err := parseZeusfile("Zeusfile.yml")
+
+		// parse ZEUS project Zeusfile
+		err := parseZeusfile("zeus/Zeusfile.yml")
 		c.So(err, ShouldBeNil)
-	})
 
-	var eventID string
+		// event creation is async, wait a little bit
+		time.Sleep(100 * time.Millisecond)
 
-	// remove zeusfile watcher
-	projectData.Lock()
-	for id, e := range projectData.Events {
-		if e.Name == "zeusfile watcher" {
-			eventID = id
+		// get zeusfile watcher eventID
+		var eventID string
+
+		projectData.Lock()
+		for id, e := range projectData.fields.Events {
+			l.Println("#####NAME: ", e.Name)
+			if e.Name == "zeusfile watcher" {
+				eventID = id
+			}
 		}
-	}
-	projectData.Unlock()
+		projectData.Unlock()
 
-	removeEvent(eventID)
+		// event must exist
+		c.So(eventID, ShouldNotBeEmpty)
 
-	// @TODO: test migration & bootstrapping
+		// clean up
+		removeEvent(eventID)
+	})
 }
 
-// func TestBootstrapFile(t *testing.T) {
-// 	bootstrapCommand()
-// }
+func TestBootstrap(t *testing.T) {
 
-// func TestBootstrapDir(t *testing.T) {
-// 	bootstrapCommand()
-// }
+	TestMain(t)
+
+	Convey("Testing zeus bootstrapping", t, func(c C) {
+
+		// make sure zeus dir does not exist
+		os.Remove("tests/zeus")
+	})
+}
+
+func TestGenerate(t *testing.T) {
+
+	TestMain(t)
+
+	Convey("Testing standalone script generation", t, func(c C) {
+
+		handleLine("generate")
+		handleLine("generate build.sh build")
+		handleLine("generate testChain.sh async -> optional bla=asdf req=asdfd -> error")
+
+		os.Remove("tests/generated")
+	})
+}
+
+func TestZeusfileMigration(t *testing.T) {
+
+	TestMain(t)
+
+	Convey("Testing Zeusfile to zeusDir migration", t, func(c C) {
+
+		os.Remove("tests/zeus-migration-test")
+		os.Remove("tests/Zeusfile.yml")
+		os.Remove("tests/Zeusfile_old.yml")
+
+		c.So(exec.Command("cp", "zeus/Zeusfile.yml", "tests/Zeusfile.yml").Run(), ShouldBeNil)
+
+		zeusDir = "tests/zeus-migration-test"
+
+		So(migrateZeusfile(), ShouldBeNil)
+
+		zeusDir = "tests"
+
+		// clean up
+		os.Remove("tests/zeus-migration-test")
+	})
+}
+
+func TestProcesses(t *testing.T) {
+
+	TestMain(t)
+
+	Convey("Testing process handling", t, func(c C) {
+
+		printProcsCommandUsageErr()
+
+		// spawn async command
+		handleLine("async")
+
+		// kill it by passing SIGINT
+		passSignalToProcs(syscall.SIGINT)
+
+		// spawn async command again
+		handleLine("async")
+
+		// flush process map
+		clearProcessMap()
+	})
+}
+
+func TestCustomCompleters(t *testing.T) {
+
+	TestMain(t)
+
+	Convey("Testing custom completers", t, func(c C) {
+
+		// test completion of eventIDs for removing events
+		c.So(eventIDCompleter(""), ShouldNotBeEmpty)
+
+		// test completion of available commands
+		c.So(commandCompleter(""), ShouldNotBeEmpty)
+
+		// complete available parser languages
+		c.So(languageCompleter(""), ShouldNotBeEmpty)
+
+		// complete available commands for chains
+		//c.So(commandChainCompleter("d"), ShouldNotBeEmpty)
+
+		c.So(colorProfileCompleter(""), ShouldNotBeEmpty)
+
+		c.So(todoIndexCompleter(""), ShouldBeEmpty)
+
+		// complete PIDs for killing processes
+		c.So(pIDCompleter(""), ShouldNotBeEmpty)
+
+		// complete available filetypes for the event target directory
+		c.So(fileTypeCompleter("events add WRITE tests/"), ShouldNotBeEmpty)
+
+		c.So(directoryCompleter(""), ShouldNotBeEmpty)
+	})
+}

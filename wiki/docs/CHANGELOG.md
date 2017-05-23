@@ -7,6 +7,34 @@
           \/    \/           \/   /\\/\ //\
                 An Electrifying Build System
 
+## 23.05.17 - v0.7.4
+
+- renamed run field in zeusfile to exec
+- merged dependencies and chains
+- renamed zeus fields args and deps
+- added edit builtin
+- made colorprofiles configurable in zeus config
+- improved README
+- added scripts folder inside zeusDir + moved Zeusfile into zeusDir
+- removed support for Zeusfile without yaml file extension
+- removed global config
+- renamed help field to description
+- renamed manual field to help
+- implemented support for python, ruby and javascript
+- refactored globals
+- refactor config & data to embedded fields to hide mutex in yaml
+- added support for overwriting languages in config
+- testing micro with auto formatter (works nice!)
+- implemented generate builtin
+- check if argument label gets shadowed by a global
+- removed tab support for YAML
+- updated tests
+- make zeusfile multiple languages possible -> set default lang in zeusfile, specific lang on commands if desired
+- code cleanup & comments
+- updated graffle
+- updated README PDF
+- updated gif
+
 ## 26.04.17
 
 - refactored UI

@@ -39,8 +39,7 @@ import (
 
 var (
 	// current zeus version
-	// will be added by the build script using the ldflags -X linker option
-	version = "0.7.3"
+	version = "0.7.4"
 
 	// Log instance for internal logs
 	Log = newAtomicLogger()
@@ -68,18 +67,16 @@ var (
 	// shell formatter
 	f = newFormatter()
 
-	// parser
-	p = newParser()
-
-	globalsContent []byte
+	g = &globals{
+		Items: make(map[string]string, 0),
+	}
 
 	debug      bool
 	asciiArt   string
 	workingDir string
 
-	// total number of commands that will be executed when running the command
-	numCommands    int
-	currentCommand int
+	// status info
+	s = &status{}
 
 	// running a test?
 	testingMode bool
@@ -87,13 +84,13 @@ var (
 
 type atomicLogger struct {
 	*logrus.Logger
-	sync.Mutex
+	sync.RWMutex
 }
 
 func newAtomicLogger() *atomicLogger {
 	return &atomicLogger{
 		logrus.New(),
-		sync.Mutex{},
+		sync.RWMutex{},
 	}
 }
 
@@ -132,7 +129,7 @@ func main() {
 			if len(os.Args) > 2 {
 				switch os.Args[2] {
 				case "file":
-					runBootstrapFileCommand()
+					runBootstrapZeusfileCommand()
 				case "dir":
 					runBootstrapDirCommand()
 				}
@@ -162,17 +159,11 @@ func main() {
 	// look for project config
 	conf, err = parseProjectConfig()
 	if err != nil {
-
 		cLog.WithError(err).Debug("failed to parse project config")
+		cLog.Info("initializing default configuration")
 
-		// look for global config
-		conf, err = parseGlobalConfig()
-		if err != nil {
-			cLog.WithError(err).Debug("failed to parse global config")
-			cLog.Info("initializing default configuration")
-			conf = newConfig()
-			conf.update()
-		}
+		conf = newConfig()
+		conf.update()
 	}
 
 	initColorProfile()
@@ -183,7 +174,7 @@ func main() {
 	projectData.Lock()
 
 	// validate aliases
-	for name := range projectData.Aliases {
+	for name := range projectData.fields.Aliases {
 		err = validateAlias(name)
 		if err != nil {
 			Log.WithError(err).Fatal("failed to validate alias: ", name)
@@ -196,31 +187,31 @@ func main() {
 	projectData.Unlock()
 
 	// get debug value from config
-	debug = conf.Debug
+	debug = conf.fields.Debug
 
 	// handle debug mode for logger
 	if debug {
 		Log.Level = logrus.DebugLevel
 	}
 
-	if conf.DisableTimestamps {
+	if conf.fields.DisableTimestamps {
 		formatter := new(prefixed.TextFormatter)
 		formatter.DisableTimestamp = true
 		Log.Formatter = formatter
 	}
 
 	// disable colors
-	if !conf.Colors {
+	if !conf.fields.Colors {
 
 		print(ansi.Reset)
 
 		// lock once
 		cp.Lock()
-		cp = colorsOffProfile()
+		cp = colorsOffProfile().parse()
 
 		Log.Formatter = &prefixed.TextFormatter{
 			DisableColors:    true,
-			DisableTimestamp: conf.DisableTimestamps,
+			DisableTimestamp: conf.fields.DisableTimestamps,
 		}
 	}
 
@@ -236,19 +227,19 @@ func main() {
 	}
 
 	// start watchers when running in interactive mode
-	if conf.Interactive {
+	if conf.fields.Interactive {
 
 		// watch config for changes
 		go conf.watch("")
 
-		if conf.AutoFormat {
+		if conf.fields.AutoFormat {
 			// watch zeus directory for changes
-			go f.watchzeusDir("")
+			go f.watchScriptDir("")
 		}
 	}
 
 	// print makefile command overview
-	if conf.MakefileOverview {
+	if conf.fields.MakefileOverview {
 		printMakefileCommandOverview()
 	}
 
@@ -256,19 +247,17 @@ func main() {
 	err = parseZeusfile(zeusfilePath)
 	if err == ErrFailedToReadZeusfile {
 
-		// check if a Zeusfile for the project exists without the .yml extension
-		err = parseZeusfile("Zeusfile")
-		if err == ErrFailedToReadZeusfile {
+		Log.Debug("no Zeusfile found. parsing scriptDir...")
 
-			Log.Debug("no Zeusfile found. parsing zeusDir...")
+		// check if there are globals
+		parseGlobals()
 
-			// create commandList from ZEUS dir
-			findCommands()
+		// create commandList from ZEUS dir
+		findCommands()
 
-			// watch scripts directory in interactive mode
-			if conf.Interactive {
-				go watchScripts("")
-			}
+		// watch scripts directory in interactive mode
+		if conf.fields.Interactive {
+			go watchScripts("")
 		}
 	}
 	if err != nil && err != ErrFailedToReadZeusfile {
@@ -276,7 +265,7 @@ func main() {
 		println()
 	}
 
-	if conf.ProjectNamePrompt {
+	if conf.fields.ProjectNamePrompt {
 		// set shell prompt to project name
 		zeusPrompt = filepath.Base(workingDir)
 	}
@@ -285,9 +274,9 @@ func main() {
 	handleArgs()
 
 	// check if interactive mode is enabled in the config
-	if conf.Interactive {
+	if conf.fields.Interactive {
 
-		if conf.WebInterface {
+		if conf.fields.WebInterface {
 			go StartWebListener(true)
 		}
 
@@ -302,7 +291,7 @@ func main() {
 		}
 	} else {
 		printProjectHeader()
-		if conf.PrintBuiltins {
+		if conf.fields.PrintBuiltins {
 			printBuiltins()
 		}
 		printCommands()
@@ -319,6 +308,7 @@ func printHelp() {
 	os.Exit(0)
 }
 
+// print the project ascii art and project infos
 func printProjectHeader() {
 
 	var err error
@@ -329,17 +319,17 @@ func printProjectHeader() {
 	if err != nil {
 		Log.WithError(err).Fatal("failed to get ascii art from rice box")
 	}
-	l.Println(cp.text + asciiArt + "\n")
+	l.Println(cp.Text + asciiArt + "v" + version)
 
-	l.Println(cp.text + pad("Project Name", 14) + cp.prompt + filepath.Base(workingDir) + cp.text + "\n")
+	l.Println(cp.Text + pad("Project Name", 14) + cp.Prompt + filepath.Base(workingDir) + cp.Text + "\n")
 	printAuthor()
 
 	printTodoCount()
-	if projectData.BuildNumber > 0 {
-		l.Println(cp.text + pad("BuildNumber", 14) + cp.prompt + strconv.Itoa(projectData.BuildNumber) + cp.text)
+	if projectData.fields.BuildNumber > 0 {
+		l.Println(cp.Text + pad("BuildNumber", 14) + cp.Prompt + strconv.Itoa(projectData.fields.BuildNumber) + cp.Text)
 	}
-	if projectData.Deadline != "" {
-		l.Println(pad("Deadline", 14) + cp.prompt + projectData.Deadline + cp.text)
+	if projectData.fields.Deadline != "" {
+		l.Println(pad("Deadline", 14) + cp.Prompt + projectData.fields.Deadline + cp.Text)
 	}
 
 	l.Println()
@@ -348,21 +338,14 @@ func printProjectHeader() {
 	listMilestones()
 }
 
+// check if zeus directory or Zeusfile exists
 func checkZeusEnvironment() {
-	// check if zeus directory or Zeusfile exists
-	stat, err := os.Stat(zeusDir)
+	stat, err := os.Stat(scriptDir)
 	if err != nil {
 		if stat, err = os.Stat(zeusfilePath); err != nil {
-			if stat, err = os.Stat("Zeusfile"); err != nil {
-				Log.WithError(err).Error("no zeus directory or Zeusfile found.")
-				Log.Info("run 'zeus bootstrap dir' or 'zeus bootstrap file' to create a default one, or 'zeus makefile migrate' if you want to migrate from a GNU Makefile.")
-				os.Exit(1)
-			} else {
-				// make sure its a file
-				if stat.IsDir() {
-					Log.Fatal("Zeusfile is not a file")
-				}
-			}
+			Log.WithError(err).Error("no zeus directory or Zeusfile found.")
+			Log.Info("run 'zeus bootstrap dir' or 'zeus bootstrap file' to create a default one, or 'zeus makefile migrate' if you want to migrate from a GNU Makefile.")
+			os.Exit(1)
 		} else {
 			// make sure its a file
 			if stat.IsDir() {
@@ -388,7 +371,7 @@ func handleArgs() {
 
 		switch os.Args[1] {
 		case helpCommand:
-			if conf.PrintBuiltins {
+			if conf.fields.PrintBuiltins {
 				printBuiltins()
 			}
 			printCommands()
@@ -449,7 +432,10 @@ func handleArgs() {
 				cmdMap.Unlock()
 
 				validCommand = true
-				numCommands = getTotalCommandCount(cmd)
+
+				s.Lock()
+				s.numCommands = getTotalDependencyCount(cmd)
+				s.Unlock()
 
 				err := cmd.Run(os.Args[2:], cmd.async)
 				if err != nil {
@@ -462,13 +448,13 @@ func handleArgs() {
 			}
 
 			// check if its a commandchain supplied with "" or ''
-			if strings.Contains(os.Args[1], p.separator) {
-				executeCommandChain(strings.Join(os.Args[1:], " "))
+			if strings.Contains(os.Args[1], commandChainSeparator) {
+				parseAndExecuteCommandChain(strings.Join(os.Args[1:], " "))
 				return
 			}
 
 			// check if its an alias
-			if command, ok := projectData.Aliases[os.Args[1]]; ok {
+			if command, ok := projectData.fields.Aliases[os.Args[1]]; ok {
 				handleLine(command)
 				os.Exit(0)
 			}

@@ -26,8 +26,8 @@ func printAuthorUsageErr() {
 }
 
 func printAuthor() {
-	if projectData.Author != "" {
-		l.Println(pad("Author", 14) + cp.prompt + projectData.Author)
+	if projectData.fields.Author != "" {
+		l.Println(pad("Author", 14) + cp.Prompt + projectData.fields.Author)
 	}
 }
 
@@ -45,12 +45,12 @@ func handleAuthorCommand(args []string) {
 			return
 		}
 		projectData.Lock()
-		projectData.Author = strings.Join(args[2:], " ")
+		projectData.fields.Author = strings.Join(args[2:], " ")
 		projectData.Unlock()
 		projectData.update()
 	case "remove":
 		projectData.Lock()
-		projectData.Author = ""
+		projectData.fields.Author = ""
 		projectData.Unlock()
 		projectData.update()
 	default:

@@ -56,8 +56,11 @@ const (
 	todoCommand       = "todo"
 	updateCommand     = "update"
 	procsCommand      = "procs"
+	editCommand       = "edit"
+	generateCommand   = "generate"
 )
 
+// mapped builtin names to description
 var builtins = map[string]string{
 	exitCommand:       "leave the interactive shell",
 	helpCommand:       "print the command overview or the manualtext for a specific command",
@@ -85,6 +88,8 @@ var builtins = map[string]string{
 	todoCommand:       "manage todos",
 	updateCommand:     "update zeus version",
 	procsCommand:      "manage spawned processes",
+	editCommand:       "edit scripts",
+	generateCommand:   "generate a standalone version of the script",
 }
 
 // executed when running the info command
@@ -129,12 +134,12 @@ func printBuiltins() {
 	sort.Strings(names)
 
 	l.Println()
-	l.Println(cp.text + "builtins")
+	l.Println(cp.Text + "builtins")
 
 	// print
 	for _, name := range names {
 		description := builtins[name]
-		l.Println(cp.cmdName + pad(name, width) + cp.text + description)
+		l.Println(cp.CmdName + pad(name, width) + cp.Text + description)
 	}
 	l.Println()
 }
@@ -167,8 +172,10 @@ func printCommands() {
 	// sort alphabetically
 	sort.Strings(sortedCommandKeys)
 
+	maxLen += 3
+
 	// print them
-	l.Println(cp.text + "commands")
+	l.Println(cp.Text + "commands")
 	for i, key := range sortedCommandKeys {
 
 		var (
@@ -177,55 +184,52 @@ func printCommands() {
 		)
 
 		if lastElem {
-			l.Print(cp.text + "└─── " + cp.cmdName + cmd.name + " " + getArgumentString(cmd.args) + cp.text)
+			l.Print(cp.Text + "└─── " + cp.CmdName + cmd.name + " " + getArgumentString(cmd.args) + cp.Text)
 		} else {
-			l.Print(cp.text + "├─── " + cp.cmdName + cmd.name + " " + getArgumentString(cmd.args) + cp.text)
-		}
-
-		if len(cmd.commandChain) > 0 {
-			if lastElem {
-				l.Println(cp.text + "     ├─── " + pad("chain", maxLen) + cp.cmdFields + formatcommandChain(cmd.commandChain))
-			} else {
-				l.Println(cp.text + "|    ├─── " + pad("chain", maxLen) + cp.cmdFields + formatcommandChain(cmd.commandChain))
-			}
-		}
-
-		if len(cmd.outputs) > 0 {
-			if lastElem {
-				l.Println(cp.text+"     ├─── "+pad("out", maxLen)+cp.cmdFields, cmd.outputs)
-			} else {
-				l.Println(cp.text+"|    ├─── "+pad("out", maxLen)+cp.cmdFields, cmd.outputs)
-			}
+			l.Print(cp.Text + "├─── " + cp.CmdName + cmd.name + " " + getArgumentString(cmd.args) + cp.Text)
 		}
 
 		if len(cmd.dependencies) > 0 {
-			if lastElem {
-				l.Println(cp.text+"     ├─── "+pad("deps", maxLen)+cp.cmdFields, cmd.dependencies)
-			} else {
-				l.Println(cp.text+"|    ├─── "+pad("deps", maxLen)+cp.cmdFields, cmd.dependencies)
-			}
+			printLine(pad("dependencies", maxLen)+cp.CmdFields+formatcommandChain(cmd.dependencies), lastElem, !(len(cmd.outputs) > 0) && !cmd.async && !cmd.buildNumber && !(len(cmd.description) > 0))
+		}
+
+		if len(cmd.outputs) > 0 {
+			printLine(pad("outputs", maxLen)+cp.CmdFields+strings.Join(cmd.outputs, ", "), lastElem, !cmd.async && !cmd.buildNumber && !(len(cmd.description) > 0))
 		}
 
 		if cmd.async {
-			if lastElem {
-				l.Println(cp.text + "     ├─── " + cp.cmdFields + "async")
-			} else {
-				l.Println(cp.text + "|    ├─── " + cp.cmdFields + "async")
-			}
+			printLine(cp.CmdFields+"async", lastElem, !cmd.buildNumber && !(len(cmd.description) > 0))
 		}
 
-		// print help section
-		if lastElem {
-			l.Println(cp.text + "     └─── " + pad("help", maxLen) + cmd.help)
-		} else {
-			l.Println(cp.text + "|    └─── " + pad("help", maxLen) + cmd.help)
+		if cmd.buildNumber {
+			printLine(cp.CmdFields+"buildNumber", lastElem, !(len(cmd.description) > 0))
+		}
+
+		if len(cmd.description) > 0 {
+			printLine(pad("description", maxLen)+cp.CmdFields+cmd.description, lastElem, true)
+		}
+
+		if !lastElem {
 			l.Println("|")
 		}
 	}
 	l.Println("")
 }
 
-// format argStr
+func printLine(line string, lastElem, lastItem bool) {
+	switch {
+	case lastElem && lastItem:
+		l.Println(cp.Text + "     └─── " + line + cp.Text)
+	case lastItem:
+		l.Println(cp.Text + "|    └─── " + line + cp.Text)
+	case lastElem:
+		l.Println(cp.Text + "     ├─── " + line + cp.Text)
+	default:
+		l.Println(cp.Text + "|    ├─── " + line + cp.Text)
+	}
+}
+
+// format commandArg map into human readable string
 func getArgumentString(args map[string]*commandArg) string {
 
 	if len(args) == 0 {
@@ -233,42 +237,32 @@ func getArgumentString(args map[string]*commandArg) string {
 	}
 
 	var (
-		argStr = cp.cmdArgs + "("
-		count  = 1
+		requiredArgs string
+		optionalArgs string
+		count        = 1
 	)
 
 	for _, arg := range args {
-		var t = cp.cmdArgType + strings.Title(arg.argType.String()) + cp.cmdArgs
+		var t = cp.CmdArgType + strings.Title(arg.argType.String())
 		if arg.optional {
 			if arg.defaultValue != "" {
-				t += "? =" + arg.defaultValue
+				t += "?" + cp.CmdOutput + " =" + arg.defaultValue
 			} else {
 				t += "?"
 			}
 		}
-		if count == len(args) {
-			argStr += arg.name + ":" + t + ")"
+		if arg.optional {
+			optionalArgs += cp.CmdArgs + arg.name + cp.Text + ":" + t + cp.Text + ", "
 		} else {
-			argStr += arg.name + ":" + t + ", "
+			requiredArgs += cp.CmdArgs + arg.name + cp.Text + ":" + t + cp.Text + ", "
 		}
 		count++
 	}
-	return argStr
-}
 
-// print the contents of globals.sh on stdout
-func listGlobals() {
-
-	if len(globalsContent) > 0 {
-		c, err := ioutil.ReadFile(zeusDir + "/globals.sh")
-		if err != nil {
-			l.Println("failed to read globals: ", err)
-			return
-		}
-		l.Println(string(c))
-	} else {
-		l.Println("no globals defined.")
+	if optionalArgs == "" {
+		return cp.Text + "(" + strings.TrimSuffix(requiredArgs, ", ") + cp.Text + ")"
 	}
+	return cp.Text + "(" + requiredArgs + strings.TrimSuffix(optionalArgs, ", ") + cp.Text + ")"
 }
 
 func printGitFilterCommandUsageErr() {
@@ -282,8 +276,8 @@ func handleGitFilterCommand(args []string) {
 	l.Println()
 
 	w := 35
-	l.Println(cp.prompt + pad("time", w) + pad("author", 41) + "subject")
-	out, err := exec.Command("git", "log", "--pretty=format:"+cp.text+pad("[%ci]", 13)+pad("%cn", w)+"%s").CombinedOutput()
+	l.Println(cp.Prompt + pad("time", w) + pad("author", 41) + "subject")
+	out, err := exec.Command("git", "log", "--pretty=format:"+cp.Text+pad("[%ci]", 13)+pad("%cn", w)+"%s").CombinedOutput()
 	if err != nil {
 		l.Println(err)
 		return
@@ -313,8 +307,13 @@ func printTodoCommandUsageErr() {
 	l.Println("usage: todo [add <task>] [remove <index>]")
 }
 
+// print todo overview
 func printTodos() {
-	contents, err := ioutil.ReadFile(conf.TodoFilePath)
+
+	conf.Lock()
+	defer conf.Unlock()
+
+	contents, err := ioutil.ReadFile(conf.fields.TodoFilePath)
 	if err != nil {
 		l.Println(err)
 		return
@@ -330,9 +329,17 @@ func printTodos() {
 	}
 }
 
+// print amount of tasks in todo file
 func printTodoCount() {
 
-	contents, err := ioutil.ReadFile(conf.TodoFilePath)
+	conf.Lock()
+	defer conf.Unlock()
+
+	if len(conf.fields.TodoFilePath) == 0 {
+		return
+	}
+
+	contents, err := ioutil.ReadFile(conf.fields.TodoFilePath)
 	if err != nil {
 		l.Println(err)
 		return
@@ -346,9 +353,10 @@ func printTodoCount() {
 		}
 	}
 
-	l.Println(cp.text + pad("TODOs", 14) + cp.prompt + strconv.Itoa(count))
+	l.Println(cp.Text + pad("TODOs", 14) + cp.Prompt + strconv.Itoa(count))
 }
 
+// manage todos
 func handleTodoCommand(args []string) {
 
 	if len(args) < 2 {
@@ -366,7 +374,7 @@ func handleTodoCommand(args []string) {
 
 		l.Println("adding TODO ", args[2:])
 
-		f, err := os.OpenFile(conf.TodoFilePath, os.O_RDWR|os.O_APPEND|os.O_CREATE, 0600)
+		f, err := os.OpenFile(conf.fields.TodoFilePath, os.O_RDWR|os.O_APPEND|os.O_CREATE, 0600)
 		if err != nil {
 			l.Println(err)
 			return
@@ -387,13 +395,13 @@ func handleTodoCommand(args []string) {
 			return
 		}
 
-		contents, err := ioutil.ReadFile(conf.TodoFilePath)
+		contents, err := ioutil.ReadFile(conf.fields.TodoFilePath)
 		if err != nil {
 			l.Println(err)
 			return
 		}
 
-		f, err := os.OpenFile(conf.TodoFilePath, os.O_RDWR|os.O_TRUNC, 0600)
+		f, err := os.OpenFile(conf.fields.TodoFilePath, os.O_RDWR|os.O_TRUNC, 0600)
 		if err != nil {
 			l.Println(err)
 			return
@@ -412,9 +420,10 @@ func handleTodoCommand(args []string) {
 	}
 }
 
+// run go get -u to get the latest ZEUS build from github
 func updateZeus() {
 
-	cmd := exec.Command("go", "get", "-u", "github.com/dreadl0ck/zeus")
+	cmd := exec.Command("go", "get", "-u", "-v", "github.com/dreadl0ck/zeus")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Stdin = os.Stdin
@@ -428,4 +437,91 @@ func updateZeus() {
 	}
 
 	l.Println("zeus updated!")
+	cleanup()
+	os.Exit(0)
+}
+
+func printEditCommandUsageErr() {
+	l.Println("invalid usage")
+	l.Println("usage: edit <command>")
+}
+
+// start editor to edit files in the interactive shell
+func handleEditCommand(args []string) {
+
+	if len(args) < 2 {
+		printEditCommandUsageErr()
+		return
+	}
+
+	var path string
+
+	cmdMap.Lock()
+	defer cmdMap.Unlock()
+
+	switch args[1] {
+	case "config":
+		path = zeusDir + "/config.yml"
+	case "data":
+		path = zeusDir + "/data.yml"
+	case "globals":
+		if len(args) > 2 {
+
+			var (
+				p  *parser
+				ok bool
+			)
+
+			ps.Lock()
+			if p, ok = ps.items[args[2]]; !ok {
+				ps.Unlock()
+				l.Println("no parser for " + args[2])
+				return
+			}
+			ps.Unlock()
+
+			path = zeusDir + "/globals" + p.language.FileExtension
+		} else {
+			path = zeusDir + "/globals.yml"
+		}
+	default:
+		// check if its a valid command
+		if cmd, ok := cmdMap.items[args[1]]; ok {
+			if _, err := os.Stat(zeusfilePath); err != nil {
+				path = cmd.path
+			} else {
+				path = zeusfilePath
+			}
+		} else {
+			l.Println("invalid command: ", args[1])
+			return
+		}
+	}
+
+	// get editor from config
+	conf.Lock()
+	editor := conf.fields.Editor
+	conf.Unlock()
+
+	cmd := exec.Command(editor, path)
+	wireEnv(cmd)
+
+	err := cmd.Run()
+	if err != nil {
+		Log.WithError(err).Error("edit command failed: using vim as fallback")
+
+		// try vim as fallback
+		cmd = exec.Command("vim", path)
+		wireEnv(cmd)
+
+		err = cmd.Run()
+		if err != nil {
+			Log.WithError(err).Error("edit command failed: fix editor in config")
+		}
+	}
+}
+
+func printGenerateCommandUsageErr() {
+	l.Println(ErrInvalidUsage)
+	l.Println("usage: generate <outputName> <commandChain>")
 }

@@ -84,6 +84,7 @@ func deleteProcessByPID(pid int) {
 }
 
 // cleanup before we leave
+// used only on unrecoverable errors
 func cleanup() {
 
 	// kill all spawned processes
@@ -107,16 +108,16 @@ func cleanup() {
 }
 
 // print all registered processes
-// func printProcessMap() {
-// 	l.Println("processMap: ", len(processMap))
-// 	for id, p := range processMap {
-// 		if p.Proc != nil {
-// 			l.Println("ID:", id, "PID:", p.Proc.Pid)
-// 		} else {
-// 			l.Println("ID:", id, "Process: <nil>")
-// 		}
-// 	}
-// }
+func printProcessMap() {
+	l.Println("processMap: ", len(processMap))
+	for id, p := range processMap {
+		if p.Proc != nil {
+			l.Println("ID:", id, "PID:", p.Proc.Pid)
+		} else {
+			l.Println("ID:", id, "Process: <nil>")
+		}
+	}
+}
 
 // clean up the mess
 func clearProcessMap() {
@@ -153,7 +154,7 @@ func passSignalToProcs(sig os.Signal) {
 	for _, p := range processMap {
 		if p.Proc != nil {
 
-			Log.Debug("passing signal "+sig.String()+" to PID:", p.Proc.Pid)
+			Log.Debug("passing signal "+sig.String()+" to PID: ", p.Proc.Pid)
 
 			err := p.Proc.Signal(sig)
 			if err != nil {
@@ -168,6 +169,7 @@ func printProcsCommandUsageErr() {
 	l.Println("usage: procs [detach <command>] [attach <pid>] [kill <pid>]")
 }
 
+// manage spawned processes
 func handleProcsCommand(args []string) {
 
 	if len(args) < 3 {
@@ -222,8 +224,8 @@ func printProcs() {
 	processMapMutex.Lock()
 	defer processMapMutex.Unlock()
 
-	l.Println(cp.prompt + pad("ID", 20) + pad("PID", 10) + "Name")
+	l.Println(cp.Prompt + pad("ID", 20) + pad("PID", 10) + "Name")
 	for _, p := range processMap {
-		l.Println(cp.text + pad(string(p.ID), 20) + pad(strconv.Itoa(p.PID), 10) + p.Name)
+		l.Println(cp.Text + pad(string(p.ID), 20) + pad(strconv.Itoa(p.PID), 10) + p.Name)
 	}
 }

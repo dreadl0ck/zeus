@@ -19,7 +19,6 @@
 package main
 
 import (
-	"bytes"
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
@@ -38,6 +37,7 @@ import (
 
 	yaml "gopkg.in/yaml.v2"
 
+	"github.com/Sirupsen/logrus"
 	gosxnotifier "github.com/deckarep/gosx-notifier"
 	"github.com/fsnotify/fsnotify"
 )
@@ -48,13 +48,28 @@ var (
 	signalMutex = &sync.Mutex{}
 )
 
-// dump the currently executed script in case of an error
-func dumpScript(script string, e error) {
+// dump the currently executed script to disk
+func dumpScript(script, language string, e error) {
 
 	var (
-		t            = "# Timestamp: " + time.Now().Format(timestampFormat) + "\n"
-		errString    = "# Error: " + e.Error() + "\n\n"
-		dumpFileName = "zeus_error_dump.sh"
+		p  *parser
+		ok bool
+	)
+
+	ps.Lock()
+	if p, ok = ps.items[language]; !ok {
+		ps.Unlock()
+		Log.WithFields(logrus.Fields{
+			"language": language,
+		}).Error("no parser found")
+		return
+	}
+	ps.Unlock()
+
+	var (
+		t            = p.language.Comment + " Timestamp: " + time.Now().Format(timestampFormat) + "\n"
+		errString    = p.language.Comment + " Error: " + e.Error() + "\n\n"
+		dumpFileName = zeusDir + "/error_dump" + p.language.FileExtension
 	)
 
 	f, err := os.OpenFile(dumpFileName, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0700)
@@ -64,8 +79,8 @@ func dumpScript(script string, e error) {
 	}
 	defer f.Close()
 
-	f.WriteString("#!/bin/bash\n#\n")
-	f.WriteString("# ZEUS Error Dump\n")
+	f.WriteString(p.language.Bang + "\n" + p.language.Comment + "\n")
+	f.WriteString(p.language.Comment + " ZEUS Error Dump\n")
 	f.WriteString(t)
 	f.WriteString(errString)
 	f.WriteString(script)
@@ -155,25 +170,25 @@ func clearScreen() {
 	print("\033[H\033[2J")
 }
 
-// count total length of a commandchain
-func countCommandChain(chain commandChain) int {
+// count total length of the commands dependencies
+func countDependencies(chain commandChain) int {
 	count := 0
 	for _, cmd := range chain {
 		count++
-		if len(cmd.commandChain) > 0 {
-			count += countCommandChain(cmd.commandChain)
+		if len(cmd.dependencies) > 0 {
+			count += countDependencies(cmd.dependencies)
 		}
 	}
 	return count
 }
 
-func getTotalCommandCount(c *command) int {
-	return 1 + countCommandChain(c.commandChain)
+func getTotalDependencyCount(c *command) int {
+	return 1 + countDependencies(c.dependencies)
 }
 
 // print the prompt for the interactive shell
 func printPrompt() string {
-	return cp.prompt + zeusPrompt + " » " + cp.text
+	return cp.Prompt + zeusPrompt + " » " + cp.Text
 }
 
 // pass the command to the bash
@@ -240,33 +255,6 @@ func isEndTag(s string) bool {
 	return false
 }
 
-// check if its a valid command chain
-func validCommandChain(args []string, silent bool) bool {
-
-	var (
-		chain = strings.Join(args, " ")
-		job   = p.AddJob(chain, silent)
-	)
-
-	commandList, err := job.parseCommandChain(chain)
-	if err != nil {
-		Log.WithError(err).Error("failed to parse command chain")
-		return false
-	}
-
-	defer p.RemoveJob(job)
-
-	_, err = job.getCommandChain(commandList, nil)
-	if err != nil {
-		if !silent {
-			Log.WithError(err).Error("failed to get command chain")
-		}
-		return false
-	}
-
-	return true
-}
-
 // handle help shell command
 func handleHelpCommand(args []string) {
 
@@ -276,7 +264,12 @@ func handleHelpCommand(args []string) {
 	}
 
 	if c, ok := cmdMap.items[args[1]]; ok {
-		l.Println("\n" + c.manual)
+
+		if c.help != "" {
+			l.Println("\n" + c.help)
+		} else {
+			l.Println("no help text available.")
+		}
 		return
 	}
 
@@ -312,6 +305,7 @@ func validArgType(in string, k reflect.Kind) bool {
 	return false
 }
 
+// display an OS notification
 func showNote(text, subtitle string) {
 
 	note := gosxnotifier.NewNotification(text)
@@ -325,7 +319,7 @@ func showNote(text, subtitle string) {
 	note.Sender = "com.apple.Terminal"
 
 	// optionally, specify a url or bundleid to open should the notification be clicked
-	note.Link = "http://" + hostName + ":" + strconv.Itoa(conf.PortWebPanel)
+	note.Link = "http://" + hostName + ":" + strconv.Itoa(conf.fields.PortWebPanel)
 
 	// optionally, an app icon
 	// note.AppIcon = "gopher.png"
@@ -360,11 +354,13 @@ func randomString() string {
 	return hex.EncodeToString(rb)
 }
 
+// watch script directory for changes and parse commands again
+// optionally with the same eventID that was loaded from projectData
 func watchScripts(eventID string) {
 
 	// dont add a new watcher when the event exists
 	projectData.Lock()
-	for _, e := range projectData.Events {
+	for _, e := range projectData.fields.Events {
 		if e.Name == "script watcher" {
 			projectData.Unlock()
 			return
@@ -372,26 +368,14 @@ func watchScripts(eventID string) {
 	}
 	projectData.Unlock()
 
-	err := addEvent(newEvent(zeusDir, fsnotify.Write, "script watcher", f.fileExtension, eventID, "internal", func(e fsnotify.Event) {
+	err := addEvent(newEvent(scriptDir, fsnotify.Write, "script watcher", "", eventID, "internal", func(e fsnotify.Event) {
 
 		Log.Debug("change event: ", e.Name)
 
-		if e.Name == zeusDir+"/globals.sh" {
-
-			c, err := ioutil.ReadFile(zeusDir + "/globals.sh")
-			if err != nil {
-				Log.WithError(err).Error("failed to read globals")
-				return
-			}
-			Log.Info("updated globals")
-			globalsContent = c
-		} else {
-			err := addCommand(e.Name, true)
-			if err != nil {
-				Log.WithError(err).Error("failed to parse command: ", e.Name)
-			}
+		err := addCommand(e.Name, true)
+		if err != nil {
+			Log.WithError(err).Error("failed to parse command: ", e.Name)
 		}
-
 	}))
 	if err != nil {
 		Log.WithError(err).Error("failed to watch script headers")
@@ -418,6 +402,7 @@ func printFileContents(data []byte) {
 	l.Println("| ------------------------------------------------------------ |")
 }
 
+// print available completions for the bash-completion package
 func printCompletions(previous string) {
 
 	switch previous {
@@ -445,6 +430,8 @@ func printCompletions(previous string) {
 		makefileCommand,
 		gitFilterCommand,
 		createCommand,
+		generateCommand,
+		editCommand,
 	}
 
 	for _, name := range completions {
@@ -464,13 +451,7 @@ func printCompletions(previous string) {
 	)
 
 	contents, err = ioutil.ReadFile("Zeusfile.yml")
-	if err != nil {
-		contents, err = ioutil.ReadFile("Zeusfile")
-	}
 	if err == nil {
-
-		// replace tabs with spaces
-		contents = bytes.Replace(contents, []byte("\t"), []byte("    "), -1)
 
 		// unmarshal data
 		err = yaml.Unmarshal(contents, zeusfile)
@@ -487,22 +468,21 @@ func printCompletions(previous string) {
 		}
 	} else {
 
-		// check for zeusDir
-		files, err := ioutil.ReadDir(zeusDir)
+		// read scripts
+		files, err := ioutil.ReadDir(scriptDir)
 		if err != nil {
-			fmt.Println()
+			fmt.Println(err)
 			return
 		}
 
+		// filter completions
 		for _, stat := range files {
-			if strings.HasSuffix(stat.Name(), ".sh") {
-				fileName := strings.TrimSuffix(filepath.Base(stat.Name()), ".sh")
-				if fileName != "globals" {
-					if fileName == previous {
-						return
-					}
-					completions = append(completions, fileName)
+			fileName := strings.TrimSuffix(filepath.Base(stat.Name()), filepath.Ext(stat.Name()))
+			if fileName != "globals" {
+				if fileName == previous {
+					return
 				}
+				completions = append(completions, fileName)
 			}
 		}
 	}
@@ -512,4 +492,13 @@ func printCompletions(previous string) {
 		fmt.Print(name + " ")
 	}
 	fmt.Println()
+}
+
+// wire up environment for spawned commands
+// connect stdin, stdout, stderr and pass environment
+func wireEnv(cmd *exec.Cmd) {
+	cmd.Env = os.Environ()
+	cmd.Stderr = os.Stderr
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
 }

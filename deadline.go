@@ -59,7 +59,7 @@ func addDeadline(args []string) {
 	}
 
 	conf.Lock()
-	format := conf.DateFormat
+	format := conf.fields.DateFormat
 	conf.Unlock()
 
 	// check if date is valid
@@ -70,7 +70,7 @@ func addDeadline(args []string) {
 	}
 
 	projectData.Lock()
-	projectData.Deadline = t.Format(conf.DateFormat)
+	projectData.fields.Deadline = t.Format(conf.fields.DateFormat)
 	projectData.Unlock()
 	projectData.update()
 	Log.Info("added deadline for ", args[0])
@@ -79,15 +79,15 @@ func addDeadline(args []string) {
 // remove the deadline from project data
 func removeDeadline() {
 	projectData.Lock()
-	projectData.Deadline = ""
+	projectData.fields.Deadline = ""
 	projectData.Unlock()
 	projectData.update()
 	Log.Info("removed deadline")
 }
 
 func printDeadline() {
-	if projectData.Deadline != "" {
-		l.Println("Deadline: " + cp.prompt + projectData.Deadline + cp.text + "\n")
+	if projectData.fields.Deadline != "" {
+		l.Println("Deadline: " + cp.Prompt + projectData.fields.Deadline + cp.Text + "\n")
 	} else {
 		l.Println("no deadline set.")
 	}

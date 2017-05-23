@@ -37,104 +37,94 @@ var (
 	// ErrConfigFileIsADirectory means the config file is a directory, thats wrong
 	ErrConfigFileIsADirectory = errors.New("the config file is a directory")
 
-	// path for global config file
-	globalConfigPath = os.Getenv("HOME") + "/.zeus_config.yml"
-
-	// path for project config files
-	zeusDir           = "zeus"
+	// path for project config file
 	projectConfigPath string
 
-	// regex for matching top level YAML keys from config file contents
-	yamlField = regexp.MustCompile("(\\s)*[a-z]?(.|\\s)*:")
+	// path for project config files
+	zeusDir = "zeus"
+
+	// path for command scripts
+	scriptDir = zeusDir + "/scripts"
+
+	// regex for matching YAML keys from config file contents
+	configYamlField = regexp.MustCompile("^(\\s)*[A-Z]+(.|\\s)*:")
+
+	// regex for matching YAML keys from script header
+	yamlField = regexp.MustCompile("^(\\s)*[a-z]+(.|\\s)*:")
 )
 
 // config contains configurable parameters
 type config struct {
-	AutoFormat          bool   `yaml:"AutoFormat"`
-	FixParseErrors      bool   `yaml:"FixParseErrors"`
-	Colors              bool   `yaml:"Colors"`
-	PassCommandsToShell bool   `yaml:"PassCommandsToShell"`
-	WebInterface        bool   `yaml:"WebInterface"`
-	Interactive         bool   `yaml:"Interactive"`
-	Debug               bool   `yaml:"Debug"`
-	RecursionDepth      int    `yaml:"RecursionDepth"`
-	ProjectNamePrompt   bool   `yaml:"ProjectNamePrompt"`
-	ColorProfile        string `yaml:"ColorProfile"`
-	HistoryFile         bool   `yaml:"HistoryFile"`
-	HistoryLimit        int    `yaml:"HistoryLimit"`
-	PortWebPanel        int    `yaml:"PortWebPanel"`
-	PortGlueServer      int    `yaml:"PortGlueServer"`
-	ExitOnInterrupt     bool   `yaml:"ExitOnInterrupt"`
-	DisableTimestamps   bool   `yaml:"DisableTimestamps"`
-	PrintBuiltins       bool   `yaml:"PrintBuiltins"`
-	MakefileOverview    bool   `yaml:"MakefileOverview"`
-	StopOnError         bool   `yaml:"StopOnError"`
-	DumpScriptOnError   bool   `yaml:"DumpScriptOnError"`
-	DateFormat          string `yaml:"DateFormat"`
-	TodoFilePath        string `yaml:"TodoFilePath"`
+	fields *configFields
 	sync.RWMutex
+}
+
+type configFields struct {
+	AutoFormat          bool                     `yaml:"AutoFormat"`
+	FixParseErrors      bool                     `yaml:"FixParseErrors"`
+	Colors              bool                     `yaml:"Colors"`
+	PassCommandsToShell bool                     `yaml:"PassCommandsToShell"`
+	WebInterface        bool                     `yaml:"WebInterface"`
+	Interactive         bool                     `yaml:"Interactive"`
+	Debug               bool                     `yaml:"Debug"`
+	RecursionDepth      int                      `yaml:"RecursionDepth"`
+	ProjectNamePrompt   bool                     `yaml:"ProjectNamePrompt"`
+	ColorProfile        string                   `yaml:"ColorProfile"`
+	HistoryFile         bool                     `yaml:"HistoryFile"`
+	HistoryLimit        int                      `yaml:"HistoryLimit"`
+	PortWebPanel        int                      `yaml:"PortWebPanel"`
+	PortGlueServer      int                      `yaml:"PortGlueServer"`
+	ExitOnInterrupt     bool                     `yaml:"ExitOnInterrupt"`
+	DisableTimestamps   bool                     `yaml:"DisableTimestamps"`
+	PrintBuiltins       bool                     `yaml:"PrintBuiltins"`
+	MakefileOverview    bool                     `yaml:"MakefileOverview"`
+	StopOnError         bool                     `yaml:"StopOnError"`
+	DumpScriptOnError   bool                     `yaml:"DumpScriptOnError"`
+	DateFormat          string                   `yaml:"DateFormat"`
+	TodoFilePath        string                   `yaml:"TodoFilePath"`
+	Editor              string                   `yaml:"Editor"`
+	ColorProfiles       map[string]*ColorProfile `yaml:"ColorProfiles"`
+	Languages           []*Language              `yaml:"Languages"`
 }
 
 // newConfig returns the default configuration in case there is no config file
 func newConfig() *config {
 	return &config{
-		MakefileOverview:    false,
-		AutoFormat:          false,
-		FixParseErrors:      true,
-		Colors:              true,
-		PassCommandsToShell: true,
-		WebInterface:        false,
-		Interactive:         true,
-		Debug:               false,
-		RecursionDepth:      1,
-		ProjectNamePrompt:   true,
-		ColorProfile:        "default",
-		HistoryFile:         true,
-		HistoryLimit:        20,
-		PortWebPanel:        8080,
-		ExitOnInterrupt:     true,
-		DisableTimestamps:   false,
-		PrintBuiltins:       false,
-		StopOnError:         true,
-		DumpScriptOnError:   true,
-		// german date format
-		DateFormat:   "02-01-2006",
-		TodoFilePath: "TODO.md",
+		fields: &configFields{
+			MakefileOverview:    false,
+			AutoFormat:          false,
+			FixParseErrors:      true,
+			Colors:              true,
+			PassCommandsToShell: true,
+			WebInterface:        false,
+			Interactive:         true,
+			Debug:               false,
+			RecursionDepth:      1,
+			ProjectNamePrompt:   true,
+			HistoryFile:         true,
+			HistoryLimit:        20,
+			PortWebPanel:        8080,
+			ExitOnInterrupt:     true,
+			DisableTimestamps:   false,
+			PrintBuiltins:       false,
+			StopOnError:         true,
+			DumpScriptOnError:   true,
+			// german date format
+			DateFormat:   "02-01-2006",
+			TodoFilePath: "TODO.md",
+			Editor:       "micro",
+			ColorProfile: "default",
+			ColorProfiles: map[string]*ColorProfile{
+				"light": lightProfile(),
+				"dark":  darkProfile(),
+			},
+		},
 	}
 }
 
 func printConfigUsageErr() {
 	l.Println(ErrInvalidUsage)
 	l.Println("usage: config [get <field>] [set <field> <value>]")
-}
-
-// parse the global JSON config
-func parseGlobalConfig() (*config, error) {
-
-	var c = new(config)
-
-	stat, err := os.Stat(globalConfigPath)
-	if err != nil {
-		return nil, err
-	}
-
-	if stat.IsDir() {
-		return nil, ErrConfigFileIsADirectory
-	}
-
-	contents, err := validateConfig(globalConfigPath)
-	if err != nil {
-		return nil, err
-	}
-
-	err = yaml.Unmarshal(contents, c)
-	if err != nil {
-		Log.WithError(err).Fatal("failed to unmarshal confg - invalid YAML")
-	}
-
-	c.handle()
-
-	return c, nil
 }
 
 // check for unknown fields in the config
@@ -147,20 +137,27 @@ func validateConfig(path string) ([]byte, error) {
 	}
 
 	var (
-		items      = configItems()
-		foundField bool
+		items        = configItems()
+		parsedFields []string
+		foundField   bool
 	)
 
 	for i, line := range strings.Split(string(c), "\n") {
-		field := yamlField.FindString(line)
-		if field != "" {
+		field := configYamlField.FindString(line)
+		if field != "" && !strings.HasPrefix(field, "    ") {
 			field = strings.TrimSuffix(strings.TrimSpace(field), ":")
 			for _, item := range items {
 				if field == strings.TrimSpace(string(item.GetName())) {
+					for _, f := range parsedFields {
+						if f == field {
+							Log.Warn("line " + strconv.Itoa(i) + ": duplicate config field: " + field)
+						}
+					}
+					parsedFields = append(parsedFields, field)
 					foundField = true
 				}
 			}
-			if !foundField && field != "rwmutex" {
+			if !foundField && field != "rwmutex" && field != "ColorProfiles" && field != "Languages" {
 				Log.Warn("line "+strconv.Itoa(i)+": unknown config field: ", field)
 			}
 			foundField = false
@@ -173,9 +170,10 @@ func validateConfig(path string) ([]byte, error) {
 // parse the local project YAML config
 func parseProjectConfig() (*config, error) {
 
-	projectConfigPath = zeusDir + "/zeus_config.yml"
+	projectConfigPath = zeusDir + "/config.yml"
 
-	var c = new(config)
+	// init default config
+	var c = newConfig()
 
 	stat, err := os.Stat(projectConfigPath)
 	if err != nil {
@@ -191,7 +189,7 @@ func parseProjectConfig() (*config, error) {
 		return nil, err
 	}
 
-	err = yaml.Unmarshal(contents, c)
+	err = yaml.Unmarshal(contents, c.fields)
 	if err != nil {
 		Log.WithError(err).Fatal("failed to unmarshal confg - invalid YAML:")
 		printFileContents(contents)
@@ -236,7 +234,7 @@ func (c *config) update() {
 	c.Lock()
 	defer c.Unlock()
 
-	b, err := yaml.Marshal(c)
+	b, err := yaml.Marshal(c.fields)
 	if err != nil {
 		Log.WithError(err).Fatal("failed to marshal config YAML:")
 	}
@@ -266,7 +264,7 @@ func cleanFormatterEvent() string {
 
 	var id string
 	projectData.Lock()
-	for _, e := range projectData.Events {
+	for _, e := range projectData.fields.Events {
 		if e.Name == "formatter watcher" {
 			id = e.ID
 		}
@@ -285,7 +283,7 @@ func (c *config) watch(eventID string) {
 
 	// dont add a new watcher when the event exists
 	projectData.Lock()
-	for _, e := range projectData.Events {
+	for _, e := range projectData.fields.Events {
 		if e.Name == "config watcher" {
 			projectData.Unlock()
 			return
@@ -308,7 +306,7 @@ func (c *config) watch(eventID string) {
 		// lock config
 		c.Lock()
 
-		err = yaml.Unmarshal(b, c)
+		err = yaml.Unmarshal(b, c.fields)
 		if err != nil {
 			Log.WithError(err).Error("config parse error")
 			c.Unlock()
@@ -330,7 +328,7 @@ func (c *config) getFieldInfo(field string) string {
 	c.Lock()
 	defer c.Unlock()
 
-	f := reflect.Indirect(reflect.ValueOf(c)).FieldByName(field)
+	f := reflect.Indirect(reflect.ValueOf(c.fields)).FieldByName(field)
 	switch f.Kind() {
 	case reflect.Bool:
 		return "field type: " + f.Kind().String() + ", value: " + strconv.FormatBool(f.Bool())
@@ -350,7 +348,7 @@ func (c *config) setValue(field, value string) {
 	c.Lock()
 
 	// check if the named field exists on the struct
-	f := reflect.Indirect(reflect.ValueOf(c)).FieldByName(field)
+	f := reflect.Indirect(reflect.ValueOf(c.fields)).FieldByName(field)
 
 	c.Unlock()
 
@@ -382,12 +380,13 @@ func (c *config) setValue(field, value string) {
 
 		Log.Info("set config field ", field, " to ", value)
 	case reflect.String:
-		f.SetString(f.String())
+		f.SetString(value)
 		Log.Info("set config field ", field, " to ", value)
 	default:
 		Log.Error("unknown type: ", f.Kind())
 		return
 	}
+
 	c.handle()
 	c.update()
 }
@@ -412,25 +411,33 @@ func (c *config) handle() {
 	// }
 
 	// enable dumping the script on error when the auto formatter is enabled
-	if c.AutoFormat {
-		c.DumpScriptOnError = true
+	if c.fields.AutoFormat {
+		c.fields.DumpScriptOnError = true
 	}
 
 	// disable colors if requested
-	if !c.Colors {
+	if !c.fields.Colors {
 
 		// lock once
 		cp.Lock()
-		cp = colorsOffProfile()
+		cp = colorsOffProfile().parse()
 
 		Log.Formatter = &prefixed.TextFormatter{
 			DisableColors:    true,
-			DisableTimestamp: c.DisableTimestamps,
+			DisableTimestamp: c.fields.DisableTimestamps,
 		}
 	}
 
-	if !c.AutoFormat {
+	if !c.fields.AutoFormat {
 		cleanFormatterEvent()
+	}
+
+	ps.Lock()
+	defer ps.Unlock()
+
+	// overwrite default languages with those from config
+	for _, lang := range c.fields.Languages {
+		ps.items[lang.Name] = newParser(lang)
 	}
 }
 
@@ -442,7 +449,7 @@ func (c *config) dump() {
 
 	l.Println()
 
-	b, err := yaml.Marshal(c)
+	b, err := yaml.Marshal(c.fields)
 	if err != nil {
 		Log.WithError(err).Error("failed to marshal config to YAML")
 	} else {

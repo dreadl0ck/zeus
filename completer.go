@@ -84,6 +84,7 @@ func configItems() []readline.PrefixCompleterInterface {
 		readline.PcItem("PortGlueServer"),
 		readline.PcItem("DateFormat"),
 		readline.PcItem("TodoFilePath"),
+		readline.PcItem("Editor"),
 	}
 }
 
@@ -136,7 +137,9 @@ func newCompleter() *readline.PrefixCompleter {
 				configItems()...,
 			),
 		),
-		readline.PcItem(createCommand),
+		readline.PcItem(createCommand,
+			readline.PcItemDynamic(languageCompleter),
+		),
 		readline.PcItem(eventsCommand,
 			readline.PcItem("add",
 				readline.PcItem("WRITE",
@@ -180,15 +183,19 @@ func newCompleter() *readline.PrefixCompleter {
 				readline.PcItemDynamic(todoIndexCompleter),
 			),
 		),
+		readline.PcItem("generate",
+			readline.PcItemDynamic(commandCompleter),
+		),
 		readline.PcItem(colorsCommand,
-			readline.PcItem("dark"),
-			readline.PcItem("light"),
+			readline.PcItem("off"),
 			readline.PcItem("default"),
+			readline.PcItemDynamic(colorProfileCompleter),
 		),
 		readline.PcItem(authorCommand,
 			readline.PcItem("set"),
 			readline.PcItem("remove"),
 		),
+		readline.PcItem("update"),
 		readline.PcItem(builtinsCommand),
 		readline.PcItem(keysCommand,
 			readline.PcItem("set",
@@ -196,6 +203,14 @@ func newCompleter() *readline.PrefixCompleter {
 			),
 			readline.PcItem("remove",
 				keyKombItems()...,
+			),
+		),
+		readline.PcItem("edit",
+			readline.PcItemDynamic(commandCompleter),
+			readline.PcItem("data"),
+			readline.PcItem("config"),
+			readline.PcItem("globals",
+				readline.PcItemDynamic(languageCompleter),
 			),
 		),
 		readline.PcItem("web"),
@@ -238,7 +253,7 @@ func newCompleter() *readline.PrefixCompleter {
 		readline.PcItem("micro",
 			readline.PcItemDynamic(fileCompleter),
 		),
-		readline.PcItemDynamic(commandChainCompleter),
+		//readline.PcItemDynamic(commandChainCompleter),
 	)
 
 	c.Dynamic = true
@@ -253,7 +268,7 @@ func newCompleter() *readline.PrefixCompleter {
 func eventIDCompleter(path string) (res []string) {
 	projectData.Lock()
 	defer projectData.Unlock()
-	for _, e := range projectData.Events {
+	for _, e := range projectData.fields.Events {
 		res = append(res, e.ID)
 	}
 	return
@@ -269,11 +284,22 @@ func commandCompleter(path string) (res []string) {
 	return
 }
 
+// complete available parser languages
+func languageCompleter(path string) (res []string) {
+	ps.Lock()
+	defer ps.Unlock()
+	for name := range ps.items {
+		res = append(res, name)
+	}
+	return
+}
+
+// @TODO: fix it
 // complete available commands for chains
 func commandChainCompleter(path string) (res []string) {
 
 	// only fire if line has -> suffix
-	if !strings.HasSuffix(path, p.separator+" ") {
+	if !strings.HasSuffix(path, commandChainSeparator+" ") {
 		return
 	}
 
@@ -286,8 +312,17 @@ func commandChainCompleter(path string) (res []string) {
 	return
 }
 
+func colorProfileCompleter(path string) (res []string) {
+	conf.Lock()
+	defer conf.Unlock()
+	for name := range conf.fields.ColorProfiles {
+		res = append(res, name)
+	}
+	return
+}
+
 func todoIndexCompleter(path string) (res []string) {
-	contents, err := ioutil.ReadFile(conf.TodoFilePath)
+	contents, err := ioutil.ReadFile(conf.fields.TodoFilePath)
 	if err != nil {
 		l.Println(err)
 		return
@@ -333,7 +368,7 @@ func fileTypeCompleter(path string) (res []string) {
 	}
 
 	for _, f := range files {
-		res = append(res, getFileExtension(f.Name()))
+		res = append(res, filepath.Ext(f.Name()))
 	}
 
 	// remove duplicates
@@ -355,17 +390,6 @@ func fileTypeCompleter(path string) (res []string) {
 	}
 
 	return out
-}
-
-func getFileExtension(path string) string {
-	base := filepath.Base(path)
-	if strings.Contains(base, ".") {
-		slice := strings.Split(base, ".")
-		if len(slice) > 1 {
-			return "." + slice[1]
-		}
-	}
-	return ""
 }
 
 func directoryCompleter(path string) []string {

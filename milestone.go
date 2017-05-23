@@ -107,7 +107,7 @@ func addMilestone(args []string) {
 	}
 
 	conf.Lock()
-	format := conf.DateFormat
+	format := conf.fields.DateFormat
 	conf.Unlock()
 
 	// check if date is valid
@@ -128,7 +128,7 @@ func addMilestone(args []string) {
 	}
 
 	projectData.Lock()
-	projectData.Milestones = append(projectData.Milestones, m)
+	projectData.fields.Milestones = append(projectData.fields.Milestones, m)
 	projectData.Unlock()
 	projectData.update()
 
@@ -148,9 +148,9 @@ func setMilestone(name, percent string) {
 	var ok bool
 
 	projectData.Lock()
-	for i := range projectData.Milestones {
-		if projectData.Milestones[i].Name == name {
-			projectData.Milestones[i].PercentComplete = int(p)
+	for i := range projectData.fields.Milestones {
+		if projectData.fields.Milestones[i].Name == name {
+			projectData.fields.Milestones[i].PercentComplete = int(p)
 			ok = true
 		}
 	}
@@ -173,9 +173,9 @@ func removeMilestone(name string) {
 	}
 
 	projectData.Lock()
-	for i, m := range projectData.Milestones {
+	for i, m := range projectData.fields.Milestones {
 		if m.Name == name {
-			projectData.Milestones = append(projectData.Milestones[:i], projectData.Milestones[i+1:]...)
+			projectData.fields.Milestones = append(projectData.fields.Milestones[:i], projectData.fields.Milestones[i+1:]...)
 			projectData.Unlock()
 			projectData.update()
 			Log.Info("remove milestone ", name)
@@ -191,16 +191,16 @@ func listMilestones() {
 	projectData.Lock()
 	defer projectData.Unlock()
 
-	if len(projectData.Milestones) > 0 {
+	if len(projectData.fields.Milestones) > 0 {
 
 		w := 30
-		l.Println(cp.text + "Milestones")
-		l.Println(cp.prompt + pad("status", 30) + pad("name", w) + pad("date", w) + "description" + cp.text)
-		for _, m := range projectData.Milestones {
+		l.Println(cp.Text + "Milestones")
+		l.Println(cp.Prompt + pad("status", 30) + pad("name", w) + pad("date", w) + "description" + cp.Text)
+		for _, m := range projectData.fields.Milestones {
 			if len(m.Description) > 0 {
-				l.Println(pad(getStatusBar(m.PercentComplete), 30) + pad(m.Name, w) + pad(m.Date.Format(conf.DateFormat), w) + m.Description)
+				l.Println(pad(getStatusBar(m.PercentComplete), 30) + pad(m.Name, w) + pad(m.Date.Format(conf.fields.DateFormat), w) + m.Description)
 			} else {
-				l.Println(pad(getStatusBar(m.PercentComplete), 30) + pad(m.Name, w) + m.Date.Format(conf.DateFormat))
+				l.Println(pad(getStatusBar(m.PercentComplete), 30) + pad(m.Name, w) + m.Date.Format(conf.fields.DateFormat))
 			}
 		}
 		l.Println("")

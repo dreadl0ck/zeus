@@ -1,0 +1,21 @@
+BuildNumber: 0
+Deadline: ""
+Milestones: []
+Aliases: {}
+Events:
+  cf913ef345d5c5d6:
+    name: script watcher
+    id: cf913ef345d5c5d6
+    path: tests/scripts
+    op: 2
+    fileextension: ""
+    command: internal
+  f33480f1570e9bc6:
+    name: config watcher
+    id: f33480f1570e9bc6
+    path: tests/config.yml
+    op: 2
+    fileextension: .yml
+    command: internal
+Author: ""
+KeyBindings: {}

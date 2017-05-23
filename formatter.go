@@ -48,9 +48,7 @@ type formatter struct {
 	// buffers
 	readBuf  bytes.Buffer
 	writeBuf bytes.Buffer
-
-	language      string
-	fileExtension string
+	language string
 
 	openMode    int
 	parseMode   syntax.ParseMode
@@ -66,9 +64,7 @@ func newFormatter() *formatter {
 	return &formatter{
 		readBuf:  bytes.Buffer{},
 		writeBuf: bytes.Buffer{},
-
-		language:      "bash",
-		fileExtension: ".sh",
+		language: "bash",
 
 		openMode:  os.O_RDWR,
 		parseMode: syntax.ParseComments,
@@ -146,7 +142,7 @@ func (f *formatter) formatzeusDir() error {
 
 	var cLog = Log.WithField("prefix", "formatzeusDir")
 
-	info, err := os.Stat(zeusDir)
+	info, err := os.Stat(scriptDir)
 	if err != nil {
 		cLog.WithError(err).Error("path does not exist")
 		return err
@@ -155,7 +151,7 @@ func (f *formatter) formatzeusDir() error {
 		return ErrNoDirectory
 	}
 
-	return filepath.Walk(zeusDir, func(path string, info os.FileInfo, err error) error {
+	return filepath.Walk(scriptDir, func(path string, info os.FileInfo, err error) error {
 
 		// no recursion for now
 		if info.IsDir() {
@@ -209,11 +205,11 @@ func (f *formatter) formatCommand() {
 }
 
 // watch the zeus dir changes and run format on write event
-func (f *formatter) watchzeusDir(eventID string) {
+func (f *formatter) watchScriptDir(eventID string) {
 
 	// dont add a new watcher when the event exists
 	projectData.Lock()
-	for _, e := range projectData.Events {
+	for _, e := range projectData.fields.Events {
 		if e.Name == "formatter watcher" {
 			projectData.Unlock()
 			return
@@ -221,10 +217,10 @@ func (f *formatter) watchzeusDir(eventID string) {
 	}
 	projectData.Unlock()
 
-	err := addEvent(newEvent(zeusDir, fsnotify.Write, "formatter watcher", "", eventID, "internal", func(event fsnotify.Event) {
+	err := addEvent(newEvent(scriptDir, fsnotify.Write, "formatter watcher", "", eventID, "internal", func(event fsnotify.Event) {
 
 		// check if its a valid script
-		if strings.HasSuffix(event.Name, f.fileExtension) {
+		if strings.HasSuffix(event.Name, ".sh") {
 
 			// ignore further WRITE events while formatting a script
 			disableWriteEvent = true
@@ -239,6 +235,6 @@ func (f *formatter) watchzeusDir(eventID string) {
 		}
 	}))
 	if err != nil {
-		Log.Error("failed to watch path: ", zeusDir)
+		Log.Error("failed to watch path: ", scriptDir)
 	}
 }

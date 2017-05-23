@@ -19,29 +19,36 @@
 package main
 
 import "os"
+import "time"
 
 /*
  *	Bootstrapping
  */
 
 // create a file with name and content
-func bootstrapFile(name string) {
+func bootstrapScript(name string) {
 
 	var cLog = Log.WithField("prefix", "bootstrapFile")
 
-	content, err := assetBox.Bytes(name)
-	if err != nil {
-		cLog.WithError(err).Fatal("failed to get content for file: " + name)
-	}
-
 	cLog.Info("creating file: ", name)
-	f, err := os.Create(zeusDir + "/" + name)
+	f, err := os.Create(scriptDir + "/" + name)
 	if err != nil {
-		cLog.WithError(err).Fatal("failed to create file: ", zeusDir+"/"+name)
+		cLog.WithError(err).Fatal("failed to create file: ", scriptDir+"/"+name)
 	}
 	defer f.Close()
 
-	f.Write(content)
+	f.WriteString(`#!/bin/bash
+
+# {zeus}
+# description: description for ` + name + `
+# arguments:
+# dependencies:
+# outputs:
+# help: help text for ` + name + `
+# {zeus}
+
+echo "implement ` + name + `"
+`)
 
 	return
 }
@@ -54,22 +61,22 @@ func printBootstrapCommandUsageErr() {
 // useful when starting from scratch
 func runBootstrapDirCommand() {
 
-	err := os.Mkdir(zeusDir, 0700)
+	err := os.MkdirAll(scriptDir, 0700)
 	if err != nil {
 		Log.WithError(err).Fatal("failed to create zeus directory")
 	}
 
-	bootstrapFile("clean.sh")
-	bootstrapFile("build.sh")
-	bootstrapFile("run.sh")
-	bootstrapFile("test.sh")
-	bootstrapFile("install.sh")
-	bootstrapFile("bench.sh")
+	bootstrapScript("clean.sh")
+	bootstrapScript("build.sh")
+	bootstrapScript("run.sh")
+	bootstrapScript("test.sh")
+	bootstrapScript("install.sh")
+	bootstrapScript("bench.sh")
 }
 
 // bootstrap basic zeus scripts
 // useful when starting from scratch
-func runBootstrapFileCommand() {
+func runBootstrapZeusfileCommand() {
 
 	f, err := os.Create("Zeusfile.yml")
 	if err != nil {
@@ -82,72 +89,128 @@ func runBootstrapFileCommand() {
 ############
 
 # globals for all build commands
-globals: |
-    version=0.1
+globals:
 
 # all commands
 commands: 
     build:
-        chain: clean
-        help: build project
+        description: build project
+        dependencies: clean
         buildNumber: true
-        run: 
+        exec: 
 	clean:
-        help: clean up to prepare for build
-        run: rm -rf bin/*
+        description: clean up to prepare for build
+        exec: rm -rf bin/*
     install:
-        chain: clean
-        help: install to $PATH
-        manual: Install the application to the default system location
-        run:
+        dependencies: clean
+        description: install to $PATH
+        help: Install the application to the default system location
+        exec:
 `)
 }
 
 func printCreateCommandUsageErr() {
 	l.Println("usage:")
-	l.Println("zeus create <command>")
+	l.Println("zeus create <language> <command>")
 }
 
+// bootstrap a single new command
+// either append to Zeusfile or create a new script
+// then drop into editor
 func handleCreateCommand(args []string) {
 
-	if len(args) < 2 {
+	if len(args) < 3 {
 		printCreateCommandUsageErr()
 		return
 	}
 
-	filename := zeusDir + "/" + args[1] + f.fileExtension
+	cmdMap.Lock()
 
-	_, err := os.Stat(filename)
+	// check if command exists
+	if _, ok := cmdMap.items[args[2]]; ok {
+		cmdMap.Unlock()
+		l.Println("command " + args[2] + " exists!")
+		return
+	}
+	cmdMap.Unlock()
+
+	var lang *Language
+
+	// look up language fileExtension and bang
+	ps.Lock()
+	for name, p := range ps.items {
+		if name == args[1] {
+			lang = p.language
+		}
+	}
+	ps.Unlock()
+
+	if lang == nil {
+		l.Println("no parser for " + args[1])
+		return
+	}
+
+	// check if there's a Zeusfile
+	_, err := os.Stat(zeusfilePath)
 	if err == nil {
-		l.Println("file " + filename + " exists!")
-		return
-	}
+		// append command to Zeusfile
+		f, err := os.OpenFile(zeusfilePath, os.O_APPEND|os.O_WRONLY, 0744)
+		if err != nil {
+			Log.WithError(err).Error("failed to open Zeusfile for writing")
+			return
+		}
 
-	f, err := os.Create(filename)
-	if err != nil {
-		l.Println("failed to create file: ", err)
-		return
-	}
-	defer f.Close()
+		f.WriteString("\n" + `    ` + args[2] + `:
+        language: ` + lang.Name + `
+        description:
+        help:
+        arguments:
+        dependencies:
+        outputs:
+        exec:
+`)
+		f.Close()
+	} else {
+		filename := scriptDir + "/" + args[2] + lang.FileExtension
 
-	f.WriteString(`#!/bin/bash
+		// check if the script already exists
+		_, err := os.Stat(filename)
+		if err == nil {
+			l.Println("file " + filename + " exists!")
+			return
+		}
 
-# ---------------------------------------------------------------------- #
-# @zeus-chain: 
-# @zeus-help: 
-# @zeus-args: 
-# ---------------------------------------------------------------------- #
-#
-# ---------------------------------------------------------------------- #
+		f, err := os.Create(filename)
+		if err != nil {
+			l.Println("failed to create file: ", err)
+			return
+		}
 
-echo "implement me!"
+		f.WriteString(lang.Bang + `
+
+# {zeus}
+# description:
+# arguments:
+# dependencies:
+# outputs:
+# help:
+# {zeus}
+
 `)
 
-	l.Println("created zeus command at " + filename)
+		f.Close()
+		l.Println("created zeus command at " + filename)
 
-	// parse new command
-	err = addCommand(filename, true)
-	if err != nil {
-		Log.WithError(err).Error("failed to add command")
+		// parse new command
+		err = addCommand(filename, true)
+		if err != nil {
+			Log.WithError(err).Error("failed to add command")
+		}
 	}
+
+	// parsing commands is async, wait a little
+	time.Sleep(100 * time.Millisecond)
+
+	// start editor
+	handleEditCommand([]string{"edit", args[2]})
 }

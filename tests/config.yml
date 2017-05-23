@@ -1,0 +1,41 @@
+AutoFormat: false
+FixParseErrors: true
+Colors: true
+PassCommandsToShell: true
+WebInterface: true
+Interactive: true
+Debug: true
+RecursionDepth: 1
+ProjectNamePrompt: true
+ColorProfile: default
+HistoryFile: true
+HistoryLimit: 20
+PortWebPanel: 8080
+PortGlueServer: 0
+ExitOnInterrupt: true
+DisableTimestamps: false
+PrintBuiltins: false
+MakefileOverview: false
+StopOnError: true
+DumpScriptOnError: true
+DateFormat: 02-01-2006
+TodoFilePath: TODO.md
+Editor: micro
+ColorProfiles:
+  dark:
+    Text: black
+    Prompt: blue
+    CmdOutput: light+h
+    CmdName: blue
+    CmdFields: yellow
+    CmdArgs: white+h
+    CmdArgType: green
+  light:
+    Text: black
+    Prompt: yellow
+    CmdOutput: black+h
+    CmdName: red
+    CmdFields: blue
+    CmdArgs: cyan
+    CmdArgType: green
+Languages: []

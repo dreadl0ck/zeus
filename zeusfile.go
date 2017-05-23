@@ -19,7 +19,6 @@
 package main
 
 import (
-	"bytes"
 	"errors"
 	"io/ioutil"
 	"os"
@@ -33,7 +32,8 @@ import (
 )
 
 var (
-	zeusfilePath = "Zeusfile.yml"
+	// default path for Zeusfile
+	zeusfilePath = "zeus/Zeusfile.yml"
 
 	// ErrFailedToReadZeusfile occurs when the Zeusfile could not be read
 	ErrFailedToReadZeusfile = errors.New("failed to read Zeusfile")
@@ -41,8 +41,23 @@ var (
 
 // Zeusfile contains globals and commands for the Zeusfile.yml
 type Zeusfile struct {
-	Globals  string                  `yaml:"globals"`
+
+	// Overrride default language bash
+	Language string `yaml:"language"`
+
+	// global vars for all commands
+	Globals *globals `yaml:"globals"`
+
+	// command data
 	Commands map[string]*commandData `yaml:"commands"`
+}
+
+func newZeusfile() *Zeusfile {
+	return &Zeusfile{
+		Language: "bash",
+		Globals:  &globals{},
+		Commands: make(map[string]*commandData, 0),
+	}
 }
 
 // parse and initialize all commands inside the Zeusfile
@@ -50,27 +65,29 @@ func parseZeusfile(path string) error {
 
 	var (
 		start    = time.Now()
-		zeusfile = new(Zeusfile)
+		zeusfile = newZeusfile()
+		p        *parser
+		ok       bool
 	)
 
+	// read file contents
 	contents, err := ioutil.ReadFile(path)
 	if err != nil {
 		Log.Debug(err)
 		return ErrFailedToReadZeusfile
 	}
 
-	// replace all tabs with spaces
-	contents = bytes.Replace(contents, []byte("\t"), []byte("    "), -1)
-
+	// unmarshal YAML
 	err = yaml.Unmarshal(contents, zeusfile)
 	if err != nil {
 		return err
 	}
 
-	// check if there are globals
-	if len(zeusfile.Globals) > 0 {
-		globalsContent = append(globalsContent, []byte("#!/bin/bash\n"+zeusfile.Globals+"\n")...)
+	ps.Lock()
+	if p, ok = ps.items[zeusfile.Language]; !ok {
+		return errors.New("Zeusfile: " + ErrUnsupportedLanguage.Error() + ": " + zeusfile.Language)
 	}
+	ps.Unlock()
 
 	// initialize commands
 	for name, d := range zeusfile.Commands {
@@ -78,7 +95,7 @@ func parseZeusfile(path string) error {
 		// create parse job
 		var job = p.AddJob("zeusfile."+name, false)
 
-		chain, err := job.parseCommandChain(d.Chain)
+		chain, err := job.parseCommandChain(d.Dependencies)
 		if err != nil {
 			return err
 		}
@@ -90,19 +107,25 @@ func parseZeusfile(path string) error {
 		}
 
 		// assemble commands args
-		args, err := validateArgs(d.Args)
+		args, err := validateArgs(d.Arguments)
 		if err != nil {
 			return errors.New("Zeusfile, command " + name + ": " + err.Error())
 		}
 
+		var lang string
+		if d.Language == "" {
+			lang = zeusfile.Language
+		} else {
+			lang = d.Language
+		}
+
 		// create command
 		cmd := &command{
-			path:         "",
-			name:         name,
-			args:         args,
-			manual:       d.Manual,
-			help:         d.Help,
-			commandChain: commandChain,
+			path:        "",
+			name:        name,
+			args:        args,
+			description: d.Description,
+			help:        d.Help,
 			PrefixCompleter: readline.PcItem(name,
 				readline.PcItemDynamic(func(path string) (res []string) {
 					for _, a := range args {
@@ -114,10 +137,11 @@ func parseZeusfile(path string) error {
 				}),
 			),
 			buildNumber:  d.BuildNumber,
-			dependencies: d.Dependencies,
+			dependencies: commandChain,
 			outputs:      d.Outputs,
-			runCommand:   d.Run,
+			execScript:   d.Exec,
 			async:        d.Async,
+			language:     lang,
 		}
 
 		// job done
@@ -133,7 +157,7 @@ func parseZeusfile(path string) error {
 		cmdMap.items[cmd.name] = cmd
 		cmdMap.Unlock()
 
-		Log.WithField("prefix", "parseZeusfile").Debug("added " + cp.cmdName + cmd.name + ansi.Reset + " to the command map")
+		Log.WithField("prefix", "parseZeusfile").Debug("added " + cp.CmdName + cmd.name + ansi.Reset + " to the command map")
 		if debug {
 			cmd.dump()
 		}
@@ -144,11 +168,11 @@ func parseZeusfile(path string) error {
 
 	// only print info when using the interactive shell
 	if len(os.Args) == 1 {
-		l.Println(cp.text+"initialized "+cp.prompt, len(cmdMap.items), cp.text+" commands from Zeusfile in: "+cp.prompt, time.Now().Sub(start), ansi.Reset+"\n")
+		l.Println(cp.Text+"initialized "+cp.Prompt, len(cmdMap.items), cp.Text+" commands from Zeusfile in: "+cp.Prompt, time.Now().Sub(start), ansi.Reset+"\n")
 	}
 
 	// watch file for changes in interactive mode
-	if conf.Interactive {
+	if conf.fields.Interactive {
 		go watchZeusfile(path, "")
 	}
 
@@ -158,9 +182,9 @@ func parseZeusfile(path string) error {
 // watch zeus file for changes and parse again
 func watchZeusfile(path, eventID string) {
 
-	// dont add a new watcher when the event exists
+	// don't add a new watcher when the event exists
 	projectData.Lock()
-	for _, e := range projectData.Events {
+	for _, e := range projectData.fields.Events {
 		if e.Name == "zeusfile watcher" {
 			projectData.Unlock()
 			return
@@ -191,7 +215,7 @@ func migrateZeusfile() error {
 
 	// remove zeusfile watcher
 	projectData.Lock()
-	for id, e := range projectData.Events {
+	for id, e := range projectData.fields.Events {
 		if e.Name == "zeusfile watcher" {
 			eventID = id
 		}
@@ -203,24 +227,16 @@ func migrateZeusfile() error {
 	// parse file
 	var (
 		start    = time.Now()
-		zeusfile = new(Zeusfile)
-		filename string
+		zeusfile = newZeusfile()
+		p        *parser
+		ok       bool
 	)
 
 	contents, err := ioutil.ReadFile(zeusfilePath)
 	if err != nil {
-		contents, err = ioutil.ReadFile("Zeusfile")
-		if err != nil {
-			l.Println("couldnt find Zeusfile.yml or Zeusfile")
-			return err
-		}
-		filename = "Zeusfile"
-	} else {
-		filename = zeusfilePath
+		l.Println("couldnt find Zeusfile.yml")
+		return err
 	}
-
-	// replace all tabs with spaces
-	contents = bytes.Replace(contents, []byte("\t"), []byte("    "), -1)
 
 	err = yaml.Unmarshal(contents, zeusfile)
 	if err != nil {
@@ -236,14 +252,33 @@ func migrateZeusfile() error {
 	}
 
 	// check if there are globals
-	if len(zeusfile.Globals) > 0 {
-		// create globals.sh
-		f, err := os.Create(zeusDir + "/globals.sh")
+	if len(zeusfile.Globals.Items) > 0 {
+
+		// create globals
+		f, err := os.Create(zeusDir + "/globals.yml")
 		if err != nil {
 			return err
 		}
-		defer f.Close()
+
+		g.Lock()
+		c, err := yaml.Marshal(g)
+		if err != nil {
+			g.Unlock()
+			Log.Error("failed to marshal globals")
+			return err
+		}
+		g.Unlock()
+
+		f.Write(c)
+		f.Close()
 	}
+
+	ps.Lock()
+	if p, ok = ps.items[zeusfile.Language]; !ok {
+		ps.Unlock()
+		return errors.New("Zeusfile: " + ErrUnsupportedLanguage.Error() + ": " + zeusfile.Language)
+	}
+	ps.Unlock()
 
 	// initialize commands
 	for name, d := range zeusfile.Commands {
@@ -251,7 +286,7 @@ func migrateZeusfile() error {
 		// create parse job
 		var job = p.AddJob("zeusfile."+name, false)
 
-		chain, err := job.parseCommandChain(d.Chain)
+		chain, err := job.parseCommandChain(d.Dependencies)
 		if err != nil {
 			return err
 		}
@@ -263,7 +298,7 @@ func migrateZeusfile() error {
 		}
 
 		// check commands args
-		_, err = validateArgs(d.Args)
+		_, err = validateArgs(d.Arguments)
 		if err != nil {
 			return err
 		}
@@ -272,32 +307,44 @@ func migrateZeusfile() error {
 		p.RemoveJob(job)
 
 		// create command script
-		f, err := os.Create(zeusDir + "/" + name + ".sh")
+		f, err := os.Create(scriptDir + "/" + name + p.language.FileExtension)
 		if err != nil {
 			return err
 		}
 
 		f.WriteString("#!/bin/bash\n\n")
-		f.WriteString("# ------------------------------------------------ #\n")
-		f.WriteString("# @zeus-args: " + d.Args + "\n")
-		f.WriteString("# @zeus-help: " + d.Help + "\n")
-		f.WriteString("# @zeus-chain: " + d.Chain + "\n")
-		f.WriteString("# @zeus-deps: " + strings.Join(d.Dependencies, ", ") + "\n")
-		f.WriteString("# @zeus-outputs: " + strings.Join(d.Outputs, ", ") + "\n")
-		if d.BuildNumber == true {
-			f.WriteString("# @zeus-buildNumber: true\n")
+		f.WriteString("# " + zeusHeaderTag + "\n")
+
+		f.WriteString("# arguments:\n")
+		for _, arg := range d.Arguments {
+			f.WriteString("#     - " + arg + "\n")
 		}
-		f.WriteString("# ------------------------------------------------ #\n")
-		f.WriteString("#" + d.Manual + "\n")
-		f.WriteString("# ------------------------------------------------ #\n\n")
-		f.WriteString(d.Run + "\n")
+
+		f.WriteString("# description: " + d.Description + "\n")
+		f.WriteString("# dependencies: " + d.Dependencies + "\n")
+
+		f.WriteString("# outputs:\n")
+		for _, out := range d.Outputs {
+			f.WriteString("#     - " + out + "\n")
+		}
+
+		if d.BuildNumber == true {
+			f.WriteString("# buildNumber: true\n")
+		}
+		if d.Async == true {
+			f.WriteString("# async: true\n")
+		}
+
+		f.WriteString("# help: " + d.Help + "\n")
+		f.WriteString("# " + zeusHeaderTag + "\n\n")
+		f.WriteString(d.Exec + "\n")
 		f.Close()
 	}
 
 	cmdMap.Lock()
 	defer cmdMap.Unlock()
 
-	l.Println(cp.text+"migrated "+cp.prompt, len(cmdMap.items), cp.text+" commands from Zeusfile in: "+cp.prompt, time.Now().Sub(start), ansi.Reset+"\n")
+	l.Println(cp.Text+"migrated "+cp.Prompt, len(cmdMap.items), cp.Text+" commands from Zeusfile in: "+cp.Prompt, time.Now().Sub(start), ansi.Reset+"\n")
 
-	return os.Rename(filename, "Zeusfile_old.yml")
+	return os.Rename(zeusfilePath, zeusDir+"/Zeusfile_old.yml")
 }

@@ -42,6 +42,11 @@ var (
 
 // zeus project data written to disk
 type data struct {
+	fields *dataFields
+	sync.RWMutex
+}
+
+type dataFields struct {
 	BuildNumber int `yaml:"BuildNumber"`
 
 	// project deadline
@@ -60,19 +65,19 @@ type data struct {
 
 	// keys mapped to commands
 	KeyBindings map[string]string `yaml:"KeyBindings"`
-
-	sync.RWMutex
 }
 
 func newData() *data {
 	return &data{
-		BuildNumber: 0,
-		Deadline:    "",
-		Milestones:  make([]*milestone, 0),
-		Aliases:     make(map[string]string, 0),
-		Events:      make(map[string]*Event, 0),
-		Author:      "",
-		KeyBindings: make(map[string]string, 0),
+		fields: &dataFields{
+			BuildNumber: 0,
+			Deadline:    "",
+			Milestones:  make([]*milestone, 0),
+			Aliases:     make(map[string]string, 0),
+			Events:      make(map[string]*Event, 0),
+			Author:      "",
+			KeyBindings: make(map[string]string, 0),
+		},
 	}
 }
 
@@ -82,7 +87,7 @@ func (d *data) update() {
 	d.Lock()
 	defer d.Unlock()
 
-	b, err := yaml.Marshal(d)
+	b, err := yaml.Marshal(d.fields)
 	if err != nil {
 		Log.WithError(err).Error("failed to marshal zeus data")
 		return
@@ -112,8 +117,10 @@ func (d *data) update() {
 // parse the project data YAML
 func parseProjectData() (*data, error) {
 
-	projectDataPath = zeusDir + "/zeus_data.yml"
-	var d = new(data)
+	projectDataPath = zeusDir + "/data.yml"
+
+	// init default data
+	var d = newData()
 
 	_, err := os.Stat(projectDataPath)
 	if err != nil {
@@ -129,7 +136,7 @@ func parseProjectData() (*data, error) {
 		return nil, ErrEmptyZeusData
 	}
 
-	err = yaml.Unmarshal(contents, d)
+	err = yaml.Unmarshal(contents, d.fields)
 	if err != nil {
 		printFileContents(contents)
 		Log.WithError(err).Fatal("failed to unmarshal zeus data - invalid YAML:")
@@ -143,12 +150,12 @@ func parseProjectData() (*data, error) {
 func loadEvents() {
 
 	projectData.Lock()
-	for _, e := range projectData.Events {
+	for _, e := range projectData.fields.Events {
 
 		// reload internal watchers from project data
 		if e.Command == "internal" {
 			// remove from projectData
-			delete(projectData.Events, e.ID)
+			delete(projectData.fields.Events, e.ID)
 			reloadEvent(e)
 			continue
 		}
@@ -158,7 +165,7 @@ func loadEvents() {
 		Log.Info("loading event: ", e.Command, " path: ", e.Path)
 
 		// addEvent will create a new eventID so we need to clean up the entry for the previous one
-		delete(projectData.Events, e.ID)
+		delete(projectData.fields.Events, e.ID)
 
 		// copy values from struct
 		var (
@@ -176,8 +183,8 @@ func loadEvents() {
 				Log.Debug("event fired, name: ", event.Name, " path: ", path)
 
 				// validate commandChain
-				if validCommandChain(fields, false) {
-					executeCommandChain(command)
+				if cmdChain, ok := validCommandChain(fields, false); ok {
+					cmdChain.exec()
 				} else {
 
 					Log.Debug("passing chain to shell")
@@ -211,7 +218,7 @@ func printProjectData() {
 	l.Println()
 
 	// make it pretty
-	b, err := yaml.Marshal(projectData)
+	b, err := yaml.Marshal(projectData.fields)
 	if err != nil {
 		Log.WithError(err).Fatal("failed to marshal zeus project data to YAML")
 	}

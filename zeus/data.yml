@@ -1,0 +1,36 @@
+BuildNumber: 1
+Deadline: ""
+Milestones: []
+Aliases: {}
+Events:
+  54aac920aa427817:
+    name: formatter watcher
+    id: 54aac920aa427817
+    path: zeus/scripts
+    op: 2
+    fileextension: ""
+    command: internal
+  509b52a686f113ab:
+    name: zeusfile watcher
+    id: 509b52a686f113ab
+    path: zeus/Zeusfile.yml
+    op: 2
+    fileextension: ""
+    command: internal
+  bdb4cdfb0361e3df:
+    name: script watcher
+    id: bdb4cdfb0361e3df
+    path: zeus/scripts
+    op: 2
+    fileextension: ""
+    command: internal
+  c0b6cdbae422b71c:
+    name: config watcher
+    id: c0b6cdbae422b71c
+    path: zeus/config.yml
+    op: 2
+    fileextension: .yml
+    command: internal
+Author: ""
+KeyBindings:
+  Ctrl-G: gs

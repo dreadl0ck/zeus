@@ -48,7 +48,7 @@ var (
 // when there's an unknown command it will be passed to the shell
 func readlineLoop() error {
 
-	if conf.PrintBuiltins {
+	if conf.fields.PrintBuiltins {
 		printBuiltins()
 	}
 
@@ -60,12 +60,12 @@ func readlineLoop() error {
 		err             error
 	)
 
-	if conf.HistoryFile {
-		historyFileName = zeusDir + "/zeus_history"
+	if conf.fields.HistoryFile {
+		historyFileName = zeusDir + "/.history"
 	}
 
 	conf.Lock()
-	historyLimit := conf.HistoryLimit
+	historyLimit := conf.fields.HistoryLimit
 	conf.Unlock()
 
 	readlineMutex.Lock()
@@ -96,7 +96,7 @@ func readlineLoop() error {
 
 			if err == readline.ErrInterrupt {
 
-				if conf.ExitOnInterrupt {
+				if conf.fields.ExitOnInterrupt {
 					clearProcessMap()
 					os.Exit(0)
 				} else {
@@ -119,11 +119,11 @@ func handleLine(line string) {
 	line = strings.TrimSpace(line)
 
 	// set the color
-	print(cp.cmdOutput)
+	print(cp.CmdOutput)
 
 	switch line {
 	case exitCommand:
-		l.Println(cp.text + "Bye." + ansi.Reset)
+		l.Println(cp.Text + "Bye." + ansi.Reset)
 		clearProcessMap()
 		os.Exit(0)
 
@@ -131,11 +131,11 @@ func handleLine(line string) {
 
 		clearScreen()
 
-		l.Println(cp.text + asciiArt + ansi.Reset + "\n")
-		l.Println(cp.text + "Project Name: " + cp.prompt + filepath.Base(workingDir) + cp.text + "\n")
+		l.Println(cp.Text + asciiArt + "v" + version)
+		l.Println(cp.Text + "Project Name: " + cp.Prompt + filepath.Base(workingDir) + cp.Text + "\n")
 
 		conf.Lock()
-		if conf.PrintBuiltins {
+		if conf.fields.PrintBuiltins {
 			printBuiltins()
 		}
 		conf.Unlock()
@@ -163,7 +163,7 @@ func handleLine(line string) {
 
 	case wikiCommand:
 		go StartWebListener(false)
-		open("http://" + hostName + ":" + strconv.Itoa(conf.PortWebPanel) + "/wiki")
+		open("http://" + hostName + ":" + strconv.Itoa(conf.fields.PortWebPanel) + "/wiki")
 
 	case webCommand:
 		go StartWebListener(true)
@@ -180,9 +180,8 @@ func handleLine(line string) {
 	case clearCommand:
 
 		clearScreen()
-
-		l.Println(cp.text + asciiArt + ansi.Reset + "\n")
-		l.Println(cp.text + "Project Name: " + cp.prompt + filepath.Base(workingDir) + cp.text + "\n")
+		l.Println(cp.Text + asciiArt + "v" + version)
+		l.Println(cp.Text + "Project Name: " + cp.Prompt + filepath.Base(workingDir) + cp.Text + "\n")
 
 	case builtinsCommand:
 		printBuiltins()
@@ -209,6 +208,8 @@ func handleLine(line string) {
 			handleEventsCommand(args)
 		case aliasCommand:
 			handleAliasCommand(args)
+		case editCommand:
+			handleEditCommand(args)
 		case deadlineCommand:
 			handleDeadlineCommand(args)
 		case gitFilterCommand:
@@ -229,11 +230,13 @@ func handleLine(line string) {
 			handleCreateCommand(args)
 		case todoCommand:
 			handleTodoCommand(args)
+		case generateCommand:
+			handleGenerateCommand(args)
 
 		default:
 			// check if its a commandchain
-			if strings.Contains(line, p.separator) {
-				executeCommandChain(line)
+			if strings.Contains(line, commandChainSeparator) {
+				parseAndExecuteCommandChain(line)
 				return
 			}
 
@@ -250,20 +253,22 @@ func handleLine(line string) {
 				projectData.Lock()
 
 				// check if its an alias
-				if command, ok := projectData.Aliases[commandName]; ok {
+				if command, ok := projectData.fields.Aliases[commandName]; ok {
 
 					projectData.Unlock()
 					handleLine(command)
 
 					// reset counters
-					numCommands = 0
-					currentCommand = 0
+					s.Lock()
+					s.numCommands = 0
+					s.currentCommand = 0
+					s.Unlock()
 					return
 				}
 				projectData.Unlock()
 
 				// not an alias - pass to shell
-				if conf.PassCommandsToShell {
+				if conf.fields.PassCommandsToShell {
 					err := passCommandToShell(commandName, args)
 					if err != nil {
 						l.Println(err)
@@ -275,7 +280,9 @@ func handleLine(line string) {
 			}
 			cmdMap.Unlock()
 
-			numCommands = numCommands + getTotalCommandCount(cmd)
+			s.Lock()
+			s.numCommands = s.numCommands + getTotalDependencyCount(cmd)
+			s.Unlock()
 
 			// run the command
 			err := cmd.Run(args, cmd.async)
@@ -288,8 +295,10 @@ func handleLine(line string) {
 			}
 
 			// reset counters
-			numCommands = 0
-			currentCommand = 0
+			s.Lock()
+			s.numCommands = 0
+			s.currentCommand = 0
+			s.Unlock()
 		}
 	}
 }

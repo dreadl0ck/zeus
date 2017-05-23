@@ -99,6 +99,8 @@ func handleEventsCommand(args []string) {
 	}
 }
 
+// register an event for a given path, operation type, and optionally filetype
+// plus a commandChain to be executed once the event occurs
 func registerEvent(args []string) {
 	if len(args) < 5 {
 		printEventsUsageErr()
@@ -136,7 +138,7 @@ func registerEvent(args []string) {
 		return
 	}
 
-	if validCommandChain(fields, true) {
+	if _, ok := validCommandChain(fields, true); ok {
 		Log.Info("adding command chain")
 	} else {
 		Log.Info("adding shell command")
@@ -148,8 +150,8 @@ func registerEvent(args []string) {
 
 			Log.Debug("event fired, name: ", event.Name, " path: ", args[3])
 
-			if validCommandChain(fields, true) {
-				executeCommandChain(chain)
+			if cmdChain, ok := validCommandChain(fields, true); ok {
+				cmdChain.exec()
 			} else {
 
 				// its a shell command
@@ -189,9 +191,9 @@ func listEvents() {
 
 	w := 20
 
-	l.Println(cp.prompt + pad("name", w) + pad("ID", w) + pad("operation", w) + pad("command", w) + pad("filetype", w) + pad("path", w))
-	for _, e := range projectData.Events {
-		l.Println(cp.text + pad(e.Name, w) + pad(e.ID, w) + pad(e.Op.String(), w) + pad(e.Command, w) + pad(e.FileExtension, w) + pad(e.Path, w))
+	l.Println(cp.Prompt + pad("name", w) + pad("ID", w) + pad("operation", w) + pad("command", w) + pad("filetype", w) + pad("path", w))
+	for _, e := range projectData.fields.Events {
+		l.Println(cp.Text + pad(e.Name, w) + pad(e.ID, w) + pad(e.Op.String(), w) + pad(e.Command, w) + pad(e.FileExtension, w) + pad(e.Path, w))
 	}
 }
 
@@ -201,7 +203,7 @@ func removeEvent(id string) {
 	projectData.Lock()
 
 	// check if event exists
-	if e, ok := projectData.Events[id]; ok {
+	if e, ok := projectData.fields.Events[id]; ok {
 
 		if e.stopChan != nil {
 			// stop event handler
@@ -209,7 +211,7 @@ func removeEvent(id string) {
 		}
 
 		// delete event
-		delete(projectData.Events, id)
+		delete(projectData.fields.Events, id)
 		projectData.Unlock()
 
 		Log.Debug("removed event with name ", e.Name)
@@ -260,7 +262,7 @@ func addEvent(e *Event) error {
 
 	// add to events
 	projectData.Lock()
-	projectData.Events[e.ID] = e
+	projectData.fields.Events[e.ID] = e
 	projectData.Unlock()
 
 	// update projectData on disk
@@ -284,7 +286,7 @@ func addEvent(e *Event) error {
 
 					if e.FileExtension != "" {
 						if !strings.HasSuffix(event.Name, e.FileExtension) {
-							Log.Debug("ignoring event because file type does not match: ", event.Name)
+							Log.WithField("e.FileExtension", e.FileExtension).Debug("ignoring event because file type does not match: ", event.Name)
 							continue
 						}
 					}
@@ -340,15 +342,11 @@ func reloadEvent(e *Event) {
 	case "config watcher":
 		go conf.watch(e.ID)
 	case "formatter watcher":
-		if conf.AutoFormat {
-			go f.watchzeusDir(e.ID)
+		if conf.fields.AutoFormat {
+			go f.watchScriptDir(e.ID)
 		}
 	case "zeusfile watcher":
-		if _, err := os.Stat(zeusfilePath); err != nil {
-			go watchZeusfile("Zeusfile", e.ID)
-		} else {
-			go watchZeusfile(zeusfilePath, e.ID)
-		}
+		go watchZeusfile(zeusfilePath, e.ID)
 	case "script watcher":
 		go watchScripts(e.ID)
 	default:

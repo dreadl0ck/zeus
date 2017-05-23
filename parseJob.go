@@ -24,10 +24,15 @@ import (
 	"strconv"
 	"strings"
 
+	"path/filepath"
+
 	"github.com/Sirupsen/logrus"
 	"github.com/dreadl0ck/readline"
 	"github.com/mgutz/ansi"
 )
+
+// ErrNoFileExtension means the script does not have a file extension
+var ErrNoFileExtension = errors.New("no file extension")
 
 type parseJobID string
 
@@ -51,15 +56,19 @@ type parseJob struct {
 
 	// jobs waiting for command currently being parsed by this job
 	waiters []chan bool
+
+	// pointer to the parser instance the job belongs to
+	p *parser
 }
 
 // newJob returns a new parseJob for the given path
-func newJob(path string, silent bool) *parseJob {
+func newJob(path string, silent bool, p *parser) *parseJob {
 	return &parseJob{
 		path:     path,
 		id:       parseJobID(randomString()),
 		commands: make([][]string, 0),
 		silent:   silent,
+		p:        p,
 	}
 }
 
@@ -68,7 +77,7 @@ func (job *parseJob) parseCommandChain(line string) ([][]string, error) {
 
 	var (
 		// trim zeus prefix then get commands separated by parser separator
-		cmds           = strings.Split(trimZeusPrefix(line), p.separator)
+		cmds           = strings.Split(line, commandChainSeparator)
 		parsedCommands = [][]string{}
 		cLog           = Log.WithFields(logrus.Fields{
 			"prefix": "parseCommandChain",
@@ -103,7 +112,7 @@ func (job *parseJob) parseCommandChain(line string) ([][]string, error) {
 
 			parsedCommands = append(parsedCommands, args)
 
-			cLog.Debug("adding " + cp.cmdOutput + strings.Join(args, " ") + ansi.Reset + " to parsedCommands")
+			cLog.Debug("adding " + cp.CmdOutput + strings.Join(args, " ") + ansi.Reset + " to parsedCommands")
 		}
 	}
 
@@ -116,10 +125,16 @@ func (job *parseJob) newCommand(path string) (*command, error) {
 
 	var (
 		cLog = Log.WithField("prefix", "newCommand")
+		ext  = filepath.Ext(path)
+		lang string
 	)
 
+	if len(ext) == 0 {
+		return nil, ErrNoFileExtension
+	}
+
 	// parse the script
-	d, err := p.parseScript(path, job)
+	d, err := job.p.parseScript(path, job)
 	if err != nil {
 		if !job.silent {
 			cLog.WithFields(logrus.Fields{
@@ -130,12 +145,12 @@ func (job *parseJob) newCommand(path string) (*command, error) {
 	}
 
 	// assemble commands args
-	args, err := validateArgs(d.Args)
+	args, err := validateArgs(d.Arguments)
 	if err != nil {
 		return nil, err
 	}
 
-	chain, err := job.parseCommandChain(d.Chain)
+	chain, err := job.parseCommandChain(d.Dependencies)
 	if err != nil {
 		return nil, err
 	}
@@ -147,18 +162,27 @@ func (job *parseJob) newCommand(path string) (*command, error) {
 	}
 
 	// get name for command
-	name := strings.TrimSuffix(strings.TrimPrefix(path, zeusDir+"/"), f.fileExtension)
+	name := strings.TrimSuffix(strings.TrimPrefix(path, scriptDir+"/"), job.p.language.FileExtension)
 	if name == "" {
 		return nil, ErrInvalidCommand
 	}
 
+	// determine language by looking at fileExtension
+	ps.Lock()
+	for name, p := range ps.items {
+		if p.language.FileExtension == ext {
+			lang = name
+		}
+	}
+	ps.Unlock()
+
 	return &command{
-		path:         path,
-		name:         name,
-		args:         args,
-		manual:       d.Manual,
-		help:         d.Help,
-		commandChain: commandChain,
+		path:        path,
+		name:        name,
+		language:    lang,
+		args:        args,
+		help:        d.Help,
+		description: d.Description,
 		PrefixCompleter: readline.PcItem(name,
 			readline.PcItemDynamic(func(path string) (res []string) {
 				for _, a := range args {
@@ -170,7 +194,7 @@ func (job *parseJob) newCommand(path string) (*command, error) {
 			}),
 		),
 		buildNumber:  d.BuildNumber,
-		dependencies: d.Dependencies,
+		dependencies: commandChain,
 		outputs:      d.Outputs,
 		async:        d.Async,
 	}, nil
@@ -184,7 +208,7 @@ func (job *parseJob) getCommandChain(parsedCommands [][]string, zeusfile *Zeusfi
 		"path":   job.path,
 	})
 
-	cLog.WithField("parsedCommands", parsedCommands).Debug(cp.cmdArgType + "creating cmdChain" + ansi.Reset)
+	cLog.WithField("parsedCommands", parsedCommands).Debug(cp.CmdArgType + "creating cmdChain" + ansi.Reset)
 
 	cLog = cLog.WithField("job.commands", job.commands)
 
@@ -193,7 +217,8 @@ func (job *parseJob) getCommandChain(parsedCommands [][]string, zeusfile *Zeusfi
 
 		var count int
 
-		// check if there are repetitive targets in the chain - this is not allowed to prevent cycles
+		// check if there are repetitive targets in the chain
+		// to prevent cyclos
 		for _, c := range job.commands {
 
 			// check if the key (commandName) is already there
@@ -202,17 +227,21 @@ func (job *parseJob) getCommandChain(parsedCommands [][]string, zeusfile *Zeusfi
 			}
 		}
 
-		if count > p.recursionDepth {
+		conf.Lock()
+		recursionDepth := conf.fields.RecursionDepth
+		conf.Unlock()
+
+		if count > recursionDepth {
 			cLog.WithFields(logrus.Fields{
 				"count": count,
-			}).Error("CYCLE DETECTED! -> ", args[0], " appeared more than ", p.recursionDepth, " times - thats invalid.")
+			}).Error("CYCLE DETECTED! -> ", args[0], " appeared more than ", recursionDepth, " times - thats invalid.")
 			cleanup()
 			os.Exit(1)
 		}
 
 		job.commands = append(job.commands, args)
 
-		var jobPath = zeusDir + "/" + args[0] + f.fileExtension
+		var jobPath = scriptDir + "/" + args[0] + job.p.language.FileExtension
 		if zeusfile != nil {
 			jobPath = "zeusfile." + args[0]
 		}
@@ -225,9 +254,9 @@ func (job *parseJob) getCommandChain(parsedCommands [][]string, zeusfile *Zeusfi
 		if !ok {
 
 			// check if command is currently being parsed
-			if p.JobExists(jobPath) {
+			if job.p.JobExists(jobPath) {
 				cLog.Warn("getCommandChain: JOB EXISTS: ", jobPath)
-				p.WaitForJob(jobPath)
+				job.p.WaitForJob(jobPath)
 
 				// now the command is there
 				cmdMap.Lock()
@@ -242,12 +271,12 @@ func (job *parseJob) getCommandChain(parsedCommands [][]string, zeusfile *Zeusfi
 					}
 
 					// assemble commands args
-					arguments, err := validateArgs(d.Args)
+					arguments, err := validateArgs(d.Arguments)
 					if err != nil {
 						return commandChain, err
 					}
 
-					parsedCommands, err := job.parseCommandChain(d.Chain)
+					parsedCommands, err := job.parseCommandChain(d.Dependencies)
 					if err != nil {
 						return commandChain, err
 					}
@@ -262,19 +291,19 @@ func (job *parseJob) getCommandChain(parsedCommands [][]string, zeusfile *Zeusfi
 						path:            "",
 						name:            args[0],
 						args:            arguments,
-						manual:          d.Manual,
+						description:     d.Description,
 						help:            d.Help,
-						commandChain:    chain,
 						PrefixCompleter: readline.PcItem(args[0]),
 						buildNumber:     d.BuildNumber,
-						dependencies:    d.Dependencies,
+						dependencies:    chain,
 						outputs:         d.Outputs,
-						runCommand:      d.Run,
+						execScript:      d.Exec,
 						async:           d.Async,
+						language:        zeusfile.Language,
 					}
 				} else {
 					// add new command
-					cmd, err = job.newCommand(zeusDir + "/" + args[0] + f.fileExtension)
+					cmd, err = job.newCommand(scriptDir + "/" + args[0] + job.p.language.FileExtension)
 					if err != nil {
 						if !job.silent {
 							cLog.WithError(err).Debug("failed to create command")
@@ -292,11 +321,11 @@ func (job *parseJob) getCommandChain(parsedCommands [][]string, zeusfile *Zeusfi
 
 				cmdMap.Unlock()
 
-				cLog.Debug("added " + cp.cmdName + cmd.name + ansi.Reset + " to the command map")
+				cLog.Debug("added " + cp.CmdName + cmd.name + ansi.Reset + " to the command map")
 			}
 		}
 
-		cLog.Debug("adding " + cp.cmdOutput + strings.Join(args, " ") + ansi.Reset + " to cmdChain")
+		cLog.Debug("adding " + cp.CmdOutput + strings.Join(args, " ") + ansi.Reset + " to cmdChain")
 
 		// this command has argument parameters in its commandChain
 		// set them on the command
@@ -314,11 +343,12 @@ func (job *parseJob) getCommandChain(parsedCommands [][]string, zeusfile *Zeusfi
 				path:            cmd.path,
 				params:          args[1:],
 				args:            cmd.args,
-				manual:          cmd.manual,
+				description:     cmd.description,
 				help:            cmd.help,
-				commandChain:    cmd.commandChain,
+				dependencies:    cmd.dependencies,
 				PrefixCompleter: cmd.PrefixCompleter,
 				buildNumber:     cmd.buildNumber,
+				language:        cmd.language,
 			}
 		}
 
@@ -335,16 +365,16 @@ func (job *parseJob) getCommandChain(parsedCommands [][]string, zeusfile *Zeusfi
 // thread safe
 func (p *parser) AddJob(path string, silent bool) (job *parseJob) {
 
-	job = newJob(path, silent)
+	job = newJob(path, silent, p)
 
 	Log.WithFields(logrus.Fields{
 		"ID":   job.id,
 		"path": path,
 	}).Debug("adding job")
 
-	p.mutex.Lock()
+	p.Lock()
 	p.jobs[job.id] = job
-	p.mutex.Unlock()
+	p.Unlock()
 
 	return job
 }
@@ -364,9 +394,9 @@ func (p *parser) RemoveJob(job *parseJob) {
 		c <- true
 	}
 
-	p.mutex.Lock()
+	p.Lock()
 	delete(p.jobs, job.id)
-	p.mutex.Unlock()
+	p.Unlock()
 }
 
 func (p *parser) JobExists(path string) bool {
@@ -375,8 +405,8 @@ func (p *parser) JobExists(path string) bool {
 		"path": path,
 	}).Debug("job exists?")
 
-	p.mutex.Lock()
-	defer p.mutex.Unlock()
+	p.Lock()
+	defer p.Unlock()
 
 	for _, job := range p.jobs {
 		if job.path == path {
@@ -394,7 +424,7 @@ func (p *parser) WaitForJob(path string) {
 
 	c := make(chan bool)
 
-	p.mutex.Lock()
+	p.Lock()
 
 	for _, job := range p.jobs {
 		if job.path == path {
@@ -407,7 +437,7 @@ func (p *parser) WaitForJob(path string) {
 				"path": job.path,
 			}).Debug("waiting for job")
 
-			p.mutex.Unlock()
+			p.Unlock()
 			<-c
 
 			Log.WithFields(logrus.Fields{
@@ -418,15 +448,15 @@ func (p *parser) WaitForJob(path string) {
 			return
 		}
 	}
-	p.mutex.Unlock()
+	p.Unlock()
 }
 
 func (p *parser) printJobs() {
 
-	p.mutex.Lock()
-	defer p.mutex.Unlock()
+	p.Lock()
+	defer p.Unlock()
 
-	l.Println(cp.prompt + pad("ID", 20) + " path" + cp.text)
+	l.Println(cp.Prompt + pad("ID", 20) + " path" + cp.Text)
 	for _, job := range p.jobs {
 		l.Println(pad(string(job.id), 20), job.path)
 	}

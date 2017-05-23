@@ -19,33 +19,42 @@
 package main
 
 import (
+	"bufio"
+	"bytes"
 	"errors"
-	"io/ioutil"
+	"io"
+	"os"
 	"path/filepath"
-	"reflect"
-	"regexp"
 	"strings"
 	"sync"
 
-	"github.com/Sirupsen/logrus"
+	"gopkg.in/yaml.v2"
 )
 
 var (
-	// regex for a VALID zeus header field
-	validzeusHeaderField = regexp.MustCompile(`#+[[:space:]]+@zeus(-([a-z]+))+:+`)
+	// zeusHeaderTag for embedding YAML in script headers
+	zeusHeaderTag         = "{zeus}"
+	commandChainSeparator = "->"
 
-	// regex for an INVALID zeus header field
-	invalidzeusHeaderField = regexp.MustCompile("#*[[:space:]]*@*zeus-([a-z]+):*[[:space:]]*")
-
-	// ErrDuplicateFields means a header field appeared twice
-	ErrDuplicateFields = errors.New("duplicate zeus header fields")
+	// global parser store
+	ps = &parserStore{
+		items: map[string]*parser{
+			"bash":       newParser(bashLanguage()),
+			"python":     newParser(pythonLanguage()),
+			"javascript": newParser(javaScriptLanguage()),
+			"ruby":       newParser(rubyLanguage()),
+		},
+	}
 
 	// ErrDuplicateArgumentNames means the name for an argument was reused
 	ErrDuplicateArgumentNames = errors.New("duplicate argument name")
-
-	// ErrInvalidHeaderType means the header field type does not exist
-	ErrInvalidHeaderType = errors.New("invalid header field type")
 )
+
+// thread safe store for all parsers
+type parserStore struct {
+	items map[string]*parser
+	sync.Mutex
+}
 
 // parser handles parsing of the script headers
 // it contains syntactic language elements
@@ -54,303 +63,118 @@ var (
 type parser struct {
 
 	// scripting language to use
-	language string
+	language *Language
 
-	// path to interpreter
-	interpreter string
-
-	// identifier for script type
-	bang string
-
-	// comment identifier
-	comment string
-
-	// available header fields
-	zeusFieldChain        string
-	zeusFieldHelp         string
-	zeusFieldArgs         string
-	zeusFieldBuildNumber  string
-	zeusFieldDependencies string
-	zeusFieldOutputs      string
-	zeusFieldAsync        string
-
-	// separator for build chain commands
-	separator string
-
-	// jobs
+	// job pool
 	jobs map[parseJobID]*parseJob
 
 	// locking for map access
-	mutex sync.Mutex
-	// inputChannel chan string
-
-	// limit for recursion level
-	recursionDepth int
+	sync.RWMutex
 }
 
-// create a new parser instance
-func newParser() *parser {
-
+// create a new bash parser instance
+func newParser(lang *Language) *parser {
 	return &parser{
-		language:    "bash",
-		interpreter: "/bin/bash",
-		bang:        "#!/bin/bash",
-		comment:     "#",
-
-		zeusFieldChain:        "zeus-chain",
-		zeusFieldHelp:         "zeus-help",
-		zeusFieldArgs:         "zeus-args",
-		zeusFieldBuildNumber:  "zeus-build-number",
-		zeusFieldDependencies: "zeus-deps",
-		zeusFieldOutputs:      "zeus-outputs",
-		zeusFieldAsync:        "zeus-async",
-
-		separator:      "->",
-		jobs:           map[parseJobID]*parseJob{},
-		mutex:          sync.Mutex{},
-		recursionDepth: 1,
+		language: lang,
+		jobs:     map[parseJobID]*parseJob{},
 	}
-}
-
-// commandData represents the information retrieved by parsing a command script
-type commandData struct {
-	// Help text
-	Help string `yaml:"help"`
-
-	// Args for command
-	Args string `yaml:"args"`
-
-	// Chain contains the targets commandChain
-	Chain string `yaml:"chain"`
-
-	// Manual text
-	Manual string `yaml:"manual"`
-
-	// BuildNumber yes or no
-	BuildNumber bool `yaml:"buildNumber"`
-
-	// Async yes or no
-	Async bool `yaml:"async"`
-
-	// Dependencies for the current target
-	Dependencies []string `yaml:"deps"`
-
-	// Outputs of the current target
-	Outputs []string `yaml:"out"`
-
-	// Run when executed
-	Run string `yaml:"run"`
-}
-
-// argument types
-const (
-	argTypeString = "String"
-	argTypeInt    = "Int"
-	argTypeBool   = "Bool"
-	argTypeFloat  = "Float"
-)
-
-// a command argument has a name and a type and a value
-type commandArg struct {
-
-	// argument label
-	name string
-
-	// argument type
-	argType reflect.Kind
-
-	// optionals are allowed, they can have default values
-	optional     bool
-	defaultValue string
-
-	// value after parsing argument input from commandline
-	value string
 }
 
 // parse script and return commandData
-// a zeus header looks like this:
-// # ----------------------------------------------------------------------------------- #
-// # @zeus-chain: command1 arg1 arg2 -> command2 -> command3
-// # @zeus-help: help text for command
-// # @zeus-args: arg1 arg2 arg3
-// # ----------------------------------------------------------------------------------- #
-// # manual entry text
-// # ----------------------------------------------------------------------------------- #
 func (p *parser) parseScript(path string, job *parseJob) (*commandData, error) {
 
 	var (
-		cLog = Log.WithFields(logrus.Fields{
-			"prefix": "parseScript",
-			"path":   path,
-		})
-
-		commandName     = strings.TrimSuffix(filepath.Base(path), ".sh")
-		helpFieldCount  = 0
-		argsFieldCount  = 0
-		chainFieldCount = 0
-		separatorCount  int
-
-		d = new(commandData)
+		h             = new(commandData)
+		foundStartTag bool
+		buffer        bytes.Buffer
 	)
 
-	// get file contents
-	contents, err := ioutil.ReadFile(path)
+	// get file handle
+	f, err := os.Open(path)
 	if err != nil {
-		return d, err
+		return h, err
 	}
 
-	// range line by line
-	for c, line := range strings.Split(string(contents), "\n") {
+	// create reader
+	// and read file contents line by line
+	reader := bufio.NewReader(f)
+	for {
+		line, err := reader.ReadString('\n')
+		switch {
+		case err == io.EOF:
 
-		if c == 0 {
-			// first line. make sure theres a shebang
-			if line != p.bang {
-				if conf.FixParseErrors {
-					sanitizeFile(path)
-					return p.parseScript(path, job)
-				}
-				Log.Fatal("first line does not contain a shebang.")
+			// Warn if there no closing zeus tag
+			if foundStartTag {
+				Log.Error("couldn't find closing header tag in script " + path)
 			}
+			return h, nil
+		case err != nil:
+			return h, err
 		}
 
-		// check if its a comment. only comments can be used as header fields
-		if strings.HasPrefix(line, p.comment) {
+		if strings.Contains(line, zeusHeaderTag) && foundStartTag {
 
-			if separatorCount > 1 {
+			// trim trailing newline
+			contents := bytes.TrimSuffix(buffer.Bytes(), []byte{'\n'})
 
-				// check if its the closing tag
-				if strings.HasPrefix(line, "# --------------------") {
-					return d, nil
-				}
-
-				d.Manual += line + "\n"
-				continue
+			err = validateHeader(contents, path)
+			if err != nil {
+				return nil, err
 			}
 
-			switch true {
-
-			// parse help field
-			case strings.Contains(line, p.zeusFieldHelp):
-
-				helpFieldCount++
-
-				if !validzeusHeaderField.MatchString(line) {
-					if conf.FixParseErrors {
-						sanitizeFile(path)
-						return p.parseScript(path, job)
-					}
-					Log.Fatal("invalid zeus-help header field in line ", c, " : ", line)
-				}
-				d.Help = strings.TrimSpace(trimZeusPrefix(line))
-				break
-
-			// parse args field
-			case strings.Contains(line, p.zeusFieldArgs):
-
-				argsFieldCount++
-
-				if !validzeusHeaderField.MatchString(line) {
-					if conf.FixParseErrors {
-						sanitizeFile(path)
-						return p.parseScript(path, job)
-					}
-					Log.Fatal("invalid zeus-args header field in line ", c, " : ", line)
-				}
-
-				d.Args = strings.TrimSpace(trimZeusPrefix(line))
-
-				break
-
-			// parse chain field
-			case strings.Contains(line, p.zeusFieldChain):
-
-				chainFieldCount++
-
-				if !validzeusHeaderField.MatchString(line) {
-					if conf.FixParseErrors {
-						sanitizeFile(path)
-						return p.parseScript(path, job)
-					}
-					Log.Fatal("invalid zeus-chain header field in line ", c, " : ", line)
-				}
-
-				d.Chain = strings.TrimSpace(trimZeusPrefix(line))
-
-				break
-
-			// parse multiline help entry (20 dashes minimum)
-			case strings.HasPrefix(line, "# --------------------"):
-				separatorCount++
-
-			case strings.Contains(line, p.zeusFieldBuildNumber):
-				d.BuildNumber = true
-
-			case strings.Contains(line, p.zeusFieldAsync):
-				d.Async = true
-
-			case strings.Contains(line, p.zeusFieldDependencies):
-				for _, dep := range strings.Split(strings.TrimSpace(trimZeusPrefix(line)), ",") {
-					d.Dependencies = append(d.Dependencies, dep)
-				}
-
-			case strings.Contains(line, p.zeusFieldOutputs):
-				for _, output := range strings.Split(strings.TrimSpace(trimZeusPrefix(line)), ",") {
-					d.Outputs = append(d.Outputs, output)
-				}
-
-			default:
-
-				// check if line might be a zeus header field
-				if strings.HasPrefix(line, p.comment+" @") {
-					// check if its a header field that does not exist
-					if !validHeaderType(line) {
-						Log.WithError(ErrInvalidHeaderType).WithFields(logrus.Fields{
-							"line": line,
-							"file": path,
-						}).Fatal("invalid header field type")
-					}
-				}
-
-				continue
+			// parse buffer and return
+			err := yaml.Unmarshal(contents, h)
+			if err != nil {
+				printScript(buffer.String(), path)
+				return h, err
 			}
+
+			return h, nil
 		}
-	}
-
-	// check for duplicate fields
-	if argsFieldCount > 1 || chainFieldCount > 1 || helpFieldCount > 1 {
-		cLog.WithFields(logrus.Fields{
-			"argsFieldCount":  argsFieldCount,
-			"chainFieldCount": chainFieldCount,
-			"helpFieldCount":  helpFieldCount,
-			"commandName":     commandName,
-		}).Error()
-		return d, ErrDuplicateFields
-	}
-
-	return d, nil
-}
-
-func validHeaderType(line string) bool {
-
-	slice := strings.Split(line, ":")
-	if len(slice) == 0 {
-		// not a zeus header field - ignore
-		return true
-	}
-
-	fieldType := strings.TrimPrefix(slice[0], p.comment+" @")
-
-	Log.Info("checking type: ", fieldType)
-
-	switch fieldType {
-	case p.zeusFieldArgs, p.zeusFieldBuildNumber, p.zeusFieldChain, p.zeusFieldDependencies, p.zeusFieldHelp, p.zeusFieldOutputs:
-		return true
-	default:
-		return false
+		if foundStartTag {
+			buffer.WriteString(strings.TrimPrefix(strings.TrimPrefix(line, p.language.Comment), " "))
+		}
+		if strings.Contains(line, zeusHeaderTag) {
+			foundStartTag = true
+			continue
+		}
 	}
 }
 
-// trim the zeus prefix from the beginning of a line
-func trimZeusPrefix(line string) string {
-	return string(validzeusHeaderField.ReplaceAll([]byte(line), []byte("")))
+// get parser instance for script by name or by path
+func getParserForScript(name string) (*parser, error) {
+
+	// look at fileExtension
+	ext := filepath.Ext(name)
+	if ext != "" {
+		ps.Lock()
+		defer ps.Unlock()
+
+		for _, p := range ps.items {
+			if p.language.FileExtension == ext {
+				return p, nil
+			}
+		}
+		return nil, ErrUnsupportedLanguage
+	}
+
+	cmdMap.Lock()
+	defer cmdMap.Unlock()
+
+	if cmd, ok := cmdMap.items[name]; ok {
+
+		// check if language is set on command
+		if cmd.language != "" {
+			ps.Lock()
+			defer ps.Unlock()
+
+			if p, ok := ps.items[cmd.language]; ok {
+				return p, nil
+			}
+			cmd.dump()
+			return nil, errors.New(ErrUnsupportedLanguage.Error() + ": " + cmd.language)
+		}
+	}
+
+	return nil, ErrUnknownCommand
 }

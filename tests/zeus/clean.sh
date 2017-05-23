@@ -1,12 +1,12 @@
 #!/bin/bash
 
-# -------------------------------------------------------------------------- #
-# @zeus-chain: 
-# @zeus-args: 
-# @zeus-help: simple help text for command clean
-# -------------------------------------------------------------------------- #
-# manual text for command clean
-# -------------------------------------------------------------------------- #
+# {zeus}
+# dependencies: 
+# arguments: 
+# description: simple help text for command clean
+# help: help text for command clean
+# {zeus}
 
 # some comment
 cleanup
+
