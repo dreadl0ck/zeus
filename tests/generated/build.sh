@@ -1,7 +1,8 @@
 #!/bin/bash
 
 
-test='bla'
+binaryName=zeus
+buildDir=bin
 
 #!/bin/bash
 

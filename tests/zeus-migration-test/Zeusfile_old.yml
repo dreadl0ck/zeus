@@ -12,8 +12,9 @@
 # they can contain variables
 # for language specific code create a globals.[scriptExtension] file in the zeus directory
 globals:
-    "binaryName": zeus
-    "buildDir": bin
+    variables:
+        "binaryName": zeus
+        "buildDir": bin
 
 # all commands
 commands:

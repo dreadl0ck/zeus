@@ -176,7 +176,7 @@ func generateScript(outputName string, mixed bool, cmd *command, args []string) 
 	g.Lock()
 
 	// initialize global variables
-	for name, value := range g.Items {
+	for name, value := range g.Vars {
 		f.WriteString(lang.VariableKeyword + name + lang.AssignmentOperator + value + "\n")
 	}
 

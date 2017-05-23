@@ -1,1 +1,5 @@
 clean -> concleanclean -> configureclean -> configurclean -> configurasdfclean -> configure -> asdfclean -> configure ->clean -> configureclearhelpclearcleanconfigureclean -> configurecleanclearconfigureclearclean -> configureedit cleanexitcolors default 
+build 
+edit build
+config set Debug true
+build

@@ -393,7 +393,7 @@ func (c *command) createCommand(argBuffer string) (cmd *exec.Cmd, script string,
 	g.Lock()
 
 	// initialize global variables
-	for name, value := range g.Items {
+	for name, value := range g.Vars {
 		globalVars += lang.VariableKeyword + name + lang.AssignmentOperator + value + "\n"
 	}
 

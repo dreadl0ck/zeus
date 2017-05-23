@@ -25,10 +25,12 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+var globalsFromZeusfile bool
+
 type globals struct {
 
 	// mapped variable names to values
-	Items map[string]string `yaml:"globals"`
+	Vars map[string]string `yaml:"variables"`
 
 	sync.RWMutex
 }
@@ -36,19 +38,21 @@ type globals struct {
 // check for globals script
 func parseGlobals() {
 
-	globalsContent, err := ioutil.ReadFile(zeusDir + "/globals.yml")
-	if err != nil {
-		Log.WithError(err).Error("failed to read globals")
-		return
-	}
+	if !globalsFromZeusfile {
+		globalsContent, err := ioutil.ReadFile(zeusDir + "/globals.yml")
+		if err != nil {
+			Log.WithError(err).Error("failed to read globals")
+			return
+		}
 
-	g.Lock()
-	defer g.Unlock()
+		g.Lock()
+		defer g.Unlock()
 
-	err = yaml.Unmarshal(globalsContent, g)
-	if err != nil {
-		Log.WithError(err).Error("failed to unmarshal globals")
-		return
+		err = yaml.Unmarshal(globalsContent, g)
+		if err != nil {
+			Log.WithError(err).Error("failed to unmarshal globals")
+			return
+		}
 	}
 }
 
@@ -58,12 +62,12 @@ func listGlobals() {
 	g.Lock()
 	defer g.Unlock()
 
-	if len(g.Items) > 0 {
+	if len(g.Vars) > 0 {
 
 		w := 20
 
 		l.Println("\n" + cp.Prompt + pad("name", w) + "value")
-		for name, val := range g.Items {
+		for name, val := range g.Vars {
 			l.Println(cp.Text+pad(name, w), val)
 		}
 

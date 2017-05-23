@@ -1,13 +1,12 @@
 #!/bin/bash
 #
 # ZEUS Error Dump
-# Timestamp: [Tue May 23 18:57:07 2017]
+# Timestamp: [Tue May 23 20:31:08 2017]
 # Error: exit status 1
 
 #!/bin/bash
-testVar="testValue"
-serverIP="192.168.1.1"
-number=4
+binaryName=zeus
+buildDir=bin
 
 #!/bin/bash
 

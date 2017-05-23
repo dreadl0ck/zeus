@@ -89,6 +89,11 @@ func parseZeusfile(path string) error {
 	}
 	ps.Unlock()
 
+	if len(zeusfile.Globals.Vars) > 0 {
+		globalsFromZeusfile = true
+		g = zeusfile.Globals
+	}
+
 	// initialize commands
 	for name, d := range zeusfile.Commands {
 
@@ -252,7 +257,7 @@ func migrateZeusfile() error {
 	}
 
 	// check if there are globals
-	if len(zeusfile.Globals.Items) > 0 {
+	if len(zeusfile.Globals.Vars) > 0 {
 
 		// create globals
 		f, err := os.Create(zeusDir + "/globals.yml")

@@ -68,7 +68,7 @@ var (
 	f = newFormatter()
 
 	g = &globals{
-		Items: make(map[string]string, 0),
+		Vars: make(map[string]string, 0),
 	}
 
 	debug      bool
