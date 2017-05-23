@@ -25,11 +25,6 @@
 			"Rev": "60ec3488bfea7cca02b021d106d9911120d25fe9"
 		},
 		{
-			"ImportPath": "github.com/dreadl0ck/readline",
-			"Comment": "v1.4-22-gc707494",
-			"Rev": "c707494efab496012c27bee49da83057023ffbd3"
-		},
-		{
 			"ImportPath": "github.com/daaku/go.zipexe",
 			"Rev": "a5fe2436ffcb3236e175e5149162b41cd28bd27d"
 		},
@@ -78,13 +73,9 @@
 			"Rev": "80b752c2110dff3410bba8f5d3a6c34f91a6d160"
 		},
 		{
-			"ImportPath": "github.com/dreadl0ck/ansistrip",
-			"Rev": "c21f26d93eeaab19ba53b89f9100adfbf9b95bd8"
-		},
-		{
-			"ImportPath": "github.com/fatih/color",
-			"Comment": "v1.1.0-4-gbf82308",
-			"Rev": "bf82308e8c8546dc2b945157173eb8a959ae9505"
+			"ImportPath": "github.com/dreadl0ck/readline",
+			"Comment": "v1.4-22-gc707494",
+			"Rev": "c707494efab496012c27bee49da83057023ffbd3"
 		},
 		{
 			"ImportPath": "github.com/fsnotify/fsnotify",
@@ -92,9 +83,19 @@
 			"Rev": "944cff21b3baf3ced9a880365682152ba577d348"
 		},
 		{
+			"ImportPath": "github.com/gopherjs/gopherjs/js",
+			"Comment": "go1.5-115-g00f306e",
+			"Rev": "00f306e07eaaaab04ea5dba605cd0e1eff9c6fb7"
+		},
+		{
 			"ImportPath": "github.com/gorilla/websocket",
 			"Comment": "v1.0.0-21-g2d1e454",
 			"Rev": "2d1e4548da234d9cb742cc3628556fef86aafbac"
+		},
+		{
+			"ImportPath": "github.com/jtolds/gls",
+			"Comment": "v4.2.0-1-gbb0351a",
+			"Rev": "bb0351aa7eb6f322f32667d51375f26a2bca6628"
 		},
 		{
 			"ImportPath": "github.com/julienschmidt/httprouter",
@@ -104,15 +105,6 @@
 		{
 			"ImportPath": "github.com/kardianos/osext",
 			"Rev": "c2c54e542fb797ad986b31721e1baedf214ca413"
-		},
-		{
-			"ImportPath": "github.com/mattn/go-colorable",
-			"Comment": "v0.0.6-9-gd228849",
-			"Rev": "d228849504861217f796da67fae4f6e347643f15"
-		},
-		{
-			"ImportPath": "github.com/mattn/go-isatty",
-			"Rev": "66b8e73f3f5cda9f96b69efd03dd3d7fc4a5cdb8"
 		},
 		{
 			"ImportPath": "github.com/mgutz/ansi",
@@ -138,12 +130,46 @@
 			"Rev": "1dba4b3954bc059efc3991ec364f9f9a35f597d2"
 		},
 		{
+			"ImportPath": "github.com/smartystreets/assertions",
+			"Comment": "1.6.0-16-gc9ee7d9",
+			"Rev": "c9ee7d9e9a2aeec0bee7c4a516f3e0ad7cb7e558"
+		},
+		{
+			"ImportPath": "github.com/smartystreets/assertions/internal/go-render/render",
+			"Comment": "1.6.0-16-gc9ee7d9",
+			"Rev": "c9ee7d9e9a2aeec0bee7c4a516f3e0ad7cb7e558"
+		},
+		{
+			"ImportPath": "github.com/smartystreets/assertions/internal/oglematchers",
+			"Comment": "1.6.0-16-gc9ee7d9",
+			"Rev": "c9ee7d9e9a2aeec0bee7c4a516f3e0ad7cb7e558"
+		},
+		{
+			"ImportPath": "github.com/smartystreets/goconvey/convey",
+			"Comment": "1.6.2-17-g3bd662e",
+			"Rev": "3bd662eac601ad6436e64776af2e112069eb2edc"
+		},
+		{
+			"ImportPath": "github.com/smartystreets/goconvey/convey/gotest",
+			"Comment": "1.6.2-17-g3bd662e",
+			"Rev": "3bd662eac601ad6436e64776af2e112069eb2edc"
+		},
+		{
+			"ImportPath": "github.com/smartystreets/goconvey/convey/reporting",
+			"Comment": "1.6.2-17-g3bd662e",
+			"Rev": "3bd662eac601ad6436e64776af2e112069eb2edc"
+		},
+		{
 			"ImportPath": "github.com/x-cray/logrus-prefixed-formatter",
 			"Rev": "a35e641b1da09880f6432c2c7e814ef0817663f7"
 		},
 		{
 			"ImportPath": "golang.org/x/sys/unix",
 			"Rev": "8d1157a435470616f975ff9bb013bea8d0962067"
+		},
+		{
+			"ImportPath": "gopkg.in/yaml.v2",
+			"Rev": "cd8b52f8269e0feb286dfeef29f8fe4d5b397e0b"
 		}
 	]
 }

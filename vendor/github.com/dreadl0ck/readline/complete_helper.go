@@ -161,11 +161,6 @@ func doInternal(p PrefixCompleterInterface, line []rune, pos int, origLine []run
 		// 	return doInternal(lineCompleter, nil, 0, origLine)
 		// }
 
-		// hotfix for argument completion
-		if strings.Contains(string(line), "=") {
-			return doInternal(lineCompleter, nil, 0, origLine)
-		}
-
 		return doInternal(lineCompleter, tmpLine, len(tmpLine), origLine)
 	}
 

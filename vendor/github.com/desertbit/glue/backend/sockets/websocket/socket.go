@@ -161,11 +161,9 @@ func (w *Socket) readLoop() {
 			// if the socket was not closed already.
 			// Also check the websocket close code.
 			if err != io.EOF && !w.IsClosed() &&
-
 				wsCode != websocket.CloseNormalClosure &&
 				wsCode != websocket.CloseGoingAway &&
 				wsCode != websocket.CloseNoStatusReceived {
-
 				// Log
 				log.L.WithFields(logrus.Fields{
 					"remoteAddress": w.RemoteAddr(),

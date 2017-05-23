@@ -3,16 +3,16 @@ Deadline: ""
 Milestones: []
 Aliases: {}
 Events:
-  cf913ef345d5c5d6:
+  2b8909006cf89b8e:
     name: script watcher
-    id: cf913ef345d5c5d6
+    id: 2b8909006cf89b8e
     path: tests/scripts
     op: 2
     fileextension: ""
     command: internal
-  f33480f1570e9bc6:
+  11e14e722da544ee:
     name: config watcher
-    id: f33480f1570e9bc6
+    id: 11e14e722da544ee
     path: tests/config.yml
     op: 2
     fileextension: .yml
