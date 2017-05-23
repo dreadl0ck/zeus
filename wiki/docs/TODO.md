@@ -11,24 +11,6 @@
     COMMIT:
 ---------------------------------------------------------------------------------------
 
-This release adds support for using multiple scripting languages (python, javascript, ruby, bash) + adding custom languages in the config.
-
-Also custom color profiles have been implemented and can be configured in the config.
-The new YAML script header is lot easier to read and simplifies the parsing logic & header extension.
-
-Two new builtins, have been added:
-1) edit builtin, for quickly editing files on the commandline
-2) generate builtin, for generating standalone versions of the build scripts
-
-The globals have been refactored, to support a multi language setup.
-
-This version intruduces a new directory structure:
-1) all files that belong to zeus have moved into the zeus directory
-2) all scripts moved into the zeus/scripts directory
-
-The tests were improved, as well as the README, preview gif and overview graphic.
-Addionally lot of code cleanup & renaming took place, come have a look!
-
 ## readline
 
 - fix dynamic command chain completer
