@@ -3,3 +3,4 @@ build
 edit build
 config set Debug true
 build
+config set Debug false 
