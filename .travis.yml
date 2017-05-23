@@ -1,3 +1,5 @@
 language: go
 go:
   - master
+install:
+  - sudo apt-get install screen
