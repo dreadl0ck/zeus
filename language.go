@@ -110,3 +110,18 @@ func rubyLanguage() *Language {
 		ExecOpSuffix:       "`",
 	}
 }
+
+func luaLanguage() *Language {
+	return &Language{
+		Name:        "lua",
+		Interpreter: "/usr/local/bin/lua",
+		//Bang:               "#!/usr/local/bin/lua",
+		Comment:            "--",
+		AssignmentOperator: " = ",
+		VariableKeyword:    "local ",
+		FlagEvaluateScript: "-e",
+		FileExtension:      ".lua",
+		ExecOpPrefix:       "os.execute(\"",
+		ExecOpSuffix:       "\")",
+	}
+}

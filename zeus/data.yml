@@ -3,13 +3,6 @@ Deadline: ""
 Milestones: []
 Aliases: {}
 Events:
-  54aac920aa427817:
-    name: formatter watcher
-    id: 54aac920aa427817
-    path: zeus/scripts
-    op: 2
-    fileextension: ""
-    command: internal
   509b52a686f113ab:
     name: zeusfile watcher
     id: 509b52a686f113ab

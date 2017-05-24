@@ -173,14 +173,7 @@ func generateScript(outputName string, mixed bool, cmd *command, args []string) 
 	// insert bang and args
 	f.WriteString(lang.Bang + "\n\n" + arguments + "\n")
 
-	g.Lock()
-
-	// initialize global variables
-	for name, value := range g.Vars {
-		f.WriteString(lang.VariableKeyword + name + lang.AssignmentOperator + value + "\n")
-	}
-
-	g.Unlock()
+	f.WriteString(generateGlobals(lang))
 
 	// add language specific global code
 	code, err := ioutil.ReadFile(zeusDir + "/globals" + lang.FileExtension)

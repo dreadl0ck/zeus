@@ -43,6 +43,7 @@ var (
 			"python":     newParser(pythonLanguage()),
 			"javascript": newParser(javaScriptLanguage()),
 			"ruby":       newParser(rubyLanguage()),
+			"lua":        newParser(luaLanguage()),
 		},
 	}
 

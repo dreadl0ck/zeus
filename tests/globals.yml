@@ -1,2 +1,2 @@
 variables:
-    "test": "'bla'"
+    "test": bla

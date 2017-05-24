@@ -1,4 +1,4 @@
 variables:
-    "testVar": '"testValue"'
-    "serverIP": '"192.168.1.1"'
+    "testVar": testValue
+    "serverIP": "192.168.1.1"
     "number": 4

@@ -20,6 +20,7 @@ package main
 
 import (
 	"io/ioutil"
+	"strconv"
 	"sync"
 
 	"gopkg.in/yaml.v2"
@@ -83,4 +84,34 @@ func listGlobals() {
 	} else {
 		l.Println("no globals defined.")
 	}
+}
+
+// generate global variables for a given language
+// returns a string
+func generateGlobals(lang *Language) (out string) {
+
+	g.Lock()
+	defer g.Unlock()
+
+	// initialize global variables
+	for name, value := range g.Vars {
+
+		// check if its a boolean
+		_, err := strconv.ParseBool(value)
+		if err != nil {
+
+			// check if its an integer
+			_, err := strconv.ParseInt(value, 10, 0)
+			if err != nil {
+
+				// its a string
+				out += lang.VariableKeyword + name + lang.AssignmentOperator + "\"" + value + "\"\n"
+			} else {
+				out += lang.VariableKeyword + name + lang.AssignmentOperator + value + "\n"
+			}
+		} else {
+			out += lang.VariableKeyword + name + lang.AssignmentOperator + value + "\n"
+		}
+	}
+	return
 }

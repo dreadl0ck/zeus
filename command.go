@@ -250,6 +250,7 @@ func (c *command) Run(args []string, async bool) error {
 			script = string(scriptBytes)
 		}
 
+		printScript(script, c.name)
 		if conf.fields.DumpScriptOnError {
 			dumpScript(script, c.language, err)
 		}
@@ -390,14 +391,7 @@ func (c *command) createCommand(argBuffer string) (cmd *exec.Cmd, script string,
 		shellCommand = append(shellCommand, lang.FlagEvaluateScript)
 	}
 
-	g.Lock()
-
-	// initialize global variables
-	for name, value := range g.Vars {
-		globalVars += lang.VariableKeyword + name + lang.AssignmentOperator + value + "\n"
-	}
-
-	g.Unlock()
+	globalVars = generateGlobals(lang)
 
 	// add language specific global code
 	code, err := ioutil.ReadFile(zeusDir + "/globals" + lang.FileExtension)

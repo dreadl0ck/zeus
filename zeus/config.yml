@@ -1,4 +1,4 @@
-AutoFormat: true
+AutoFormat: false
 FixParseErrors: true
 Colors: true
 PassCommandsToShell: true
@@ -17,7 +17,7 @@ DisableTimestamps: false
 PrintBuiltins: false
 MakefileOverview: false
 StopOnError: true
-DumpScriptOnError: true
+DumpScriptOnError: false
 DateFormat: 02-01-2006
 TodoFilePath: wiki/docs/TODO.md
 Editor: micro
