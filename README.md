@@ -1239,15 +1239,6 @@ After that the 1.0 Release is expected.
      ZEUS 1.0 will feature encrypted storage inside the project data,
      that can be accessed and modified using the interactive shell.
 
-
-- Support for more Scripting Languages
-
-     The parser was implemented to be generic and can be adapted for parsing any kind of scripting language.
-     The next ones being officially supported will be python and javascript.
-
-     In theory, even mixing scripting languages is possible, although this will require improved handling of the globals.
-     Also the formatter was implemented generically, and could be adapted to work for more languages.
-
 ## Bugs
 
 Multilevel Path tab completion is still broken, the reason for this seems to be an issue in the readline library.
