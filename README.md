@@ -61,9 +61,9 @@ which could lead to enormous **super coding powers**!
 See ZEUS in action:
 
 <p align="center">
-<a href="https://asciinema.org/a/axwqr0yto01xtxj7wjri39vsk" target="_blank"><img src="https://asciinema.org/a/axwqr0yto01xtxj7wjri39vsk" width="654"/>
-<img src="https://github.com/dreadl0ck/zeus/blob/master/files/ZEUS.png" />
-</a>
+    <a href="https://asciinema.org/a/axwqr0yto01xtxj7wjri39vsk" target="_blank">
+        <img src="https://asciinema.org/a/axwqr0yto01xtxj7wjri39vsk" width="654"/>
+    </a>
 </p>
 
 The Dark Mode does not work in terminals with a black background, because it contains black text colors.
