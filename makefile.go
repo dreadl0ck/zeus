@@ -104,51 +104,7 @@ func migrateMakefile(zeusDirectory string) {
 			// match everything preceded by whitespace
 			if makeTargetBody.Match(line) {
 
-				// trim whitespace
-				line = bytes.TrimSpace(line)
-
-				// replace '@builtin' with 'builtin'
-				line = bashBuiltin.ReplaceAll(line, bytes.TrimPrefix(bashBuiltin.Find(line), []byte("@")))
-
-				// replace $(VAR) with $VAR
-				var step1 = bytes.TrimSuffix(bytes.TrimPrefix(makefileVar.Find(line), []byte("$(")), []byte(")")) // VAR
-
-				// escaping the $ with another $ is important here,
-				// otherwise the regex engine treats it as an expansion!
-				var replace = append([]byte("$$"), step1...) // $VAR
-
-				line = makefileVar.ReplaceAll(line, replace)
-
-				// replace $(shell ...) commands with $(...)
-				// replace $(shell command > test) with $(command > test)
-				step1 = bytes.TrimPrefix(makefileShellCommand.Find(line), []byte("$(shell ")) // command > test)
-
-				replace = append([]byte("$("), step1...) // $(command > test)
-				line = makefileShellCommand.ReplaceAll(line, replace)
-
-				// replace all make <command> with zeus <command>
-				if makeCommand.Match(line) {
-					line = bytes.Replace(line, []byte("make"), []byte("zeus"), -1)
-				}
-
-				// convert if statements
-				if bytes.HasSuffix(line, []byte("\\")) {
-
-					if bytes.HasPrefix(line, []byte("if")) {
-						line = bytes.TrimSuffix(line, []byte("\\"))
-						line = append(line, []byte("then")...)
-					} else if bytes.HasPrefix(line, []byte("then")) {
-						// delete line with then
-						line = []byte{}
-					} else {
-						line = bytes.TrimSuffix(line, []byte("\\"))
-						line = bytes.TrimSpace(line)
-						line = bytes.TrimSuffix(line, []byte(";"))
-						line = append([]byte("\t"), line...)
-					}
-				} else if bytes.HasPrefix(line, []byte("fi;")) {
-					line = []byte("fi")
-				}
+				line = migrateLine(line)
 
 				// write to file
 				file.WriteString(string(line) + "\n")
@@ -186,7 +142,63 @@ func migrateMakefile(zeusDirectory string) {
 	}
 
 	// handle globals
+	migrateGlobals(contents, dir)
 
+	l.Println("migrated Makefile")
+}
+
+func migrateLine(line []byte) []byte {
+
+	// trim whitespace
+	line = bytes.TrimSpace(line)
+
+	// replace '@builtin' with 'builtin'
+	line = bashBuiltin.ReplaceAll(line, bytes.TrimPrefix(bashBuiltin.Find(line), []byte("@")))
+
+	// replace $(VAR) with $VAR
+	var step1 = bytes.TrimSuffix(bytes.TrimPrefix(makefileVar.Find(line), []byte("$(")), []byte(")")) // VAR
+
+	// escaping the $ with another $ is important here,
+	// otherwise the regex engine treats it as an expansion!
+	var replace = append([]byte("$$"), step1...) // $VAR
+
+	line = makefileVar.ReplaceAll(line, replace)
+
+	// replace $(shell ...) commands with $(...)
+	// replace $(shell command > test) with $(command > test)
+	step1 = bytes.TrimPrefix(makefileShellCommand.Find(line), []byte("$(shell ")) // command > test)
+
+	replace = append([]byte("$("), step1...) // $(command > test)
+	line = makefileShellCommand.ReplaceAll(line, replace)
+
+	// replace all make <command> with zeus <command>
+	if makeCommand.Match(line) {
+		line = bytes.Replace(line, []byte("make"), []byte("zeus"), -1)
+	}
+
+	// convert if statements
+	if bytes.HasSuffix(line, []byte("\\")) {
+
+		if bytes.HasPrefix(line, []byte("if")) {
+			line = bytes.TrimSuffix(line, []byte("\\"))
+			line = append(line, []byte("then")...)
+		} else if bytes.HasPrefix(line, []byte("then")) {
+			// delete line with then
+			line = []byte{}
+		} else {
+			line = bytes.TrimSuffix(line, []byte("\\"))
+			line = bytes.TrimSpace(line)
+			line = bytes.TrimSuffix(line, []byte(";"))
+			line = append([]byte("\t"), line...)
+		}
+	} else if bytes.HasPrefix(line, []byte("fi;")) {
+		line = []byte("fi")
+	}
+
+	return line
+}
+
+func migrateGlobals(contents []byte, dir string) {
 	var globals string
 	for _, line := range bytes.Split(contents, []byte("\n")) {
 		if global.Match(line) {
@@ -205,8 +217,6 @@ func migrateMakefile(zeusDirectory string) {
 		f.WriteString(globals + "\n")
 		l.Println("created " + dir + "/globals.sh")
 	}
-
-	l.Println("migrated Makefile")
 }
 
 // handle makefile shell commands

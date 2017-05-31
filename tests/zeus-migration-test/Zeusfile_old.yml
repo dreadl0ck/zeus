@@ -15,6 +15,7 @@ globals:
     variables:
         "binaryName": zeus
         "buildDir": bin
+        "number": 4
 
 # all commands
 commands:
@@ -113,9 +114,13 @@ commands:
         language: python
         exec: |
             say_hello()
-            print "hello from python!"
     ruby:
         description: a ruby script
         language: ruby
         exec: |
             puts "hello from ruby!"
+    lua:
+        description: a lua script
+        language: lua
+        exec: |
+            print("Hello World! from lua!")

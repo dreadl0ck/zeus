@@ -74,8 +74,8 @@
 		},
 		{
 			"ImportPath": "github.com/dreadl0ck/readline",
-			"Comment": "v1.4-22-gc707494",
-			"Rev": "c707494efab496012c27bee49da83057023ffbd3"
+			"Comment": "v1.4-26-g86c82ab",
+			"Rev": "86c82ab4c663ef8e9fe894889fcba1b2ef64d4cb"
 		},
 		{
 			"ImportPath": "github.com/fsnotify/fsnotify",

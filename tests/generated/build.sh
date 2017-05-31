@@ -1,14 +1,24 @@
 #!/bin/bash
 
 
-binaryName=zeus
-buildDir=bin
+binaryName="zeus"
+buildDir="bin"
+number=4
 
 #!/bin/bash
 
 function yolo() {
 	echo "yolo"
 }
+#!/bin/bash
+
+# {zeus}
+# arguments:
+# description: prepare JS and CSS and move assets into wiki/docs
+# dependencies: 
+# outputs:
+# help: Generate Javascript and CSS
+# {zeus}
 
 echo "copying LICENSE and README.md"
 

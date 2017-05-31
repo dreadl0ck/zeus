@@ -9,5 +9,4 @@
 # {zeus}
 
 say_hello()
-print "hello from python!"
 

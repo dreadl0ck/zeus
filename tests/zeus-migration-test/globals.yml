@@ -1,0 +1,5 @@
+variables:
+  binaryName: zeus
+  buildDir: bin
+  number: "4"
+rwmutex: {}

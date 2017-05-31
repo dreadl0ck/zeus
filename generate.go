@@ -133,9 +133,7 @@ func handleGenerateCommand(args []string) {
 // returns the fileDeskriptor, language and an error
 func generateScript(outputName string, mixed bool, cmd *command, args []string) (*os.File, *Language, error) {
 
-	var (
-		arguments string
-	)
+	var arguments string
 
 	// get language for current command
 	lang, err := cmd.getLanguage()
@@ -184,37 +182,9 @@ func generateScript(outputName string, mixed bool, cmd *command, args []string) 
 	}
 
 	// add dependencies
-	// @TODO: handle multiple scripting languages here
-	for i, dep := range cmd.dependencies {
-
-		// get language for current command
-		depLang, err := dep.getLanguage()
-		if err != nil {
-			l.Println(dep.name+":", err, ", language:", dep.language)
-			return nil, nil, err
-		}
-
-		if lang.Name == depLang.Name {
-			// add to current script
-			if dep.execScript == "" {
-				c, err := ioutil.ReadFile(dep.path)
-				if err != nil {
-					l.Println("failed to read: " + dep.path)
-					return nil, nil, err
-				}
-				f.Write(c)
-			} else {
-				f.WriteString(dep.execScript)
-			}
-		} else {
-			// dependency script is in another language
-			// generate a new script and inject a call to it
-			generateScript(outputName, mixed, dep, []string{})
-			f.WriteString("\n" + lang.Comment + " execute next script: " + filepath.Base(cmd.dependencies[i+1].path) + "\n")
-			f.WriteString(lang.ExecOpPrefix + lang.Interpreter + " " + filepath.Base(cmd.dependencies[i+1].path) + lang.ExecOpSuffix + "\n")
-		}
-
-		f.WriteString("\n")
+	err = addDependencies(cmd, f, lang, outputName, mixed)
+	if err != nil {
+		return nil, nil, err
 	}
 
 	// add script of current command
@@ -239,4 +209,41 @@ func generateScript(outputName string, mixed bool, cmd *command, args []string) 
 	l.Println("generated " + outputName)
 
 	return f, lang, nil
+}
+
+func addDependencies(cmd *command, f *os.File, lang *Language, outputName string, mixed bool) error {
+
+	for i, dep := range cmd.dependencies {
+
+		// get language for current command
+		depLang, err := dep.getLanguage()
+		if err != nil {
+			l.Println(dep.name+":", err, ", language:", dep.language)
+			return err
+		}
+
+		if lang.Name == depLang.Name {
+			// add to current script
+			if dep.execScript == "" {
+				c, err := ioutil.ReadFile(dep.path)
+				if err != nil {
+					l.Println("failed to read: " + dep.path)
+					return err
+				}
+				f.Write(c)
+			} else {
+				f.WriteString(dep.execScript)
+			}
+		} else {
+			// dependency script is in another language
+			// generate a new script and inject a call to it
+			generateScript(outputName, mixed, dep, []string{})
+			f.WriteString("\n" + lang.Comment + " execute next script: " + filepath.Base(cmd.dependencies[i+1].path) + "\n")
+			f.WriteString(lang.ExecOpPrefix + lang.Interpreter + " " + filepath.Base(cmd.dependencies[i+1].path) + lang.ExecOpSuffix + "\n")
+		}
+
+		f.WriteString("\n")
+	}
+
+	return nil
 }

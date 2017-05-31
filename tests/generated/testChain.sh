@@ -1,8 +1,9 @@
 #!/bin/bash
 
 
-binaryName=zeus
-buildDir=bin
+binaryName="zeus"
+buildDir="bin"
+number=4
 
 #!/bin/bash
 

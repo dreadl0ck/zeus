@@ -253,75 +253,9 @@ func (job *parseJob) getCommandChain(parsedCommands [][]string, zeusfile *Zeusfi
 
 		if !ok {
 
-			// check if command is currently being parsed
-			if job.p.JobExists(jobPath) {
-				cLog.Warn("getCommandChain: JOB EXISTS: ", jobPath)
-				job.p.WaitForJob(jobPath)
-
-				// now the command is there
-				cmdMap.Lock()
-				cmd, ok = cmdMap.items[args[0]]
-				cmdMap.Unlock()
-			} else {
-				if zeusfile != nil {
-
-					d := zeusfile.Commands[args[0]]
-					if d == nil {
-						return nil, errors.New("invalid command in commandChain: " + args[0])
-					}
-
-					// assemble commands args
-					arguments, err := validateArgs(d.Arguments)
-					if err != nil {
-						return commandChain, err
-					}
-
-					parsedCommands, err := job.parseCommandChain(d.Dependencies)
-					if err != nil {
-						return commandChain, err
-					}
-
-					chain, err := job.getCommandChain(parsedCommands, zeusfile)
-					if err != nil {
-						return commandChain, err
-					}
-
-					// create command
-					cmd = &command{
-						path:            "",
-						name:            args[0],
-						args:            arguments,
-						description:     d.Description,
-						help:            d.Help,
-						PrefixCompleter: readline.PcItem(args[0]),
-						buildNumber:     d.BuildNumber,
-						dependencies:    chain,
-						outputs:         d.Outputs,
-						execScript:      d.Exec,
-						async:           d.Async,
-						language:        zeusfile.Language,
-					}
-				} else {
-					// add new command
-					cmd, err = job.newCommand(scriptDir + "/" + args[0] + job.p.language.FileExtension)
-					if err != nil {
-						if !job.silent {
-							cLog.WithError(err).Debug("failed to create command")
-						}
-						return commandChain, err
-					}
-				}
-				cmdMap.Lock()
-
-				// add the completer
-				completer.Children = append(completer.Children, cmd.PrefixCompleter)
-
-				// add to command map
-				cmdMap.items[args[0]] = cmd
-
-				cmdMap.Unlock()
-
-				cLog.Debug("added " + cp.CmdName + cmd.name + ansi.Reset + " to the command map")
+			cmd, err = job.getCommand(jobPath, args, zeusfile)
+			if err != nil {
+				return commandChain, err
 			}
 		}
 
@@ -360,6 +294,93 @@ func (job *parseJob) getCommandChain(parsedCommands [][]string, zeusfile *Zeusfi
 		}
 	}
 	return
+}
+
+func (job *parseJob) getCommand(jobPath string, args []string, zeusfile *Zeusfile) (*command, error) {
+
+	cLog := Log.WithField("prefix", "getCommand")
+
+	// check if command is currently being parsed
+	if job.p.JobExists(jobPath) {
+		cLog.Warn("getCommandChain: JOB EXISTS: ", jobPath)
+		job.p.WaitForJob(jobPath)
+
+		// now the command is there
+		cmdMap.Lock()
+		cmd, ok := cmdMap.items[args[0]]
+		cmdMap.Unlock()
+
+		if !ok {
+			return nil, errors.New("command " + args[0] + "not found after waiting for it - wtf")
+		}
+
+		return cmd, nil
+	}
+
+	if zeusfile != nil {
+
+		d := zeusfile.Commands[args[0]]
+		if d == nil {
+			return nil, errors.New("invalid command in commandChain: " + args[0])
+		}
+
+		// assemble commands args
+		arguments, err := validateArgs(d.Arguments)
+		if err != nil {
+			return nil, err
+		}
+
+		parsedCommands, err := job.parseCommandChain(d.Dependencies)
+		if err != nil {
+			return nil, err
+		}
+
+		chain, err := job.getCommandChain(parsedCommands, zeusfile)
+		if err != nil {
+			return nil, err
+		}
+
+		// create command
+		cmd := &command{
+			path:            "",
+			name:            args[0],
+			args:            arguments,
+			description:     d.Description,
+			help:            d.Help,
+			PrefixCompleter: readline.PcItem(args[0]),
+			buildNumber:     d.BuildNumber,
+			dependencies:    chain,
+			outputs:         d.Outputs,
+			execScript:      d.Exec,
+			async:           d.Async,
+			language:        zeusfile.Language,
+		}
+
+		return cmd, nil
+	}
+
+	// add new command
+	cmd, err := job.newCommand(scriptDir + "/" + args[0] + job.p.language.FileExtension)
+	if err != nil {
+		if !job.silent {
+			cLog.WithError(err).Debug("failed to create command")
+		}
+		return nil, err
+	}
+
+	cmdMap.Lock()
+
+	// add the completer
+	completer.Children = append(completer.Children, cmd.PrefixCompleter)
+
+	// add to command map
+	cmdMap.items[args[0]] = cmd
+
+	cmdMap.Unlock()
+
+	cLog.Debug("added " + cp.CmdName + cmd.name + ansi.Reset + " to the command map")
+
+	return cmd, nil
 }
 
 // thread safe

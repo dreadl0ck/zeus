@@ -15,14 +15,14 @@
 ![coverage](https://img.shields.io/badge/coverage-50%25-yellow.svg)
 [![travisCI](https://travis-ci.org/dreadl0ck/zeus.svg?branch=master)](https://travis-ci.org/dreadl0ck/zeus)
 
-ZEUS is a modern build system with support for writing build targets in multiple scripting languages,
+ZEUS is a modern build system featuring support for writing build targets in *multiple scripting languages*,
 an *interactive shell* with *tab completion* and customizable ANSI color profiles as well as support for *keybindings*.
 
 It parses the **zeus** directory in your project,
 to find commands either via a single file (Zeusfile.yml) or via scripts in the **zeus/scripts** directory.
 
 A command can have *typed parameters* and commands can be *chained*.
-Each command can have dependencies which will be resolved prior to execution, similiar to GNU Make targets.
+Each command can have dependencies which will be resolved prior to execution, similar to GNU Make targets.
 
 The scripts supply information by using ZEUS headers.
 You can export global variables and functions visible to all scripts.
@@ -46,7 +46,7 @@ The 1.0 Release will feature an optional *webinterface*, *markdown / HTML report
 The name ZEUS refers to the ancient greek god of the *sky and thunder*.
 
 When starting the interactive shell there is a good chance you will be struck by a *lighting* and bitten by a *cobra*,
-which could lead to enourmous **super coding powers**!
+which could lead to enormous **super coding powers**!
 
 [Project Page](https://dreadl0ck.github.io/zeus/)
 
@@ -56,98 +56,79 @@ which could lead to enourmous **super coding powers**!
 > Please read the BUGS section to see whats causing trouble
 > as well as the COMING SOON section to get an impression of whats coming up for version 1.0
 
-**CAUTION: Newer builds may break compatibilty with previous ones, and require to remove or add certain config fields, or delete your zeus/data.yml. Breaking changes will be announced here, so have a look after updating your build. Feel free to contact me by mail if something is not working.**
+**CAUTION: Newer builds may break compatibility with previous ones, and require to remove or add certain config fields, or delete your zeus/data.yml. Breaking changes will be announced here, so have a look after updating your build. Feel free to contact me by mail if something is not working.**
 
-A sneak preview of the dark mode, running in the ZEUS project directory:
+See ZEUS in action:
 
-![alt text](https://github.com/dreadl0ck/zeus/blob/master/wiki/docs/zeus.gif "ZEUS Preview")
+<!--
+<p align="center">
+<a href="https://asciinema.org/a/axwqr0yto01xtxj7wjri39vsk" target="_blank"><img src="https://asciinema.org/a/axwqr0yto01xtxj7wjri39vsk" width="654"/>
+<img src="https://github.com/dreadl0ck/zeus/blob/master/files/ZEUS.png" />
+</a>
+</p>
+-->
 
 The Dark Mode does not work in terminals with a black background, because it contains black text colors.
 I recommend using the solarized dark terminal theme, if you want to use the dark mode.
 
 ## Index
 
-- [Installation](#installation)
 - [Preface](#preface)
-- [Interactive Shell](#interactive-shell)
-- [Builtins](#builtins)
-    - [Edit Builtin](#edit-builtin)
-    - [Generate Builtin](#generate-builtin)
-    - [Todo Builtin](#todo-builtin)
-    - [Procs Builtin](#procs-builtin)
-    - [Git Filter Builtin](#git-filter-builtin)
-- [Headers](#headers)
-- [Command Chains](#command-chains)
-- [Globals](#globals)
-- [Aliases](#aliases)
-- [Event Engine](#event-engine)
-- [Milestones](#milestones)
-- [Project Deadline](#project-deadline)
-- [Keybindings](#keybindings)
-- [Auto Formatter](#auto-formatter)
-- [ANSI Color Profiles](#ansi-color-profiles)
-- [Documentation](#documentation)
-- [Typed Command Arguments](#typed-command-arguments)
-- [Scripting Languages](#scripting-languages)
-- [Shell Integration](#shell-integration)
-- [Bash Completions](#bash-completions)
-- [Makefile Integration](#makefile-integration)
-- [Makefile Migration Assistance](#makefile-migration-assistance)
+- [Installation](#installation)
+
 - [Configuration](#configuration)
-- [Direct Command Execution](#direct-command-execution)
-- [Bootstrapping](#bootstrapping)
-- [Tests](#tests)
-- [Webinterface](#webinterface)
-- [Markdown Wiki](#markdown-wiki)
-- [OS Support](#os-support)
-- [Assets](#assets)
-- [Vendoring](#vendoring)
-- [Dependencies](#dependencies)
+
+- [Interactive Shell](#interactive-shell)
+  - [Readline Keybindings](#default-readline-keybindings)
+  - [Shell Integration](#shell-integration)
+  - [Bash Completions](#bash-completions)
+  - [Direct Command Execution](#direct-command-execution)
+
+- [Builtins](#builtins)
+  - [Edit Builtin](#edit-builtin)
+    - [Micro Keybindings](#micro-keybindings)
+  - [Generate Builtin](#generate-builtin)
+  - [Todo Builtin](#todo-builtin)
+  - [Procs Builtin](#procs-builtin)
+  - [Git Filter Builtin](#git-filter-builtin)
+  - [Aliases](#aliases)
+  - [Events](#event-engine)
+  - [Milestones](#milestones)
+  - [Project Deadline](#project-deadline)
+  - [Keybindings](#keybindings)
+  - [Auto Formatter](#auto-formatter)
+  - [ANSI Color Profiles](#ansi-color-profiles)
+    - [ANSI Style Format](#ansi-style-format)
+  - [Makefile Integration](#makefile-integration)
+  - [Makefile Migration Assistance](#makefile-migration-assistance)
+  - [Bootstrapping](#bootstrapping)
+  - [Webinterface](#webinterface)
+  - [Markdown Wiki](#markdown-wiki)
+  - [Command Chains](#command-chains)
+
 - [Zeusfile](#zeusfile)
-- [Async commands](#async-commands)
+- [Globals](#globals)
+
+- [Headers](#headers)
+  - [Help](#help)
+  - [Dependencies](#dependencies)
+  - [Async commands](#async-commands)
+  - [Typed Command Arguments](#typed-command-arguments)
+  - [Scripting Languages](#scripting-languages)
+
 - [Internals](#internals)
-- [Notes](#notes)
-- [Coming Soon](#coming-soon)
-- [Bugs](#bugs)
-- [Project Stats](#project-stats)
+  - [Tests](#tests)
+  - [OS Support](#os-support)
+  - [Assets](#assets)
+  - [Vendoring](#vendoring)
+  - [Notes](#notes)
+    - [Background Processes](#background-processes)
+  - [Coming Soon](#coming-soon)
+  - [Bugs](#bugs)
+  - [Project Stats](#project-stats)
+
 - [License](#license)
 - [Contact](#contact)
-
-
-## Installation
-
-From github:
-
-```shell
-$ go get -v -u github.com/dreadl0ck/zeus
-...
-```
-
-> NOTE: This might take a while, because some assets are embedded into the binary to make it position independent. Time to get a coffee
-
-ZEUS uses ZEUS as its build system!
-After the initial install simply run **zeus** inside the project directory,
-to get the command overview.
-
-I also recommend installing the amazing [micro](https://github.com/zyedidia/micro) text editor,
-as this is the default editor for the edit command. Dont worry you can also use vim if desired.
-
-Also nice to have is the [cloc](https://github.com/AlDanial/cloc) tool,
-which means count lines of code and is used for the *info* builtin.
-
-OSX Users can grab both with:
-
-```shell
-$ brew install cloc micro
-...
-```
-
-When developing compile with: (this compiles without assets and is much faster)
-
-```shell
-$ zeus/scripts/dev.sh
-...
-```
 
 ## Preface
 
@@ -196,6 +177,86 @@ Usage Descriptions:
 # <> parentheses: values that need to be supplied by the user
 milestones [remove <name>] [set <name> <0-100>] [add <name> <date> [description]]
 ```
+
+## Installation
+
+From github:
+
+```shell
+$ go get -v -u github.com/dreadl0ck/zeus
+...
+```
+
+> NOTE: This might take a while, because some assets are embedded into the binary to make it position independent. Time to get a coffee
+
+ZEUS uses ZEUS as its build system!
+After the initial install simply run **zeus** inside the project directory,
+to get the command overview.
+
+I also recommend installing the amazing [micro](https://github.com/zyedidia/micro) text editor,
+as this is the default editor for the edit command. Don't worry you can also use vim if desired.
+
+Also nice to have is the [cloc](https://github.com/AlDanial/cloc) tool,
+which means count lines of code and is used for the *info* builtin.
+
+OSX Users can grab both with:
+
+```shell
+$ brew install cloc micro
+...
+```
+
+When developing compile with: (this compiles without assets and is much faster)
+
+```shell
+$ zeus/scripts/dev.sh
+...
+```
+
+## Configuration
+
+The configfile allows customization of the behaviour,
+when a ZEUS instance is running in interactive mode this file is being watched and parsed when a WRITE event occurs.
+
+To prevent errors by typos ZEUS will warn you about about unknown config fields.
+
+However, the builtin *config* command is recommended for editing the config,
+it features tab completion for all config fields, actions and values.
+
+    Usage:
+    config [get <field>]
+    config [set <field> <value>]
+
+**Config Options:**
+
+| Option              | Type                     | Description                              |
+| ------------------- | ------------------------ | ---------------------------------------- |
+| MakefileOverview    | bool                     | print the makefile target overview when starting zeus |
+| AutoFormat          | bool                     | enable / disable the auto formatter      |
+| FixParseErrors      | bool                     | enable / disable fixing parse errors automatically |
+| Colors              | bool                     | enable / disable ANSI colors             |
+| PassCommandsToShell | bool                     | enable / disable passing unknown commands to the shell |
+| WebInterface        | bool                     | enable / disable running the webinterface on startup |
+| Interactive         | bool                     | enable / disable interactive mode        |
+| Debug               | bool                     | enable / disable debug mode              |
+| RecursionDepth      | int                      | set the amount of repetitive commands allowed |
+| ProjectNamePrompt   | bool                     | print the projects name as prompt for the interactive shell |
+| AllowUntypedArgs    | bool                     | allow untyped command arguments          |
+| ColorProfile        | string                   | current color profile                    |
+| HistoryFile         | bool                     | save command history in a file           |
+| HistoryLimit        | int                      | history entry limit                      |
+| ExitOnInterrupt     | bool                     | exit the interactive shell with an SIGINT (Ctrl-C) |
+| DisableTimestamps   | bool                     | disable timestamps when logging          |
+| StopOnError         | bool                     | stop script execution when there's an error inside a script |
+| DumpScriptOnError   | bool                     | dump the currently processed script into a file if an error occurs |
+| DateFormat          | string                   | set the format string for dates, used by deadline and milestones |
+| TodoFilePath        | string                   | set the path for your TODO file, default is: "TODO.md" |
+| Editor              | string                   | configure editor for the edit builtin    |
+| ColorProfiles       | map[string]*ColorProfile | add custom color profiles                |
+| Languages           | []*Language              | add custom language definitions          |
+
+> NOTE: when modifying the Debug or Colors field, you need to restart zeus in order for the changes to take effect. That's because the Log instance is a global variable, and manipulating it on the fly produces data races.
+
 
 ## Interactive Shell
 
@@ -279,9 +340,56 @@ Notice: `Meta`+`B` is equals with `Alt`+`B` in windows.
 | `Ctrl`+`C` / `Ctrl`+`G` | Exit Complete Select Mode                |
 | Other                   | Exit Complete Select Mode                |
 
+### Shell Integration
+
+When ZEUS does not know the command you typed it will be passed down to the underlying shell.
+That means you can use git and all other shell tools without having to leave the interactive shell!
+
+This behaviour can be disabled by using the *PassCommandsToShell* option.
+There is path and command completion for basic shell commands (cat, ls, ssh, git, tree etc)
+
+> Remember: Events, Aliases and Keybindings can contain shell commands!
+
+> NOTE: Multilevel path completion is broken, I'm working on a fix.
+
+### Bash Completions
+
+If you also want tab completion when not using the interactive shell,
+install the bash-completion package which is available for most linux distros and macOS.
+
+on macOS you can install it with brew:
+
+```
+brew install bash-completion
+```
+
+on linux use the package manager of your distro.
+
+Then add the completion file **files/zeus** to:
+
+- macOS: /usr/local/etc/bash_completion.d/
+- Linux: /etc/bash_completion.d/
+
+and source it with:
+
+- macOS: . /usr/local/etc/bash_completion.d/zeus
+- Linux: . /etc/bash_completion.d/zeus
+
+### Direct Command Execution
+
+You don't need the interactive shell to run commands, just use the following syntax:
+
+```shell
+$ zeus [commandName] [args]
+...
+```
+
+This is useful for scripting or using ZEUS from another programming language.
+Note that you can use the bash-completions package and the completion script **files/zeus** to get tab completion on the shell.
+
 ## Builtins
 
-ZEUS includes alot of useful builtins,
+ZEUS includes a lot of useful builtins,
 the following builtin commands are available:
 
 | Command            | Description                              |
@@ -334,60 +442,7 @@ It does also play nice with the builtin shellscript formatter.
 
 > NOTE: Hit tab to see available commands to edit
 
-### Generate Builtin
-
-    usage: generate <outputName> <commandChain>
-
-The **generate** builtin generates a standalone version of a single command or commandChain.
-
-If all commands are of the same language, a single script is generated.
-If there are multiple scripting languages involved, a directory is generated with all required scripts and a *run.sh* script, that executes the first element of the commandChain.
-
-examples:
-
-```shell
-# generate a standalone version of the build command, with all globals and dependencies
-zeus » generate build.sh build
-
-# generate a standalone version of the commandChain, with all globals and dependencies
-# scenario1: only shell scripts
-zeus » generate deploy_server.sh clean -> configure -> build -> deploy ip=167.149.1.2
-
-# scenario2: mixed languages
-# this will create a deploy_server directory with all required scripts and generated code to execute them in the order of the commandChain
-zeus » generate deploy_server clean -> configure -> build -> deploy ip=167.149.1.2
-```
-
-### Todo Builtin
-
-    usage: todo [add <task>] [remove <index>]
-
-The **todo** builtin is a simple tool for working with *TODO.md* files,
-it allows you to list, add and remove tasks in the interactive shell.
-
-Default path for todo file is *TODO.md* in the root of the project.
-
-You can specify a custom path in the config, using the *TodoFilePath* field.
-
-### Procs Builtin
-
-    usage: procs [detach <command>] [attach <pid>] [kill <pid>]
-
-The procs builtin allows you to detached commands (execute them async),
-list or kill spawned proceses and attach Stdin + Stdout + Stderr to a running process.
-
-> NOTE: there are tab completions for PIDs
-
-### Git Filter Builtin
-
-    usage: git-filter [keyword]
-
-A very simple filter for git commits,
-outputs one commit per line and can be filtered for keywords like using the UNIX grep command.
-
-> NOTE: This is still work in progress
-
-### Default Micro Keybindings
+#### Default Micro Keybindings
 
 The micro editor comes with syntax highlighting for over 90 languages by default,
 and offers the following keybindings:
@@ -458,9 +513,464 @@ and offers the following keybindings:
 
 ```
 
+### Generate Builtin
+
+    usage: generate <outputName> <commandChain>
+
+The **generate** builtin generates a standalone version of a single command or commandChain.
+
+If all commands are of the same language, a single script is generated.
+If there are multiple scripting languages involved, a directory is generated with all required scripts and a *run.sh* script, that executes the first element of the commandChain.
+
+examples:
+
+```shell
+# generate a standalone version of the build command, with all globals and dependencies
+zeus » generate build.sh build
+
+# generate a standalone version of the commandChain, with all globals and dependencies
+# scenario1: only shell scripts
+zeus » generate deploy_server.sh clean -> configure -> build -> deploy ip=167.149.1.2
+
+# scenario2: mixed languages
+# this will create a deploy_server directory with all required scripts and generated code to execute them in the order of the commandChain
+zeus » generate deploy_server clean -> configure -> build -> deploy ip=167.149.1.2
+```
+
+### Todo Builtin
+
+    usage: todo [add <task>] [remove <index>]
+
+The **todo** builtin is a simple tool for working with *TODO.md* files,
+it allows you to list, add and remove tasks in the interactive shell.
+
+A task is considered a note with prefix: -
+
+Default path for todo file is *TODO.md* in the root of the project.
+
+You can specify a custom path in the config, using the *TodoFilePath* field.
+
+### Procs Builtin
+
+    usage: procs [detach <command>] [attach <pid>] [kill <pid>]
+
+The procs builtin allows you to detach commands (execute them async),
+list or kill spawned processes and attach Stdin + Stdout + Stderr to a running process.
+
+> NOTE: there are tab completions for PIDs
+
+### Git Filter Builtin
+
+    usage: git-filter [keyword]
+
+A very simple filter for git commits,
+outputs one commit per line and can be filtered for keywords like using the UNIX grep command.
+
+> NOTE: This is still work in progress
+
+### Aliases
+
+You can specify aliases for ZEUS or shell commands.
+This is handy when using commands with lots of arguments,
+or for common git or ssh operations.
+
+Aliases will be added to the tab completer, saved in the project data and restored every time you run ZEUS.
+
+```shell
+zeus » alias set gs git status
+zeus » gs
+On branch master
+Your branch is up-to-date with 'origin/master'.
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git checkout -- <file>..." to discard changes in working directory)
+...
+```
+
+Running *alias* without params will print the current aliases:
+
+```shell
+zeus » alias
+gs = git status
+```
+
+### Events
+
+Events for the following filesystem operations can be created: WRITE | REMOVE | RENAME | CHMOD
+
+When an operation of the specified type occurs on the watched file (or on any file inside a directory),
+a custom command is executed. This can be a ZEUS or any shell command.
+
+Events can be bound to a specific file type, by supplying the filetype before the command:
+
+```shell
+zeus » events add WRITE docs/ .md say hello
+```
+
+Filetypes feature completion, just specify the directory and hit tab to see a list of filetypes inside the directory.
+
+Example for a simple WRITE event on a single file:
+
+```shell
+zeus » events add WRITE TODO.md say updated TODO
+```
+
+Running *events* without params will print the current events:
+
+```shell
+zeus » events
+custom event        a63d8659d6243630    WRITE               say wiki updated    .md               wiki/
+config event        58c41a66bf6efde4    WRITE               internal            .yml               zeus/config.yml
+```
+
+Note that you can also see the internal ZEUS events used for watching the config file,
+and for watching the shellscripts inside the **zeus** directory to run the formatter on change.
+
+For removing an event specify its path:
+
+```shell
+zeus » events remove TODO.md
+  INFO removed event with name TODO.md
+```
+
+
+### Milestones
+
+For a structured workflow milestones can be created.
+
+A Milestone tracks the progress of a particular programming task inside the project,
+and contains an expected date and an optional description.
+
+   Usage:
+   milestones [remove <name>]
+   milestones [set <name> <0-100>]
+   milestones [add <name> <date> [description]]
+
+Add a milestone to the project:
+
+```shell
+zeus » milestones add Testing 12-12-2018 Finish testing
+  INFO added milestone Testing
+```
+
+list the current milestones with:
+
+```shell
+zeus » milestones
+Milestones:
+# 0 [                    ] 0% name: Testing date: 12-12-2018 description: Finish testing
+```
+
+set a milestones progress with:
+
+```shell
+zeus » milestones set Testing 50
+zeus » milestones
+Milestones:
+# 0 [==========          ] 50% name: Testing date: 12-12-2018 description: Finish testing
+```
+
+
+### Project Deadline
+
+    Usage:
+    deadline [remove]
+    deadline [set <date>]
+
+A global project Deadline can also be set:
+
+```shell
+zeus » deadline set 24-12-2018
+  INFO added deadline for 24-12-2018
+```
+
+get the current deadline with:
+
+```shell
+zeus » deadline
+Deadline: 24-12-2018
+```
+
+
+### Keybindings
+
+Keybindings allow mapping ZEUS or shell commands to Ctrl-[A-Z] Key Combinations.
+
+    Usage:
+    keys [set <KeyComb> <commandChain>]
+    keys [remove <KeyComb>]
+
+To see a list of current keybindings, run *keys* in the interactive shell:
+
+```shell
+zeus » keys
+Ctrl-B = build
+Ctrl-S = git status
+Ctrl-P = git push
+```
+
+To set a Keybinding:
+
+```shell
+zeus » keys set Ctrl-H help
+```
+
+> NOTE: use [TAB] for completion of available keybindings
+
+To remove a Keybinding:
+
+```shell
+zeus » keys remove Ctrl-H
+```
+
+> NOTE: some key combination such as Ctrl-C (SIGINT) are not available because they are handled by the shell
+
+### Auto Formatter
+
+The Auto Formatter watches the scripts inside the **zeus** directory and formats them when a WRITE Event occurs.
+
+Currently this is only available for Shellscripts, but I plan to add formatters for more languages & add an option to add custom ones.
+
+However changing the file contents while your IDE holds a buffer of it in memory,
+does not play well with all IDEs and Editors and should ideally be implemented as IDE Plugin.
+
+My IDE (VSCode) complains sometimes that the content on disk is newer,
+but most of the time its works ok.
+Please note that for VSCode you have to CMD-S twice before the buffer from the IDE gets written to disk.
+
+> NOTE:
+> Since this causes trouble with most IDEs and editors, its disabled by default
+> You can enable this feature in the config if you want to try it with your editor
+> When setting the AutoFormat Option to true, the DumpScriptOnError option will also be enabled
+
+Formatting seems to work well with the *micro* editor,
+so when editing your scripts with the **edit** builtin, try it out!
+
+### ANSI Color Profiles
+
+Colors are used for good readability and can be configured by using the config file.
+
+You can add multiple color profiles and configure them to your taste.
+
+there are 5 default profiles: dark, light, default, off, black
+
+To change the color profile to dark:
+
+```shell
+zeus » colors dark
+```
+
+> NOTE: dark mode is strongly recommended :) use the solarized dark theme for optimal terminal background.
+
+For configuring color profiles in the config, use the style format from the ansi go package:
+
+#### ANSI Style Format
+
+```go
+"foregroundColor+attributes:backgroundColor+attributes"
+```
+
+Colors
+
+* black
+* red
+* green
+* yellow
+* blue
+* magenta
+* cyan
+* white
+* 0...255 (256 colors)
+
+Foreground Attributes
+
+* B = Blink
+* b = bold
+* h = high intensity (bright)
+* i = inverse
+* s = strikethrough
+* u = underline
+
+Background Attributes
+
+* h = high intensity (bright)
+
+### Makefile Integration
+
+By using the **makefile** command you can get an overview of targets available in a Makefile:
+
+```shell
+zeus » makefile
+available GNUMake Commands:
+~> clean
+~> configure
+~> status
+~> backup
+~> bench: build
+~> test: clean
+~> debug: build
+~> build: clean
+~> deploy
+```
+
+This might be helpful when switching to ZEUS or when using both for whatever reason.
+
+Currently the following actions are performed:
+
+- globals will be extracted and put into the **zeus/globals.sh** file
+- variable conversion from '$(VAR)' to the bash dialect: '$VAR'
+- shell commands will be converted from '@command' to 'command'
+- calls to 'make target' will be replaced with 'zeus target'
+- if statements will be converted to bash dialect
+
+> NOTE:
+> Makefile migration is not yet perfect!
+> Always look at the generated files, and check if the output makes sense.
+> Especially automatic migration of make target arguments has not been implemented yet.
+> Also switch statement conversion is currently missing.
+
+### Makefile Migration Assistance
+
+ZEUS helps you migrate from Makefiles, by parsing them and transforming the build targets into a ZEUS structure.
+Your Makefile will remain unchanged, Makefiles and ZEUS can happily coexist!
+
+simply run this from the interactive shell:
+
+```shell
+zeus » makefile migrate
+```
+
+or from the commandline:
+
+```shell
+$ zeus makefile migrate
+~> clean
+~> configure
+~> status
+~> backup
+...
+[INFO] migration complete.
+```
+
+Your makefile will remain unchanged. This command creates the **zeus** directory with your make commands as ZEUS scripts.
+If there are any global variables declared in your Makefile, they will be extracted and put into the **zeus/globals.sh** file.
+
+
+### Bootstrapping
+
+When starting from scratch, you can use the bootstrapping functionality:
+
+```shell
+$ zeus bootstrap dir
+...
+```
+
+This will create the **zeus** folder, and bootstrap the basic commands (build, clean, run, install, test, bench),
+including empty ZEUS headers.
+
+To bootstrap a Zeusfile, use:
+
+```shell
+$ zeus bootstrap file
+...
+```
+
+Bootstrapping single commands from the interactive shell is also possible with the **create** builtin:
+
+    usage: create <language> <command>
+
+```shell
+$ zeus create bash newCommandName
+...
+```
+
+or in the interactive shell:
+
+```shell
+zeus » create bash newCommandName
+```
+
+This will create a new file at **zeus/newCommandName.sh** with an empty header and drop you into your Editor, so you can start hacking.
+
+### Webinterface
+
+The Webinterface will allow to track the build status and display project information,
+execute build commands and much more!
+
+Communication happens live over a websocket.
+
+When **WebInterface** is enabled in the config the server will be started when launching ZEUS.
+Otherwise use the **web** builtin to start the server from the shell.
+
+> NOTE: This is still work in progress
+
+### Markdown Wiki
+
+A Markdown Wiki will be served from the projects **wiki** directory.
+
+All Markdown Documents in the **wiki/docs** folder can be viewed in the browser,
+which makes creating good project docs very easy.
+
+The **wiki/INDEX.md** file will be converted to HTML and inserted in main wiki page.
+
+### Command Chains
+
+Targets (aka commands) can be chained, using the **->** operator
+
+By using the **dependencies** header field you can specify a command chain (or a single command),
+that will be run before execution of the target script.
+
+Individual commands from this chain will be skipped if they have outputs that do already exist!
+
+This command chain will be executed from left to right,
+each of the commands can also contain dependencies and so on.
+
+You can also assemble & run command chains in the interactive shell.
+This is useful for testing chains and see the result instantly.
+
+A simple example:
+
+```shell
+# clean the project, build for amd64 and deploy the binary on the server
+zeus » clean -> build-amd64 -> deploy
+```
+
+## Zeusfile
+
+Similar to GNU Make, ZEUS allows adding all targets to a single file named Zeusfile.yml inside the **zeus** directory.
+This is useful for small projects and you can still use the interactive shell if desired.
+
+The File follows the [YAML](http://yaml.org) specification.
+
+There is an example Zeusfile in the tests directory.
+A watcher event is automatically created for parsing the file again on WRITE events.
+
+Use the globals section to export global variables and function to all commands.
+
+If you want to migrate to a zeus directory structure after a while, use the *migrate-zeusfile* builtin:
+
+```shell
+zeus » migrate-zeusfile
+migrated  10  commands from Zeusfile in:  4.575956ms
+```
+
+## Globals
+
+Globals allow you to declare variables and functions in global scope and share them among all ZEUS scripts.
+
+There are two kinds of globals:
+
+1 **zeus/globals.yml** for global variables visible to all scripts
+2 **zeus/globals.[scriptExtension]** for language specific code such as functions
+
+When using a Zeusfile, the global variables can be declared in the *globals* section.
+
+> NOTE: You current shells environment will be passed to each executed command.
+> That means global variables from ~/.bashrc or ~/.bash_profile are accessible by default
+
 ## Headers
 
-Scripts supply informations via their ZEUS header.
+Scripts supply information via their ZEUS header.
 
 This is basically just a piece of YAML,
 which defines their dependencies, outputs, description etc
@@ -508,270 +1018,7 @@ it will be be placed in bin/$name
 ```
 
 
-## Command Chains
-
-Targets (aka commands) can be chained, using the **->** operator
-
-By using the **dependencies** header field you can specify a command chain (or a single command),
-that will be run before execution of the target script.
-
-Individual commands from this chain will be skipped if they have outputs that do already exist!
-
-This command chain will be executed from left to right,
-each of the commands can also contain dependencies and so on.
-
-You can also assemble & run command chains in the interactive shell.
-This is useful for testing chains and see the result instantly.
-
-A simple example:
-
-```shell
-# clean the project, build for amd64 and deploy the binary on the server
-zeus » clean -> build-amd64 -> deploy
-```
-
-## Globals
-
-Globals allow you to declare variables and functions in global scope and share them among all ZEUS scripts.
-
-There are two kinds of globals:
-
-1 **zeus/globals.yml** for global variables visible to all scripts
-2 **zeus/globals.[scriptExtension]** for language specific code such as functions
-
-When using a Zeusfile, the global variables can be declared in the *globals* setion.
-
-> NOTE: You current shells environment will be passed to each executed command.
-> That means global variables from ~/.bashrc or ~/.bash_profile are accessible by default
-
-## Aliases
-
-You can specify aliases for ZEUS or shell commands.
-This is handy when using commands with lots of arguments,
-or for common git or ssh operations.
-
-Aliases will be added to the tab completer, saved in the project data and restored every time you run ZEUS.
-
-```shell
-zeus » alias set gs git status
-zeus » gs
-On branch master
-Your branch is up-to-date with 'origin/master'.
-Changes not staged for commit:
-  (use "git add <file>..." to update what will be committed)
-  (use "git checkout -- <file>..." to discard changes in working directory)
-...
-```
-
-Running *alias* without params will print the current aliases:
-
-```shell
-zeus » alias
-gs = git status
-```
-
-## Event Engine
-
-Events for the following filesystem operations can be created: WRITE | REMOVE | RENAME | CHMOD
-
-When an operation of the specified type occurs on the watched file (or on any file inside a directory),
-a custom command is executed. This can be a ZEUS or any shell command.
-
-Events can be bound to a specific file type, by supplying the filetype before the command:
-
-```shell
-zeus » events add WRITE docs/ .md say hello
-```
-
-Filetypes feature completion, just specify the directory and hit tab to see a list of filetypes inside the directory.
-
-Example for a simple WRITE event on a single file:
-
-```shell
-zeus » events add WRITE TODO.md say updated TODO
-```
-
-Running *events* without params will print the current events:
-
-```shell
-zeus » events
-custom event        a63d8659d6243630    WRITE               say wiki updated    .md               wiki/
-config event        58c41a66bf6efde4    WRITE               internal            .yml               zeus/config.yml
-```
-
-Note that you can also see the internal ZEUS events used for watching the config file,
-and for watching the shellscripts inside the **zeus** directory to run the formatter on change.
-
-For removing an event specify its path:
-
-```shell
-zeus » events remove TODO.md
-  INFO removed event with name TODO.md
-```
-
-
-## Milestones
-
-For a structured workflow milestones can be created.
-
-A Milestone tracks the progress of a particular programming task inside the project,
-and contains an expected date and an optional description.
-
-   Usage:
-   milestones [remove <name>]
-   milestones [set <name> <0-100>]
-   milestones [add <name> <date> [description]]
-
-Add a milestone to the project:
-
-```shell
-zeus » milestones add Testing 12-12-2018 Finish testing
-  INFO added milestone Testing
-```
-
-list the current milestones with:
-
-```shell
-zeus » milestones
-Milestones:
-# 0 [                    ] 0% name: Testing date: 12-12-2018 description: Finish testing
-```
-
-set a milestones progress with:
-
-```shell
-zeus » milestones set Testing 50
-zeus » milestones
-Milestones:
-# 0 [==========          ] 50% name: Testing date: 12-12-2018 description: Finish testing
-```
-
-
-## Project Deadline
-
-    Usage:
-    deadline [remove]
-    deadline [set <date>]
-
-A global project Deadline can also be set:
-
-```shell
-zeus » deadline set 24-12-2018
-  INFO added deadline for 24-12-2018
-```
-
-get the current deadline with:
-
-```shell
-zeus » deadline
-Deadline: 24-12-2018
-```
-
-
-## Keybindings
-
-Keybindings allow mapping ZEUS or shell commands to Ctrl-[A-Z] Key Combinations.
-
-    Usage:
-    keys [set <KeyComb> <commandChain>]
-    keys [remove <KeyComb>]
-
-To see a list of current keybindings, run *keys* in the interactive shell:
-
-```shell
-zeus » keys
-Ctrl-B = build
-Ctrl-S = git status
-Ctrl-P = git push
-```
-
-To set a Keybinding:
-
-```shell
-zeus » keys set Ctrl-H help
-```
-
-> NOTE: use [TAB] for completion of available keybindings
-
-To remove a Keybinding:
-
-```shell
-zeus » keys remove Ctrl-H
-```
-
-> NOTE: some key combination such as Ctrl-C (SIGINT) are not available because they are handled by the shell
-
-## Auto Formatter
-
-The Auto Formatter watches the scripts inside the **zeus** directory and formats them when a WRITE Event occurs.
-
-Currently this is only available for Shellscripts, but I plan to add formatters for more languages & add an option to add custom ones.
-
-However changing the file contents while your IDE holds a buffer of it in memory,
-does not play well with all IDEs and Editors and should ideally be implemented as IDE PLugin.
-
-My IDE (VSCode) complains sometimes that the content on disk is newer,
-but most of the time its works ok.
-Please note that for VSCode you have to CMD-S twice before the buffer from the IDE gets written to disk.
-
-> NOTE:
-> Since this causes trouble with most IDEs and editors, its disabled by default
-> You can enable this feature in the config if you want to try it with your editor
-> When setting the AutoFormat Option to true, the DumpScriptOnError option will also be enabled
-
-Formatting seems to work well with the *micro* editor,
-so when editing your scripts with the **edit** builtin, try it out!
-
-## ANSI Color Profiles
-
-Colors are used for good readabilty and can be configured by using the config file.
-
-You can add multiple color profiles and configure them to your taste.
-
-there are 5 default profiles: dark, light, default, off, black
-
-To change the color profile to dark:
-
-```shell
-zeus » colors dark
-```
-
-> NOTE: dark mode is strongly recommended :) use the solarized dark theme for optimal terminal background.
-
-For configuring color profiles in the config, use the style format from the ansi go package:
-
-### Style format
-
-```go
-"foregroundColor+attributes:backgroundColor+attributes"
-```
-
-Colors
-
-* black
-* red
-* green
-* yellow
-* blue
-* magenta
-* cyan
-* white
-* 0...255 (256 colors)
-
-Foreground Attributes
-
-* B = Blink
-* b = bold
-* h = high intensity (bright)
-* i = inverse
-* s = strikethrough
-* u = underline
-
-Background Attributes
-
-* h = high intensity (bright)
-
-## Documentation
+### Help
 
 ZEUS uses the headers description field for a short description text,
 which will be displayed on startup by default.
@@ -788,8 +1035,44 @@ You can get the projects command overview at any time just type help in the inte
 zeus » help
 ```
 
+### Dependencies
 
-## Typed Command Arguments
+For each target you can define multiple outputs files with the *outputs* header field.
+When all of them exist, the command will not be executed again.
+
+example:
+
+```shell
+# outputs:
+#     - bin/file1
+#     - bin/file2
+```
+
+The *dependencies* header field allows you to specify multiple commands, by supplying a commandChain or a single command.
+
+Each element in the commandChain will be executed in order, prior to the execution of the current script,
+and skipped if all its outputs files or directories exist.
+
+Since Dependencies are ZEUS commands, they can have arguments.
+
+example:
+
+```shell
+# dependencies: command1 <arg1> <arg2> -> command2 <arg1> -> command3 -> ...
+```
+
+
+### Async commands
+
+The **async** header field allows to run a command in the background.
+It will be detached with the UNIX *screen* command and you can attach to its output at any time using the **procs** builtin.
+
+This can be used to speed up builds with lots of targets that don't have dependencies between them,
+or to start multiple services in the background.
+
+The **procs** builtin can be used to list all running commands, to attach to them or to detach non-async commands in the background.
+
+### Typed Command Arguments
 
 ZEUS supports typed command arguments.
 
@@ -854,7 +1137,7 @@ So for Shellscripts, use $label to access them.
 
 > NOTE: use tab to get completion for available labels in the interactive shell
 
-## Scripting Languages
+### Scripting Languages
 
 ZEUS now supports bash, ruby, python and javascript for writing your commands!
 
@@ -876,196 +1159,23 @@ instead of the default OSX *osascript* interpreter.
 For macOS javascript is particularly interesting, because it can be used to interact with the system,
 display GUI elements like progress bars, import ObjC libs and more!
 
-## Shell Integration
 
-When ZEUS does not know the command you typed it will be passed down to the underlying shell.
-That means you can use git and all other shell tools without having to leave the interactive shell!
+## Internals
 
-This behaviour can be disabled by using the *PassCommandsToShell* option.
-There is path and command completion for basic shell commands (cat, ls, ssh, git, tree etc)
+For parsing the header fields, golang RE2 regular expressions are used.
 
-> Remember: Events, Aliases and Keybindings can contain shell commands!
+ANSI Escape Sequences are from the [ansi](https://github.com/mgutz/ansi) package.
 
-> NOTE: Multilevel path completion is broken, I'm working on a fix.
+The interactive shell uses the [readline](https://github.com/chzyer/readline) library,
+although some modifications were made to make the path completion work.
 
-## Bash Completions
+For shell script formatting the [syntax](https://godoc.org/github.com/mvdan/sh/syntax) package is used.
 
-If you also want tab completion when not using the interactive shell,
-install the bash-completion package which is available for most linux distros and macOS.
+Here's a simple overview of the architecture:
 
-on macOS you can install it with brew:
+![alt text](https://github.com/dreadl0ck/zeus/blob/master/wiki/docs/zeus_overview.jpg "ZEUS Overview")
 
-```
-brew install bash-completion
-```
-
-on linux use the package manager of your distro.
-
-Then add the completion file **files/zeus** to:
-
-- macOS: /usr/local/etc/bash_completion.d/
-- Linux: /etc/bash_completion.d/
-
-and source it with:
-
-- macOS: . /usr/local/etc/bash_completion.d/zeus
-- Linux: . /etc/bash_completion.d/zeus
-
-## Makefile Integration
-
-By using the **makefile** command you can get an overview of targets available in a Makefile:
-
-```shell
-zeus » makefile
-available GNUMake Commands:
-~> clean
-~> configure
-~> status
-~> backup
-~> bench: build
-~> test: clean
-~> debug: build
-~> build: clean
-~> deploy
-```
-
-This might be helpful when switching to ZEUS or when using both for whatever reason.
-
-Currently the following actions are performed:
-
-- globals will be extracted and put into the **zeus/globals.sh** file
-- variable conversion from '$(VAR)' to the bash dialect: '$VAR'
-- shell commands will be converted from '@command' to 'command'
-- calls to 'make target' will be replaced with 'zeus target'
-- if statements will be converted to bash dialect
-
-> NOTE:
-> Makefile migration is not yet perfect!
-> Always look at the generated files, and check if the output makes sense.
-> Especially automatic migration of make target arguments has not been implemented yet.
-> Also switch statement conversion is currently missing.
-
-## Makefile Migration Assistance
-
-ZEUS helps you migrate from Makefiles, by parsing them and transforming the build targets into a ZEUS structure.
-Your Makefile will remain unchanged, Makefiles and ZEUS can happily coexist!
-
-simply run this from the interactive shell:
-
-```shell
-zeus » makefile migrate
-```
-
-or from the commandline:
-
-```shell
-$ zeus makefile migrate
-~> clean
-~> configure
-~> status
-~> backup
-...
-[INFO] migration complete.
-```
-
-Your makefile will remain unchanged. This command creates the **zeus** directory with your make commands as ZEUS scripts.
-If there are any global variables declared in your Makefile, they will be extracted and put into the **zeus/globals.sh** file.
-
-## Configuration
-
-The configfile allows customization of the behaviour,
-when a ZEUS instance is running in interactive mode this file is being watched and parsed when a WRITE event occurs.
-
-To prevent errors by typos ZEUS will warn you about about unknown config fields.
-
-However, the builtin *config* command is recommended for editing the config,
-it features tab completion for all config fields, actions and values.
-
-    Usage:
-    config [get <field>]
-    config [set <field> <value>]
-
-**Config Options:**
-
-| Option              | Type                     | Description                              |
-| ------------------- | ------------------------ | ---------------------------------------- |
-| MakefileOverview    | bool                     | print the makefile target overview when starting zeus |
-| AutoFormat          | bool                     | enable / disable the auto formatter      |
-| FixParseErrors      | bool                     | enable / disable fixing parse errors automatically |
-| Colors              | bool                     | enable / disable ANSI colors             |
-| PassCommandsToShell | bool                     | enable / disable passing unknown commands to the shell |
-| WebInterface        | bool                     | enable / disable running the webinterface on startup |
-| Interactive         | bool                     | enable / disable interactive mode        |
-| Debug               | bool                     | enable / disable debug mode              |
-| RecursionDepth      | int                      | set the amount of repetitive commands allowed |
-| ProjectNamePrompt   | bool                     | print the projects name as prompt for the interactive shell |
-| AllowUntypedArgs    | bool                     | allow untyped command arguments          |
-| ColorProfile        | string                   | current color profile                    |
-| HistoryFile         | bool                     | save command history in a file           |
-| HistoryLimit        | int                      | history entry limit                      |
-| ExitOnInterrupt     | bool                     | exit the interactive shell with an SIGINT (Ctrl-C) |
-| DisableTimestamps   | bool                     | disable timestamps when logging          |
-| StopOnError         | bool                     | stop script execution when theres an error inside a script |
-| DumpScriptOnError   | bool                     | dump the currently processed script into a file if an error occurs |
-| DateFormat          | string                   | set the format string for dates, used by deadline and milestones |
-| TodoFilePath        | string                   | set the path for your TODO file, default is: "TODO.md" |
-| Editor              | string                   | configure editor for the edit builtin    |
-| ColorProfiles       | map[string]*ColorProfile | add custom color profiles                |
-| Languages           | []*Language              | add custom language definitions          |
-
-> NOTE: when modifying the Debug or Colors field, you need to restart zeus in order for the changes to take effect. That's because the Log instance is a global variable, and manipulating it on the fly produces data races.
-
-
-## Direct Command Execution
-
-you dont need the interactive shell to run commands, just use the following syntax:
-
-```shell
-$ zeus [commandName] [args]
-...
-```
-
-This is useful for scripting or using ZEUS from another programming language.
-Note that you can use the bash-completions package and the completion script **files/zeus** to get tab completion on the shell.
-
-
-## Bootstrapping
-
-When starting from scratch, you can use the bootstrapping functionality:
-
-```shell
-$ zeus bootstrap dir
-...
-```
-
-This will create the **zeus** folder, and bootstrap the basic commands (build, clean, run, install, test, bench),
-including empty ZEUS headers.
-
-To bootstrap a Zeusfile, use:
-
-```shell
-$ zeus bootstrap file
-...
-```
-
-Bootstrapping single commands from the interactive shell is also possible with the **create** builtin:
-
-    usage: create <language> <command>
-
-```shell
-$ zeus create bash newCommandName
-...
-```
-
-or in the interactive shell:
-
-```shell
-zeus » create bash newCommandName
-```
-
-This will create a new file at **zeus/newCommandName.sh** with an empty header and drop you into your Editor, so you can start hacking.
-
-## Tests
+### Tests
 
 ZEUS has automated tests for its core functionality.
 
@@ -1075,7 +1185,7 @@ run the tests with:
 zeus » test
 ```
 
-Without failed assertions, on macOS the coverage report will be openened in your Browser.
+Without failed assertions, on macOS the coverage report will be opened in your Browser.
 
 On Linux you will need to open it manually, using the generated html file.
 
@@ -1089,34 +1199,13 @@ The Go Test functions in *zeus_test.go* can also be executed in isolation, eithe
 
 > NOTE: The tests are still work in progress. Code coverage is currently at ~ 50%
 
-## Webinterface
-
-The Webinterface will allow to track the build status and display project information,
-execute build commands and much more!
-
-Communication happens live over a websocket.
-
-When **WebInterface** is enabled in the config the server will be started when launching ZEUS.
-Otherwise use the **web** builtin to start the server from the shell.
-
-> NOTE: This is still work in progress
-
-## Markdown Wiki
-
-A Markdown Wiki will be served from the projects **wiki** directory.
-
-All Markdown Documents in the **wiki/docs** folder can be viewed in the browser,
-which makes creating good project docs very easy.
-
-The **wiki/INDEX.md** file will be converted to HTML and inserted in main wiki page.
-
-## OS Support
+### OS Support
 
 ZEUS was developed on OSX, and thus supports OSX and Linux.
 
 Windows is currently not supported! This might change in the future.
 
-## Assets
+### Assets
 
 ZEUS uses asset embedding to provide a path independent executable.
 For this [rice](https://github.com/GeertJohan/go.rice) is used.
@@ -1132,90 +1221,20 @@ $ go get github.com/GeertJohan/go.rice/rice
 The assets currently contains the shell asciiArt as well the bare scripts for the bootstrap command.
 You can find all assets in the **assets** directory.
 
-## Vendoring
+### Vendoring
 
 ZEUS is vendored with [godep](https://github.com/tools/godep)
 That means it is independent of any API changes in the used libraries and will work seamlessly in the future!
 
-## Dependencies
+### Notes
 
-For each target you can define multiple outputs files with the *outputs* header field.
-When all of them exist, the command will not be executed again.
-
-example:
-
-```shell
-# outputs:
-#     - bin/file1
-#     - bin/file2
-```
-
-The *dependencies* header field allows to specficy multiple commands, by supplying a commandChain or a single command.
-
-Each element in the commandChain will be executed in order, prior to the execution of the current script,
-and skipped if all its outputs files or directories exist.
-
-Since Dependencies are ZEUS commands, they can have arguments.
-
-example:
-
-```shell
-# dependencies: command1 <arg1> <arg2> -> command2 <arg1> -> command3 -> ...
-```
-
-## Zeusfile
-
-Similiar to GNU Make, ZEUS allows adding all targets to a single file named Zeusfile.yml inside the **zeus** directory.
-This is useful for small projects and you can still use the interactive shell if desired.
-
-The File follows the [YAML](http://yaml.org) specification.
-
-There is an example Zeusfile in the tests directory.
-A watcher event is automatically created for parsing the file again on WRITE events.
-
-Use the globals section to export global variables and function to all commands.
-
-If you want to migrate to a zeus directory structure after a while, use the *migrate-zeusfile* builtin:
-
-```shell
-zeus » migrate-zeusfile
-migrated  10  commands from Zeusfile in:  4.575956ms
-```
-
-## Async commands
-
-The **async** header field allows to run a command in the background.
-It will be detached with the UNIX *screen* command and you can attach to its output at any time using the **procs** builtin.
-
-This can be used to speed up builds with lots of targets that dont have dependencies between them,
-or to start multiple services in the background.
-
-The **procs** builtin can be used to list all running commands, to attach to them or to detach non-async commands in the background.
-
-## Internals
-
-For parsing the header fields, golang RE2 regular expressions are used.
-
-ANSI Escape Sequences are from the [ansi](https://github.com/mgutz/ansi) package.
-
-The interactive shell uses the [readline](https://github.com/chzyer/readline) library,
-although some modifications were made to make the path completion work.
-
-For shell script formatting the [syntax](https://godoc.org/github.com/mvdan/sh/syntax) package is used.
-
-Heres a simple overview of the architecure:
-
-![alt text](https://github.com/dreadl0ck/zeus/blob/master/wiki/docs/zeus_overview.jpg "ZEUS Overview")
-
-## Notes
-
-### Background Processes spawned inside scripts
+#### Background Processes
 
 Spawning jobs inside a script with & is a good idea if you want to interact with them in the context of the current command (for example to use sudo to start your server on a privileged port)
 
 But keep in mind that ZEUS will not wait for these background processes and they will not be tracked in the processMap.
 
-## Coming Soon
+### Coming Soon
 
 The listed features will be implemented over the next weeks.
 After that the 1.0 Release is expected.
@@ -1234,28 +1253,19 @@ After that the 1.0 Release is expected.
 
      283,905 results. Oops.
 
-     Oh wait, theres more: [click](http://thehackernews.com/2013/01/hundreds-of-ssh-private-keys-exposed.html)
+     Oh wait, there's more: [click](http://thehackernews.com/2013/01/hundreds-of-ssh-private-keys-exposed.html)
 
      ZEUS 1.0 will feature encrypted storage inside the project data,
      that can be accessed and modified using the interactive shell.
 
-
-- Support for more Scripting Languages
-
-     The parser was implemented to be generic and can be adapted for parsing any kind of scripting language.
-     The next ones being officially supported will be python and javascript.
-
-     In theory, even mixing scripting languages is possible, although this will require improved handling of the globals.
-     Also the formatter was implemented generically, and could be adapted to work for more languages.
-
-## Bugs
+### Bugs
 
 Multilevel Path tab completion is still broken, the reason for this seems to be an issue in the readline library.
 I forked readline and currently experiment with a solution.
 
 > NOTE: Please notify me about any issues you encounter during testing.
 
-## Project Stats
+### Project Stats
 
     --------------------------------------------------------------------------------
     Language                      files          blank        comment           code

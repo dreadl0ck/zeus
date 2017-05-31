@@ -285,7 +285,22 @@ func migrateZeusfile() error {
 	}
 	ps.Unlock()
 
-	// initialize commands
+	err = zeusfile.writeCommands(p)
+	if err != nil {
+		return err
+	}
+
+	cmdMap.Lock()
+	defer cmdMap.Unlock()
+
+	l.Println(cp.Text+"migrated "+cp.Prompt, len(cmdMap.items), cp.Text+" commands from Zeusfile in: "+cp.Prompt, time.Now().Sub(start), ansi.Reset+"\n")
+
+	return os.Rename(zeusfilePath, zeusDir+"/Zeusfile_old.yml")
+}
+
+func (zeusfile *Zeusfile) writeCommands(p *parser) error {
+
+	// write commands to disk
 	for name, d := range zeusfile.Commands {
 
 		// create parse job
@@ -346,10 +361,5 @@ func migrateZeusfile() error {
 		f.Close()
 	}
 
-	cmdMap.Lock()
-	defer cmdMap.Unlock()
-
-	l.Println(cp.Text+"migrated "+cp.Prompt, len(cmdMap.items), cp.Text+" commands from Zeusfile in: "+cp.Prompt, time.Now().Sub(start), ansi.Reset+"\n")
-
-	return os.Rename(zeusfilePath, zeusDir+"/Zeusfile_old.yml")
+	return nil
 }

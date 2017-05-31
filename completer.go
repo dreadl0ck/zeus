@@ -120,6 +120,7 @@ func keyKombItems() []readline.PrefixCompleterInterface {
 // return a new default completer instance
 func newCompleter() *readline.PrefixCompleter {
 	c := readline.NewPrefixCompleter(
+		// readline.PcItemDynamic(commandChainCompleter),
 		readline.PcItem(exitCommand),
 		readline.PcItem(helpCommand,
 			readline.PcItemDynamic(commandCompleter),
@@ -209,6 +210,7 @@ func newCompleter() *readline.PrefixCompleter {
 			readline.PcItemDynamic(commandCompleter),
 			readline.PcItem("data"),
 			readline.PcItem("config"),
+			readline.PcItem("todo"),
 			readline.PcItem("globals",
 				readline.PcItemDynamic(languageCompleter),
 			),
@@ -253,7 +255,6 @@ func newCompleter() *readline.PrefixCompleter {
 		readline.PcItem("micro",
 			readline.PcItemDynamic(fileCompleter),
 		),
-		//readline.PcItemDynamic(commandChainCompleter),
 	)
 
 	c.Dynamic = true
@@ -298,7 +299,7 @@ func languageCompleter(path string) (res []string) {
 // complete available commands for chains
 func commandChainCompleter(path string) (res []string) {
 
-	// only fire if line has -> suffix
+	// only fire if line has correct suffix
 	if !strings.HasSuffix(path, commandChainSeparator+" ") {
 		return
 	}
@@ -309,6 +310,8 @@ func commandChainCompleter(path string) (res []string) {
 	for name := range cmdMap.items {
 		res = append(res, name)
 	}
+
+	l.Println("returning", res)
 	return
 }
 
@@ -394,18 +397,33 @@ func fileTypeCompleter(path string) (res []string) {
 
 func directoryCompleter(path string) []string {
 
-	if shellCommandWithPath.MatchString(path) {
-		// extract path from command
-		paths := shellPath.FindAllString(path, -1)
-		path = paths[len(paths)-1]
-	} else {
-		// search in current dir
-		path = "./"
+	l.Println("\npath before", path)
+
+	fields := strings.Fields(path)
+	if len(fields) > 0 {
+		path = fields[len(fields)-1]
+		if !strings.Contains(path, "/") {
+			// search in current dir
+			path = "./"
+		}
 	}
+
+	l.Println("path after", path)
+
+	// if shellCommandWithPath.MatchString(path) {
+	// 	// extract path from command
+	// 	paths := shellPath.FindAllString(path, -1)
+	// 	path = paths[len(paths)-1]
+	// } else {
+	// 	// search in current dir
+	// 	path = "./"
+	// }
 
 	names := make([]string, 0)
 	files, err := ioutil.ReadDir(path)
 	if err != nil {
+
+		l.Println("err", err)
 
 		// check if path is multilevel
 		// otherwise read current directory
@@ -416,8 +434,10 @@ func directoryCompleter(path string) []string {
 		if len(arr) > 1 {
 			// trim base
 			path = strings.TrimSuffix(path, filepath.Base(path))
+			l.Println("multilevel path, reading: ", path)
 			files, _ = ioutil.ReadDir(path)
 		} else {
+			l.Println("reading current directory")
 			files, _ = ioutil.ReadDir("./")
 		}
 	}
@@ -426,6 +446,8 @@ func directoryCompleter(path string) []string {
 			names = append(names, f.Name()+"/")
 		}
 	}
+
+	l.Println(names)
 
 	return names
 

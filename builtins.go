@@ -176,6 +176,12 @@ func printCommands() {
 
 	// print them
 	l.Println(cp.Text + "commands")
+	printSortedCommandKeys(sortedCommandKeys, maxLen)
+	l.Println("")
+}
+
+func printSortedCommandKeys(sortedCommandKeys []string, maxLen int) {
+
 	for i, key := range sortedCommandKeys {
 
 		var (
@@ -213,7 +219,6 @@ func printCommands() {
 			l.Println("|")
 		}
 	}
-	l.Println("")
 }
 
 func printLine(line string, lastElem, lastItem bool) {
@@ -322,9 +327,12 @@ func printTodos() {
 	var index int
 
 	for _, line := range strings.Split(string(contents), "\n") {
+		if strings.HasPrefix(line, "#") {
+			l.Println(cp.Prompt + line)
+		}
 		if strings.HasPrefix(line, "- ") {
 			index++
-			l.Println(pad(strconv.Itoa(index)+")", 4) + strings.TrimPrefix(line, "- "))
+			l.Println(cp.CmdOutput + pad(strconv.Itoa(index)+")", 4) + strings.TrimPrefix(line, "- "))
 		}
 	}
 }
@@ -462,6 +470,10 @@ func handleEditCommand(args []string) {
 	switch args[1] {
 	case "config":
 		path = zeusDir + "/config.yml"
+	case "todo":
+		conf.Lock()
+		path = conf.fields.TodoFilePath
+		conf.Unlock()
 	case "data":
 		path = zeusDir + "/data.yml"
 	case "globals":

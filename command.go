@@ -64,6 +64,42 @@ func newCommandMap() *commandMap {
 	}
 }
 
+func (cmdMap *commandMap) init(start time.Time) {
+
+	cLog := Log.WithField("prefix", "cmdMap.init")
+
+	cmdMap.Lock()
+	defer cmdMap.Unlock()
+
+	// only print info when using the interactive shell
+	if len(os.Args) == 1 {
+		if len(cmdMap.items) == 1 {
+			l.Println(cp.Text+"initialized "+cp.Prompt, "1", cp.Text+" command in: "+cp.Prompt, time.Now().Sub(start), ansi.Reset+"\n")
+		} else {
+			l.Println(cp.Text+"initialized "+cp.Prompt, len(cmdMap.items), cp.Text+" commands in: "+cp.Prompt, time.Now().Sub(start), ansi.Reset+"\n")
+		}
+	}
+
+	// check if custom command conflicts with builtin name
+	for _, name := range builtins {
+		if _, ok := cmdMap.items[name]; ok {
+			cLog.Error("command ", name, " conflicts with a builtin command. Please choose a different name.")
+		}
+	}
+
+	var commandCompletions []readline.PrefixCompleterInterface
+	for _, c := range cmdMap.items {
+		commandCompletions = append(commandCompletions, readline.PcItem(c.name))
+	}
+
+	// add all commands to the completer for the help page
+	for _, c := range completer.Children {
+		if string(c.GetName()) == "help " {
+			c.SetChildren(commandCompletions)
+		}
+	}
+}
+
 // command represents a parsed script in memory
 type command struct {
 
@@ -230,8 +266,15 @@ func (c *command) Run(args []string, async bool) error {
 	// after command has finished running, remove from processMap
 	defer deleteProcessByPID(pid)
 
+	return c.waitForProcess(cmd, cleanupFunc, script, id, pid, start)
+}
+
+func (c *command) waitForProcess(cmd *exec.Cmd, cleanupFunc func(), script string, id processID, pid int, start time.Time) error {
+
+	cLog := Log.WithField("prefix", "waitForProcess")
+
 	// wait for command to finish execution
-	err = cmd.Wait()
+	err := cmd.Wait()
 	if err != nil {
 
 		// execute cleanupFunc if there is one
@@ -261,7 +304,7 @@ func (c *command) Run(args []string, async bool) error {
 	if c.async {
 
 		// add to process map PID +1
-		Log.Debug("detached PID: ", pid+1)
+		cLog.Debug("detached PID: ", pid+1)
 		addProcess(id, c.name, nil, pid+1)
 
 		func() {
@@ -653,36 +696,7 @@ func findCommands() {
 		println()
 	}
 
-	cmdMap.Lock()
-	defer cmdMap.Unlock()
-
-	// only print info when using the interactive shell
-	if len(os.Args) == 1 {
-		if len(cmdMap.items) == 1 {
-			l.Println(cp.Text+"initialized "+cp.Prompt, "1", cp.Text+" command in: "+cp.Prompt, time.Now().Sub(start), ansi.Reset+"\n")
-		} else {
-			l.Println(cp.Text+"initialized "+cp.Prompt, len(cmdMap.items), cp.Text+" commands in: "+cp.Prompt, time.Now().Sub(start), ansi.Reset+"\n")
-		}
-	}
-
-	// check if custom command conflicts with builtin name
-	for _, name := range builtins {
-		if _, ok := cmdMap.items[name]; ok {
-			cLog.Error("command ", name, " conflicts with a builtin command. Please choose a different name.")
-		}
-	}
-
-	var commandCompletions []readline.PrefixCompleterInterface
-	for _, c := range cmdMap.items {
-		commandCompletions = append(commandCompletions, readline.PcItem(c.name))
-	}
-
-	// add all commands to the completer for the help page
-	for _, c := range completer.Children {
-		if string(c.GetName()) == "help " {
-			c.SetChildren(commandCompletions)
-		}
-	}
+	cmdMap.init(start)
 }
 
 // dump command to stdout for debugging
