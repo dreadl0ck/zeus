@@ -11,6 +11,14 @@
     COMMIT:
 ------------------------------------------------------------------------------------
 
+## v0.7.5
+
+- remove headers completely and supply script information in Zeusfile
+- remove globals.yml -> supply global vars always in Zeusfile + dont parse globals for every command execution
+- always populate execScript field when parsing, to avoid reading the file contents for every execution? This would require updating all dependency instances of the command as well... switch to looking up dep commands and pass args via Run func ?
+- pass dependencies as array to YAML (would be cleaner with a large number of deps)
+- make formatter modular: add it as a field to parser, to allow using a specific formatter for each language
+
 ## readline
 
 - fix dynamic command chain completer
@@ -19,13 +27,6 @@
 
 ## next up
 
-- remove headers completely and supply script information in Zeusfile ???
-- remove globals.yml -> supply global vars always in Zeusfile?
-- dont parse globals for every command execution
-- always populate execScript field when parsing, to avoid reading the file contents for every execution? This would require updating all dependency instances of the command as well... switch to looking up dep commands and pass args via Run func ?
-- pass dependencies as array to YAML? would be cleaner with a large number of deps...
-
-- make formatter modular: add it as a field to parser, to allow using a specific formatter for each language
 - add golang sloc and make cloc optional in config
 - create commands for starting the js & scss watchers, remove code from project
 - release sasscompile and jstool -> add examples for event usage to README

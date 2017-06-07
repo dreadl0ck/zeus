@@ -302,7 +302,7 @@ func (job *parseJob) getCommand(jobPath string, args []string, zeusfile *Zeusfil
 
 	// check if command is currently being parsed
 	if job.p.JobExists(jobPath) {
-		cLog.Warn("getCommandChain: JOB EXISTS: ", jobPath)
+		cLog.Debug("getCommandChain: job exists: ", jobPath)
 		job.p.WaitForJob(jobPath)
 
 		// now the command is there
@@ -441,7 +441,9 @@ func (p *parser) JobExists(path string) bool {
 // wait for a running parseJob
 func (p *parser) WaitForJob(path string) {
 
-	p.printJobs()
+	if debug {
+		p.printJobs()
+	}
 
 	c := make(chan bool)
 

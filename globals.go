@@ -42,7 +42,7 @@ func parseGlobals() {
 	if !globalsFromZeusfile {
 		globalsContent, err := ioutil.ReadFile(zeusDir + "/globals.yml")
 		if err != nil {
-			Log.WithError(err).Error("failed to read globals")
+			Log.WithError(err).Debug("failed to read globals")
 			return
 		}
 

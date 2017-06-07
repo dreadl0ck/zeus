@@ -343,7 +343,7 @@ func checkZeusEnvironment() {
 	stat, err := os.Stat(scriptDir)
 	if err != nil {
 		if stat, err = os.Stat(zeusfilePath); err != nil {
-			Log.WithError(err).Error("no zeus directory or Zeusfile found.")
+			Log.WithError(err).Error("no " + scriptDir + " directory or Zeusfile found.")
 			Log.Info("run 'zeus bootstrap dir' or 'zeus bootstrap file' to create a default one, or 'zeus makefile migrate' if you want to migrate from a GNU Makefile.")
 			os.Exit(1)
 		} else {
