@@ -1137,7 +1137,7 @@ So for Shellscripts, use $label to access them.
 
 ### Scripting Languages
 
-ZEUS now supports bash, ruby, python and javascript for writing your commands!
+ZEUS now supports **bash**, **ruby**, **python**, **lua** and **javascript** for writing your commands!
 
 You can also run commandChains that contain commands of different languages!
 
