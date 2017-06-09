@@ -14,6 +14,7 @@
 ![macOS](https://img.shields.io/badge/Supports-macOS-green.svg)
 ![coverage](https://img.shields.io/badge/coverage-50%25-yellow.svg)
 [![travisCI](https://travis-ci.org/dreadl0ck/zeus.svg?branch=master)](https://travis-ci.org/dreadl0ck/zeus)
+[![Gitter chat](https://badges.gitter.im/dreadl0ck.png)](https://gitter.im/zeus-build/Lobby)
 
 ZEUS is a modern build system featuring support for writing build targets in *multiple scripting languages*,
 an *interactive shell* with *tab completion* and customizable ANSI color profiles as well as support for *keybindings*.

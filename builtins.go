@@ -157,14 +157,10 @@ func printCommands() {
 	var (
 		sortedCommandKeys = make([]string, len(cmdMap.items))
 		index             = 0
-		maxLen            int
 	)
 
 	// copy command names into array for sorting
 	for key := range cmdMap.items {
-		if len(key) > maxLen {
-			maxLen = len(key)
-		}
 		sortedCommandKeys[index] = key
 		index++
 	}
@@ -172,15 +168,15 @@ func printCommands() {
 	// sort alphabetically
 	sort.Strings(sortedCommandKeys)
 
-	maxLen += 3
-
 	// print them
 	l.Println(cp.Text + "commands")
-	printSortedCommandKeys(sortedCommandKeys, maxLen)
+	printSortedCommandKeys(sortedCommandKeys)
 	l.Println("")
 }
 
-func printSortedCommandKeys(sortedCommandKeys []string, maxLen int) {
+func printSortedCommandKeys(sortedCommandKeys []string) {
+
+	maxLen := 14
 
 	for i, key := range sortedCommandKeys {
 
