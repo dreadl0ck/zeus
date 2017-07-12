@@ -50,7 +50,10 @@ When starting the interactive shell there is a good chance you will be struck by
 which could lead to enormous **super coding powers**!
 
 [Project Page](https://dreadl0ck.github.io/zeus/)
+
 [Changelog](https://github.com/dreadl0ck/zeus/blob/master/wiki/docs/CHANGELOG.md)
+
+[Wiki](https://github.com/dreadl0ck/wiki)
 
 > NOTE:
 > ZEUS is still under active development
@@ -60,10 +63,12 @@ which could lead to enormous **super coding powers**!
 
 See ZEUS in action:
 
-<p align="center">
+<!--<p align="center">
 <a href="https://asciinema.org/a/axwqr0yto01xtxj7wjri39vsk" target="_blank">
 <img src="https://github.com/dreadl0ck/zeus/blob/master/files/zeus.jpg" /></a>
-</p>
+</p>-->
+
+[![asciicast](https://asciinema.org/a/9l39Gbv5dsW5YFRtHymm4TVVC.png)](https://asciinema.org/a/9l39Gbv5dsW5YFRtHymm4TVVC)
 
 The Dark Mode does not work in terminals with a black background, because it contains black text colors.
 I recommend using the solarized dark terminal theme, if you want to use the dark mode.
@@ -71,12 +76,14 @@ I recommend using the solarized dark terminal theme, if you want to use the dark
 ## Index
 
 - [Preface](#preface)
-- [Try it out](#try-it-out)
+
 - [Installation](#installation)
   - [Homebrew](#homebrew)
   - [Github](#github)
   - [Tools](#tools)
   - [Development](#development)
+- [Try it out](#try-it-out)
+
 - [Configuration](#configuration)
 
 - [Interactive Shell](#interactive-shell)
@@ -112,16 +119,16 @@ I recommend using the solarized dark terminal theme, if you want to use the dark
 - [Globals](#globals)
 
 - [Command Data](#command-data)
-  - [Help](#help)
   - [Description](#description)
-  - [Dependencies](#dependencies)
+  - [Help](#help)
   - [Outputs](#outputs)
-  - [Path](#path)
+  - [Dependencies](#dependencies)
   - [Async](#async)
-  - [Build Number](#build-number)
+  - [Exec](#exec)
+  - [Path](#path)
   - [Arguments](#typed-command-arguments)
   - [Language](#language)
-  - [Exec](#exec)
+  - [Build Number](#build-number)
 
 - [Internals](#internals)
   - [Error Dumps](#error-dumps)
@@ -243,10 +250,11 @@ Run **edit commands** to look at the projects *commands.yml* to see how things w
 
 ## Configuration
 
-The configfile allows customization of the behaviour,
-when a ZEUS instance is running in interactive mode this file is being watched and parsed when a WRITE event occurs.
+The config file **zeus/config.yml** allows various customizations.
 
-ZEUS will warn you about about unknown config fields.
+When a ZEUS instance is running in interactive mode, this file is being watched and parsed when a WRITE event occurs.
+
+ZEUS will warn you about unknown config fields.
 
 However, the builtin *config* command is recommended for editing the config,
 it features tab completion for all config fields, actions and values.
@@ -1015,6 +1023,7 @@ exampleCommand:
         - bin/zeus
     description: build project
     buildNumber: true
+    exec: go build -o bin/zeus
     help: |
         zeus build script
         this script produces the zeus binary
@@ -1048,13 +1057,14 @@ this script produces the zeus binary
 it will be be placed in bin/zeus
 ```
 
+### Description
+
+ZEUS uses the description field for a short description text,
+which will be displayed on startup by default or when using the **help** builtin without params.
 
 ### Help
 
-ZEUS uses the description field for a short description text,
-which will be displayed on startup by default.
-
-Additionally a multiline help text can be set for each script by using the *help* field.
+A multiline help text can be set for each script by using the *help* field.
 
 ```shell
 zeus » help <command>
@@ -1204,6 +1214,10 @@ instead of the default OSX *osascript* interpreter.
 
 For macOS javascript is particularly interesting, because it can be used to interact with the system,
 display GUI elements like progress bars, import ObjC libs and more!
+
+### Build Number
+
+Set the **buildNUmber** field to true to increase the projects buildNumber for every execution of the command!
 
 ## Internals
 

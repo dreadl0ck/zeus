@@ -26,13 +26,13 @@ printBuiltins: false
 makefileOverview: false
 stopOnError: true
 dumpScriptOnError: true
-colorProfile: default
+colorProfile: dark
 dateFormat: 02-01-2006
 todoFilePath: TODO.md
 editor: micro
 colorProfiles:
   dark:
-    Text: black
+    Text: cyan
     Prompt: blue
     CmdOutput: light+h
     CmdName: blue
@@ -40,7 +40,7 @@ colorProfiles:
     CmdArgs: white+h
     CmdArgType: green
   light:
-    Text: black
+    Text: orange
     Prompt: yellow
     CmdOutput: black+h
     CmdName: red

@@ -81,7 +81,7 @@ func getAvailableColorProfiles() (res string) {
 // low contrast profile
 func darkProfile() *ColorProfile {
 	return &ColorProfile{
-		Text:       "black",
+		Text:       "cyan",
 		Prompt:     "blue",
 		CmdOutput:  "light+h",
 		CmdName:    "blue",

@@ -77,7 +77,7 @@ commands:
         outputs:
             - bin/zeus
         exec: |
-            efffcho "[ZEUS v${version}] building ${buildDir}/${binaryName} for current OS"
+            echo "[ZEUS v${version}] building ${buildDir}/${binaryName} for current OS"
             rice embed-go
             godep go build -o ${buildDir}/${binaryName}
     build-linux:

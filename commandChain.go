@@ -88,17 +88,16 @@ func (cmdChain commandChain) exec(cmds []string) {
 	defer s.reset()
 
 	// set numCommands counter
-	s.Lock()
 	for _, c := range cmdChain {
 		count, err := getTotalDependencyCount(c)
 		if err != nil {
-			s.Unlock()
 			Log.WithError(err).Error("failed to get dependency count")
 			return
 		}
+		s.Lock()
 		s.numCommands += count
+		s.Unlock()
 	}
-	s.Unlock()
 
 	// exec and pass args
 	for i, c := range cmdChain {
@@ -120,14 +119,14 @@ func validCommandChain(commands []string) (commandChain, bool) {
 		recursionMap = make(map[string]int, 0)
 	)
 
-	conf.Lock()
-	maxRecursion := conf.fields.RecursionDepth
-	conf.Unlock()
-
 	if len(commands) < 1 {
 		l.Println("invalid command chain: empty")
 		return nil, false
 	}
+
+	conf.Lock()
+	maxRecursion := conf.fields.RecursionDepth
+	conf.Unlock()
 
 	for index, entry := range commands {
 

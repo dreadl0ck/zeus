@@ -1,6 +1,23 @@
-colors darkcolors offcolors darkcolors offclearhelpexitcolors darkcolors offclearcolors darkedit buildbuildtestconfiguretest-raceedit test-racetest-raceedit test-raceGORACE="history_size=7" test -v -raceedit test-race
-test-race
-gs
-config set debug false
-colors default 
+colors lightcolors lightedit confighelpedit configcolorscolors defaultcolors lightcolors darkclearedit buildbuildedit buildbuildclearbuiltinsconfigclearhelpclean -> buildconfig set debug true 
+exit
+clean
+clean -> clena
+clean -> clean
+clean -> build
+config set debug false 
+clean
+edit clean 
+clean
+edit clean 
+clean
+clear
+builtins 
+clean -> build
+clear
+info
+edit config
+edit data 
+edit todo 
+clear
+help
 exit 
