@@ -53,7 +53,7 @@ which could lead to enormous **super coding powers**!
 
 [Changelog](https://github.com/dreadl0ck/zeus/blob/master/wiki/docs/CHANGELOG.md)
 
-[Wiki](https://github.com/dreadl0ck/wiki)
+[Wiki](https://github.com/dreadl0ck/zeus/wiki)
 
 > NOTE:
 > ZEUS is still under active development
