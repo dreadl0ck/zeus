@@ -12,7 +12,7 @@ brew:
   # Reporitory to push the tap to.
   github:
     owner: dreadl0ck
-    name: homebrew-tap
+    name: zeus
 
   # Folder inside the repository to put the formula.
   # Default is the root folder.

@@ -1,2 +1,2 @@
-45eeee91e56531ebe5d6fc600a327a8671b99982776e11c953c56c60c1ed654c  zeus_0.8_linux_amd64.tar.gz
-0f2cab79ca9a3e92acfe4a418a0e3e5555080e27d855a0cbe1b8a551fe02f053  zeus_0.8_darwin_amd64.tar.gz
+bf31344496ff633fe9ec13b6ad7f1d107aad4d3bd6c9305af704d28a0b9d5daa  zeus_0.8_linux_amd64.tar.gz
+4bb01928ec640ae9134a7c6ea13c39f18f8b67ee10d61116e790c3189808c628  zeus_0.8_darwin_amd64.tar.gz
