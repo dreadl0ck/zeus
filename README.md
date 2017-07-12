@@ -68,7 +68,7 @@ See ZEUS in action:
 <img src="https://github.com/dreadl0ck/zeus/blob/master/files/zeus.jpg" /></a>
 </p>-->
 
-[![asciicast](https://asciinema.org/a/v332EySV3XpU5lf6k4Q0PQlIw.png)](https://asciinema.org/a/v332EySV3XpU5lf6k4Q0PQlIw)
+[![asciicast](https://github.com/dreadl0ck/zeus/blob/master/files/zeus.png)](https://asciinema.org/a/v332EySV3XpU5lf6k4Q0PQlIw)
 
 The Dark Mode does not work in terminals with a black background, because it contains black text colors.
 I recommend using the solarized dark terminal theme, if you want to use the dark mode.
