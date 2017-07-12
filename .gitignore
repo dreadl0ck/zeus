@@ -1,4 +1,5 @@
-bin/*
+bin/
+!tests/bin/*
 zeus/dumps
 zeus/.history
 coverage.out

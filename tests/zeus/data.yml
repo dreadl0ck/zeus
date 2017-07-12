@@ -12,9 +12,9 @@ deadline: ""
 milestones: []
 aliases: {}
 events:
-  942df4ad1025da38:
+  26e62682ac41162b:
     name: config watcher
-    id: 942df4ad1025da38
+    id: 26e62682ac41162b
     path: tests/zeus/config.yml
     op: 2
     fileextension: .yml
