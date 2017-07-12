@@ -20,7 +20,7 @@ ZEUS is a modern build system featuring support for writing build targets in *mu
 an *interactive shell* with *tab completion* and customizable ANSI color profiles as well as support for *keybindings*.
 
 It parses the **zeus** directory in your project,
-to find commands either via a single file (commands.yml) or via scripts in the **zeus/scripts** directory.
+to find commands either via a single file **zeus/commands.yml** or via scripts in the **zeus/scripts** directory.
 
 A command can have *typed parameters* and commands can be *chained*.
 Each command can have dependencies which will be resolved prior to execution, similar to GNU Make targets.
@@ -37,7 +37,7 @@ a *bootstrapping* functionality and a rich set of customizations available by us
 ZEUS can save and restore project specific data such as *events*,
 *keybindings*, *aliases*, *milestones*, *author*, *build number* and a project *deadline*.
 
-[YAML](http://yaml.org) is used for serialization of the ***zeus/config.yml*** and ***zeus/data.yml*** files.
+[YAML](http://yaml.org) is used for serialization of the ***zeus/config.yml***, ***zeus/data.yml*** and **zeus/commands.yml** files.
 
 ZEUS was designed to happily coexist with GNU Make,
 and offers a builtin Makefile *command overview* and *migration assistance*.

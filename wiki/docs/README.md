@@ -20,7 +20,7 @@ ZEUS is a modern build system featuring support for writing build targets in *mu
 an *interactive shell* with *tab completion* and customizable ANSI color profiles as well as support for *keybindings*.
 
 It parses the **zeus** directory in your project,
-to find commands either via a single file (commands.yml) or via scripts in the **zeus/scripts** directory.
+to find commands either via a single file **zeus/commands.yml** or via scripts in the **zeus/scripts** directory.
 
 A command can have *typed parameters* and commands can be *chained*.
 Each command can have dependencies which will be resolved prior to execution, similar to GNU Make targets.
@@ -37,7 +37,7 @@ a *bootstrapping* functionality and a rich set of customizations available by us
 ZEUS can save and restore project specific data such as *events*,
 *keybindings*, *aliases*, *milestones*, *author*, *build number* and a project *deadline*.
 
-[YAML](http://yaml.org) is used for serialization of the ***zeus/config.yml*** and ***zeus/data.yml*** files.
+[YAML](http://yaml.org) is used for serialization of the ***zeus/config.yml***, ***zeus/data.yml*** and **zeus/commands.yml** files.
 
 ZEUS was designed to happily coexist with GNU Make,
 and offers a builtin Makefile *command overview* and *migration assistance*.
@@ -53,7 +53,7 @@ which could lead to enormous **super coding powers**!
 
 [Changelog](https://github.com/dreadl0ck/zeus/blob/master/wiki/docs/CHANGELOG.md)
 
-[Wiki](https://github.com/dreadl0ck/wiki)
+[Wiki](https://github.com/dreadl0ck/zeus/wiki)
 
 > NOTE:
 > ZEUS is still under active development
@@ -63,12 +63,7 @@ which could lead to enormous **super coding powers**!
 
 See ZEUS in action:
 
-<!--<p align="center">
-<a href="https://asciinema.org/a/axwqr0yto01xtxj7wjri39vsk" target="_blank">
-<img src="https://github.com/dreadl0ck/zeus/blob/master/files/zeus.jpg" /></a>
-</p>-->
-
-[![asciicast](https://asciinema.org/a/9l39Gbv5dsW5YFRtHymm4TVVC.png)](https://asciinema.org/a/9l39Gbv5dsW5YFRtHymm4TVVC)
+[![asciicast](https://github.com/dreadl0ck/zeus/blob/master/files/zeus.png)](https://asciinema.org/a/v332EySV3XpU5lf6k4Q0PQlIw)
 
 The Dark Mode does not work in terminals with a black background, because it contains black text colors.
 I recommend using the solarized dark terminal theme, if you want to use the dark mode.
