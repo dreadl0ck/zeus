@@ -12,11 +12,11 @@ brew:
   # Reporitory to push the tap to.
   github:
     owner: dreadl0ck
-    name: zeus
+    name: formulas
 
   # Folder inside the repository to put the formula.
   # Default is the root folder.
-  folder: Formula
+  #folder: Formulas
 
   # Your app's homepage
   # Default is empty
