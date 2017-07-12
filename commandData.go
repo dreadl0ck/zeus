@@ -25,7 +25,6 @@ import (
 	"strings"
 
 	"github.com/dreadl0ck/readline"
-	"github.com/mgutz/ansi"
 )
 
 // command header
@@ -290,7 +289,7 @@ func (d *commandData) init(commandsFile *CommandsFile, name string) error {
 	cmdMap.items[cmd.name] = cmd
 	cmdMap.Unlock()
 
-	Log.WithField("prefix", "parseCommandsFile").Debug("added " + cp.CmdName + cmd.name + ansi.Reset + " to the command map")
+	Log.WithField("prefix", "parseCommandsFile").Debug("added " + cp.CmdName + cmd.name + cp.Reset + " to the command map")
 
 	// if debug {
 	// 	cmd.dump()

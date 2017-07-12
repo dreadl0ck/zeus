@@ -172,6 +172,18 @@ func TestMilestones(t *testing.T) {
 	})
 }
 
+func TestLanguages(t *testing.T) {
+
+	TestMain(t)
+
+	Convey("Testing multiple languages", t, func(c C) {
+		handleLine("python src='asdf' dst='fdsa'")
+		handleLine("ruby src='asdf' dst='fdsa'")
+		// handleLine("lua src='asdf' dst='fdsa'")
+		// handleLine("javascript src='asdf' dst='fdsa'")
+	})
+}
+
 func TestDeadlines(t *testing.T) {
 
 	TestMain(t)
@@ -384,16 +396,26 @@ func TestDependencies(t *testing.T) {
 
 	Convey("Testing Dependencies", t, func(c C) {
 
-		// create bin/dependency1
-		handleLine("dependency1 bla=asdf")
-		_, err := os.Stat("bin/dependency1")
+		// create tests/bin/dependency1
+		handleLine("dependency1")
+		_, err := os.Stat("tests/bin/dependency1")
 		c.So(err, ShouldBeNil)
 
-		// create bin/dependency2
-		handleLine("dependency2 bla=asdf")
-		_, err = os.Stat("bin/dependency2")
+		// remove dependency1
+		os.Remove("tests/bin/dependency1")
+
+		// create tests/bin/dependency2
+		handleLine("dependency2")
+		_, err = os.Stat("tests/bin/dependency2")
 		c.So(err, ShouldBeNil)
 
+		// dependency1 should have been created
+		_, err = os.Stat("tests/bin/dependency1")
+		c.So(err, ShouldBeNil)
+
+		// clean up
+		os.Remove("tests/bin/dependency1")
+		os.Remove("tests/bin/dependency2")
 	})
 }
 
@@ -525,7 +547,7 @@ func TestCustomCompleters(t *testing.T) {
 		// c.So(pIDCompleter(""), ShouldNotBeEmpty)
 
 		// complete available filetypes for the event target directory
-		c.So(fileTypeCompleter("events add WRITE tests/"), ShouldNotBeEmpty)
+		c.So(fileTypeCompleter("events add WRITE tests/zeus/scripts"), ShouldNotBeEmpty)
 
 		c.So(directoryCompleter(""), ShouldNotBeEmpty)
 	})

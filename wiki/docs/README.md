@@ -12,7 +12,7 @@
 [![Golang](https://img.shields.io/badge/Go-1.8-blue.svg)](https://golang.org)
 ![Linux](https://img.shields.io/badge/Supports-Linux-green.svg)
 ![macOS](https://img.shields.io/badge/Supports-macOS-green.svg)
-![coverage](https://img.shields.io/badge/coverage-50%25-yellow.svg)
+![coverage](https://img.shields.io/badge/coverage-46%25-yellow.svg)
 [![travisCI](https://travis-ci.org/dreadl0ck/zeus.svg?branch=master)](https://travis-ci.org/dreadl0ck/zeus)
 [![Gitter chat](https://badges.gitter.im/dreadl0ck.png)](https://gitter.im/zeus-build/Lobby)
 
@@ -20,18 +20,18 @@ ZEUS is a modern build system featuring support for writing build targets in *mu
 an *interactive shell* with *tab completion* and customizable ANSI color profiles as well as support for *keybindings*.
 
 It parses the **zeus** directory in your project,
-to find commands either via a single file (Zeusfile.yml) or via scripts in the **zeus/scripts** directory.
+to find commands either via a single file (commands.yml) or via scripts in the **zeus/scripts** directory.
 
 A command can have *typed parameters* and commands can be *chained*.
 Each command can have dependencies which will be resolved prior to execution, similar to GNU Make targets.
 
-The scripts supply information by using ZEUS headers.
+For each dependency target outputs can be defined, the target will be skipped if all named outputs exist.
 You can export global variables and functions visible to all scripts.
 
 The *Event Engine* allows the user to register file system events,
 and run custom shell or ZEUS commands when an event occurs.
 
-It also features an auto *formatter* for shell scripts,
+ZEUS also features an auto *formatter* for shell scripts,
 a *bootstrapping* functionality and a rich set of customizations available by using a config file.
 
 ZEUS can save and restore project specific data such as *events*,
@@ -50,14 +50,13 @@ When starting the interactive shell there is a good chance you will be struck by
 which could lead to enormous **super coding powers**!
 
 [Project Page](https://dreadl0ck.github.io/zeus/)
+[Changelog](https://github.com/dreadl0ck/zeus/blob/master/wiki/docs/CHANGELOG.md)
 
 > NOTE:
-> ZEUS is still under active development and this is an early release dedicated to testers.
+> ZEUS is still under active development
 > There will be regular updates so make sure to update your build from time to time.
 > Please read the BUGS section to see whats causing trouble
 > as well as the COMING SOON section to get an impression of whats coming up for version 1.0
-
-**CAUTION: Newer builds may break compatibility with previous ones, and require to remove or add certain config fields, or delete your zeus/data.yml. Breaking changes will be announced here, so have a look after updating your build. Feel free to contact me by mail if something is not working.**
 
 See ZEUS in action:
 
@@ -72,8 +71,12 @@ I recommend using the solarized dark terminal theme, if you want to use the dark
 ## Index
 
 - [Preface](#preface)
+- [Try it out](#try-it-out)
 - [Installation](#installation)
-
+  - [Homebrew](#homebrew)
+  - [Github](#github)
+  - [Tools](#tools)
+  - [Development](#development)
 - [Configuration](#configuration)
 
 - [Interactive Shell](#interactive-shell)
@@ -86,6 +89,7 @@ I recommend using the solarized dark terminal theme, if you want to use the dark
   - [Edit Builtin](#edit-builtin)
     - [Micro Keybindings](#micro-keybindings)
   - [Generate Builtin](#generate-builtin)
+  - [Create Builtin](#create-builtin)
   - [Todo Builtin](#todo-builtin)
   - [Procs Builtin](#procs-builtin)
   - [Git Filter Builtin](#git-filter-builtin)
@@ -104,18 +108,25 @@ I recommend using the solarized dark terminal theme, if you want to use the dark
   - [Markdown Wiki](#markdown-wiki)
   - [Command Chains](#command-chains)
 
-- [Zeusfile](#zeusfile)
+- [Commandsfile](#commandsfile)
 - [Globals](#globals)
 
-- [Headers](#headers)
+- [Command Data](#command-data)
   - [Help](#help)
+  - [Description](#description)
   - [Dependencies](#dependencies)
-  - [Async commands](#async-commands)
-  - [Typed Command Arguments](#typed-command-arguments)
-  - [Scripting Languages](#scripting-languages)
+  - [Outputs](#outputs)
+  - [Path](#path)
+  - [Async](#async)
+  - [Build Number](#build-number)
+  - [Arguments](#typed-command-arguments)
+  - [Language](#language)
+  - [Exec](#exec)
 
 - [Internals](#internals)
+  - [Error Dumps](#error-dumps)
   - [Tests](#tests)
+  - [Race Detection Tests](#race-detection-tests)
   - [OS Support](#os-support)
   - [Assets](#assets)
   - [Vendoring](#vendoring)
@@ -178,11 +189,16 @@ milestones [remove <name>] [set <name> <0-100>] [add <name> <date> [description]
 
 ## Installation
 
-From github:
+### Homebrew
+
+```shell
+$ brew install zeus
+```
+
+### Github
 
 ```shell
 $ go get -v -u github.com/dreadl0ck/zeus
-...
 ```
 
 > NOTE: This might take a while, because some assets are embedded into the binary to make it position independent. Time to get a coffee
@@ -190,6 +206,8 @@ $ go get -v -u github.com/dreadl0ck/zeus
 ZEUS uses ZEUS as its build system!
 After the initial install simply run **zeus** inside the project directory,
 to get the command overview.
+
+### Tools
 
 I also recommend installing the amazing [micro](https://github.com/zyedidia/micro) text editor,
 as this is the default editor for the edit command. Don't worry you can also use vim if desired.
@@ -204,6 +222,8 @@ $ brew install cloc micro
 ...
 ```
 
+### Development
+
 When developing compile with: (this compiles without assets and is much faster)
 
 ```shell
@@ -211,12 +231,22 @@ $ zeus/scripts/dev.sh
 ...
 ```
 
+## Try it out
+
+After installation, cd into the project repository and run **zeus**.
+
+This will show you the way ZEUS is used to compile itself. Run **edit commands** to look at the projects *commands.yml*
+
+For more complex examples, move into the **tests** directory and run **zeus** there.
+You will find examples for arguments, async commands, dependencies and multi language setups there.
+Run **edit commands** to look at the projects *commands.yml* to see how things work there.
+
 ## Configuration
 
 The configfile allows customization of the behaviour,
 when a ZEUS instance is running in interactive mode this file is being watched and parsed when a WRITE event occurs.
 
-To prevent errors by typos ZEUS will warn you about about unknown config fields.
+ZEUS will warn you about about unknown config fields.
 
 However, the builtin *config* command is recommended for editing the config,
 it features tab completion for all config fields, actions and values.
@@ -229,29 +259,28 @@ it features tab completion for all config fields, actions and values.
 
 | Option              | Type                     | Description                              |
 | ------------------- | ------------------------ | ---------------------------------------- |
-| MakefileOverview    | bool                     | print the makefile target overview when starting zeus |
-| AutoFormat          | bool                     | enable / disable the auto formatter      |
-| FixParseErrors      | bool                     | enable / disable fixing parse errors automatically |
-| Colors              | bool                     | enable / disable ANSI colors             |
-| PassCommandsToShell | bool                     | enable / disable passing unknown commands to the shell |
-| WebInterface        | bool                     | enable / disable running the webinterface on startup |
-| Interactive         | bool                     | enable / disable interactive mode        |
-| Debug               | bool                     | enable / disable debug mode              |
-| RecursionDepth      | int                      | set the amount of repetitive commands allowed |
-| ProjectNamePrompt   | bool                     | print the projects name as prompt for the interactive shell |
-| AllowUntypedArgs    | bool                     | allow untyped command arguments          |
-| ColorProfile        | string                   | current color profile                    |
-| HistoryFile         | bool                     | save command history in a file           |
-| HistoryLimit        | int                      | history entry limit                      |
-| ExitOnInterrupt     | bool                     | exit the interactive shell with an SIGINT (Ctrl-C) |
-| DisableTimestamps   | bool                     | disable timestamps when logging          |
-| StopOnError         | bool                     | stop script execution when there's an error inside a script |
-| DumpScriptOnError   | bool                     | dump the currently processed script into a file if an error occurs |
-| DateFormat          | string                   | set the format string for dates, used by deadline and milestones |
-| TodoFilePath        | string                   | set the path for your TODO file, default is: "TODO.md" |
-| Editor              | string                   | configure editor for the edit builtin    |
-| ColorProfiles       | map[string]*ColorProfile | add custom color profiles                |
-| Languages           | []*Language              | add custom language definitions          |
+| makefileOverview    | bool                     | print the makefile target overview when starting zeus |
+| autoFormat          | bool                     | enable / disable the auto formatter      |
+| colors              | bool                     | enable / disable ANSI colors             |
+| passCommandsToShell | bool                     | enable / disable passing unknown commands to the shell |
+| webInterface        | bool                     | enable / disable running the webinterface on startup |
+| interactive         | bool                     | enable / disable interactive mode        |
+| debug               | bool                     | enable / disable debug mode              |
+| recursionDepth      | int                      | set the amount of repetitive commands allowed |
+| projectNamePrompt   | bool                     | print the projects name as prompt for the interactive shell |
+| allowUntypedArgs    | bool                     | allow untyped command arguments          |
+| colorProfile        | string                   | current color profile                    |
+| historyFile         | bool                     | save command history in a file           |
+| historyLimit        | int                      | history entry limit                      |
+| exitOnInterrupt     | bool                     | exit the interactive shell with an SIGINT (Ctrl-C) |
+| disableTimestamps   | bool                     | disable timestamps when logging          |
+| stopOnError         | bool                     | stop script execution when there's an error inside a script |
+| dumpScriptOnError   | bool                     | dump the currently processed script into a file if an error occurs |
+| dateFormat          | string                   | set the format string for dates, used by deadline and milestones |
+| todoFilePath        | string                   | set the path for your TODO file, default is: "TODO.md" |
+| editor              | string                   | configure editor for the edit builtin    |
+| colorProfiles       | map[string]*ColorProfile | add custom color profiles                |
+| languages           | []*Language              | add custom language definitions          |
 
 > NOTE: when modifying the Debug or Colors field, you need to restart zeus in order for the changes to take effect. That's because the Log instance is a global variable, and manipulating it on the fly produces data races.
 
@@ -412,7 +441,6 @@ the following builtin commands are available:
 | *web*              | start webinterface                       |
 | *wiki*             | start web wiki                           |
 | *create*           | bootstrap a single command               |
-| *migrate-zeusfile* | migrate Zeusfile to zeusDir              |
 | *git-filter*       | filter git log output                    |
 | *todo*             | manage todos                             |
 | *update*           | update zeus version                      |
@@ -429,10 +457,13 @@ Some will be explained in more detail below, the rest of the builtins is explain
 
 ### Edit Builtin
 
+    usage: edit [ <commandName> | config | globals | commands ] [ line <number> ]
+
 The **edit** builtin allows you to modify scripts without leaving the interactive shell using your favourite editor!
 Default is micro, fallback is vim, but can also use the *Editor* config field to set a custom editor.
 
-When the project uses a Zeusfile, the edit builtin will load the Zeusfile.
+When the project uses a Commandsfile, the edit builtin will load the Commandsfile at the correct position of the requested command.
+Use the *line* subcommand to jump to the desired line.
 
 Also editing config, data and globals is possible.
 
@@ -534,6 +565,28 @@ zeus » generate deploy_server.sh clean -> configure -> build -> deploy ip=167.1
 # this will create a deploy_server directory with all required scripts and generated code to execute them in the order of the commandChain
 zeus » generate deploy_server clean -> configure -> build -> deploy ip=167.149.1.2
 ```
+
+### Create Builtin
+
+     usage: create [<language> <commandName>] [script <all> | <commandName>]
+
+The create builtin can be used for 2 purposes:
+
+1) bootstrap a new command and start the editor
+
+```shell
+zeus » create python newPythonCommand
+```
+
+A new python command will be appended to the commandsFile and the editor will be launched.
+
+2) write the exec section of a command to a file
+
+```shell
+zeus » create script build
+```
+
+Assuming build is shellscript, the exec section will be written to **zeus/scripts/build.sh** and stripped from the commandsFile
 
 ### Todo Builtin
 
@@ -859,36 +912,12 @@ If there are any global variables declared in your Makefile, they will be extrac
 When starting from scratch, you can use the bootstrapping functionality:
 
 ```shell
-$ zeus bootstrap dir
+$ zeus bootstrap
 ...
 ```
 
 This will create the **zeus** folder, and bootstrap the basic commands (build, clean, run, install, test, bench),
-including empty ZEUS headers.
-
-To bootstrap a Zeusfile, use:
-
-```shell
-$ zeus bootstrap file
-...
-```
-
-Bootstrapping single commands from the interactive shell is also possible with the **create** builtin:
-
-    usage: create <language> <command>
-
-```shell
-$ zeus create bash newCommandName
-...
-```
-
-or in the interactive shell:
-
-```shell
-zeus » create bash newCommandName
-```
-
-This will create a new file at **zeus/newCommandName.sh** with an empty header and drop you into your Editor, so you can start hacking.
+including a *commands.yml* file. Happy Coding!
 
 ### Webinterface
 
@@ -915,7 +944,7 @@ The **wiki/INDEX.md** file will be converted to HTML and inserted in main wiki p
 
 Targets (aka commands) can be chained, using the **->** operator
 
-By using the **dependencies** header field you can specify a command chain (or a single command),
+By using the **dependencies** field you can specify a command chain (or a single command),
 that will be run before execution of the target script.
 
 Individual commands from this chain will be skipped if they have outputs that do already exist!
@@ -933,77 +962,81 @@ A simple example:
 zeus » clean -> build-amd64 -> deploy
 ```
 
-## Zeusfile
+## Commandsfile
 
-Similar to GNU Make, ZEUS allows adding all targets to a single file named Zeusfile.yml inside the **zeus** directory.
+Similar to GNU Make, ZEUS allows adding all targets to a single file named commands.yml inside the **zeus** directory.
 This is useful for small projects and you can still use the interactive shell if desired.
 
 The File follows the [YAML](http://yaml.org) specification.
 
-There is an example Zeusfile in the tests directory.
+ZEUS will warn you about about unknown fields, duplicate command names and global variables.
+Cyclic commandchains produce an error at runtime.
+
+There is an example **commands.yml** in the tests directory.
 A watcher event is automatically created for parsing the file again on WRITE events.
 
 Use the globals section to export global variables and function to all commands.
 
-If you want to migrate to a zeus directory structure after a while, use the *migrate-zeusfile* builtin:
+If you want to move to a zeus directory structure after a while, use the *create* builtin:
 
 ```shell
-zeus » migrate-zeusfile
-migrated  10  commands from Zeusfile in:  4.575956ms
+zeus » create script all
+migrated  10  commands from Commandsfile in:  4.575956ms
 ```
+
+This will write the exec section of each command into a separate script in **zeus/scripts** and strip the section from your commandsFile.
+
+If an error occurs, ZEUS will print a snippet of the generated script and highlight the corresponding line.
 
 ## Globals
 
 Globals allow you to declare variables and functions in global scope and share them among all ZEUS scripts.
 
-There are two kinds of globals:
+You have two options:
 
-1. **zeus/globals.yml** for global variables visible to all scripts
-2. **zeus/globals.[scriptExtension]** for language specific code such as functions
+1. **globals** section in your commands.yml for global variables visible to all scripts
+2. **zeus/globals/globals.[scriptExtension]** for language specific code such as functions
 
-When using a Zeusfile, the global variables can be declared in the *globals* section.
-
-> NOTE: You current shells environment will be passed to each executed command.
+> NOTE: Your current shells environment will be passed to each executed command.
 > That means global variables from ~/.bashrc or ~/.bash_profile are accessible by default
 
-## Headers
+Globals will be accessible in your scripts as normal variables!
 
-Scripts supply information via their ZEUS header.
+## Command Data
 
-This is basically just a piece of YAML,
-which defines their dependencies, outputs, description etc
+Scripts supply information in the **zeus/commands.yml** file.
 
-Everything in between the two {zeus} tags, will be parsed.
+A simple ZEUS command could look like this:
 
-A simple ZEUS header could look like this:
-
-```shell
-# {zeus}
-# dependencies: clean
-# outputs:
-#     - bin/zeus
-# description: build project
-# buildNumber: true
-# help: |
-#     zeus build script
-#     this script produces the zeus binary
-#     it will be be placed in bin/zeus
-# {zeus}
+```yaml
+exampleCommand:
+    dependencies: clean
+    outputs:
+        - bin/zeus
+    description: build project
+    buildNumber: true
+    help: |
+        zeus build script
+        this script produces the zeus binary
+        it will be be placed in bin/zeus
 ```
 
-**Header Fields:**
+**Fields:**
 
 | Field          | Type     | Description                              |
 | -------------- | -------- | ---------------------------------------- |
-| *dependencies* | string   | dependencies for the current command     |
+| *dependencies* | []string   | dependencies for the current command     |
 | *description*  | string   | short description text for command overview |
 | *help*         | string   | help text for help builtin               |
 | *outputs*      | []string | output files of the command              |
 | *buildNumber*  | bool     | increase build number when this field is present |
 | *async*        | bool     | detach script into background            |
+| *arguments*         | []string     | list of typed arguments, allows optionals and default values |
+| *path*         | string     | custom path for script file|
+| *exec*         | string     | supply script directly            |
 
-*All header fields are optional.*
-Just throw you scripts into **zeus/scripts/** fire up the interactive shell and start hacking!
+*All data fields are optional.*
+Just throw your scripts into **zeus/scripts/** fire up the interactive shell and start hacking!
 
 The help text can be accessed by using the **help** builtin:
 
@@ -1012,16 +1045,16 @@ zeus » help build
 
 zeus build script
 this script produces the zeus binary
-it will be be placed in bin/$name
+it will be be placed in bin/zeus
 ```
 
 
 ### Help
 
-ZEUS uses the headers description field for a short description text,
+ZEUS uses the description field for a short description text,
 which will be displayed on startup by default.
 
-Additionally a multiline help text can be set for each script, inside the header.
+Additionally a multiline help text can be set for each script by using the *help* field.
 
 ```shell
 zeus » help <command>
@@ -1033,36 +1066,41 @@ You can get the projects command overview at any time just type help in the inte
 zeus » help
 ```
 
-### Dependencies
+### Outputs
 
-For each target you can define multiple outputs files with the *outputs* header field.
+For each target you can define multiple outputs files with the *outputs* field.
 When all of them exist, the command will not be executed again.
 
 example:
 
-```shell
-# outputs:
-#     - bin/file1
-#     - bin/file2
+```yaml
+outputs:
+    - bin/file1
+    - bin/file2
 ```
 
-The *dependencies* header field allows you to specify multiple commands, by supplying a commandChain or a single command.
+### Dependencies
 
-Each element in the commandChain will be executed in order, prior to the execution of the current script,
-and skipped if all its outputs files or directories exist.
+The *dependencies* field allows you to specify multiple commands, that will be executed in the declared order,
+prior to the execution of the current command.
+
+A Dependency will be skipped if all its outputs files or directories exist.
 
 Since Dependencies are ZEUS commands, they can have arguments.
 
 example:
 
-```shell
-# dependencies: command1 <arg1> <arg2> -> command2 <arg1> -> command3 -> ...
+```yaml
+dependencies:
+    - command1 <arg1> <arg2>
+    - command2 <arg1>
+    - command3
 ```
 
 
-### Async commands
+### Async
 
-The **async** header field allows to run a command in the background.
+The **async** field allows to run a command in the background.
 It will be detached with the UNIX *screen* command and you can attach to its output at any time using the **procs** builtin.
 
 This can be used to speed up builds with lots of targets that don't have dependencies between them,
@@ -1070,7 +1108,20 @@ or to start multiple services in the background.
 
 The **procs** builtin can be used to list all running commands, to attach to them or to detach non-async commands in the background.
 
-### Typed Command Arguments
+### Exec
+
+The **exec** field allows to specify the code to run directly in the commandsfile.
+
+If this field is empty or missing, ZEUS assumes your script resides in the **zeus/scripts/** directory,
+and has the name **commandName.[fileExtension]**
+
+### Path
+
+The **path** field allows to specifiy a custom path for the script.
+
+If a command has a custom path set and an exec action specified an error is thrown upon command initialization.
+
+### Arguments
 
 ZEUS supports typed command arguments.
 
@@ -1095,15 +1146,14 @@ You can set a default value for optional arguments: **label:Type? = value**
 
 Lets look at an example for declaration:
 
-```shell
-# {zeus}
-# description: test optional args
-# arguments:
-#     - name:String? = "defaultName"
-#     - author:String
-#     - ok:Bool?
-#     - count:Int?
-# {zeus}
+```yaml
+argumentTest:
+    description: test optional args
+    arguments:
+        - name:String? = "defaultName"
+        - author:String
+        - ok:Bool?
+        - count:Int?
 ```
 
 Here's an example of how this looks like in the interactive shell:
@@ -1141,9 +1191,7 @@ ZEUS now supports **bash**, **ruby**, **python**, **lua** and **javascript** for
 
 You can also run commandChains that contain commands of different languages!
 
-When using a Zeusfile, the default language is bash.
-You can override this by using the language field, have a look at the ZEUS projects Zeusfile!
-
+The default language is bash.
 If you wish to change a single commands language, simply add the language field directly on the command!
 
 Adding custom languages in the config:
@@ -1170,6 +1218,16 @@ Here's a simple overview of the architecture:
 
 ![alt text](https://github.com/dreadl0ck/zeus/blob/master/wiki/docs/zeus_overview.jpg "ZEUS Overview")
 
+### Error Dumps
+
+When a script fails and the **dumpScriptOnError** config field is set to *true*,
+ZEUS will create a dump of the generated script in **zeus/dumps**.
+
+The dump contains a timestamp, the ZEUS version, the stdErr output of the command and the error message from the process.
+The file will be named **error_dump.[fileExtension]** according to the scripting language of the command.
+
+For every language only the last failed script dump will be preserved.
+
 ### Tests
 
 ZEUS has automated tests for its core functionality.
@@ -1183,6 +1241,8 @@ zeus » test
 Without failed assertions, on macOS the coverage report will be opened in your Browser.
 
 On Linux you will need to open it manually, using the generated html file.
+
+### Race Detection Tests
 
 To run the test with race detection enabled:
 
@@ -1262,24 +1322,24 @@ I forked readline and currently experiment with a solution.
 
 ### Project Stats
 
-    --------------------------------------------------------------------------------
-    Language                      files          blank        comment           code
-    --------------------------------------------------------------------------------
-    Go                               33           1600           1430           5843
-    Markdown                          5            395              0           1058
-    YAML                              9             11             15            244
-    JSON                              1              0              0            149
-    Bourne Shell                     37            116            265            147
-    SASS                              1             21              1            143
-    HTML                              3             14              2             82
-    JavaScript                        2             17             21             53
-    Python                            3              7             14             11
-    make                              1              6              6             10
-    Bourne Again Shell                1              7             10              7
-    Ruby                              1              2              0              3
-    --------------------------------------------------------------------------------
-    SUM:                             97           2196           1764           7750
-    --------------------------------------------------------------------------------
+    -------------------------------------------------------------------------------
+    Language                     files          blank        comment           code
+    -------------------------------------------------------------------------------
+    Go                              32           1597           1468           5995
+    Markdown                         6            822              0           2171
+    YAML                            10             34            108            380
+    JSON                             1              0              0            175
+    Sass                             1             21              1            143
+    Bourne Shell                    31             74            151            128
+    HTML                             2             10              2             72
+    JavaScript                       2             17             21             53
+    make                             1              6              6             10
+    Python                           2              4              7              8
+    Ruby                             1              1              0              2
+    Lua                              1              0              0              1
+    -------------------------------------------------------------------------------
+    SUM:                            90           2586           1764           9138
+    -------------------------------------------------------------------------------
 
 ## License
 

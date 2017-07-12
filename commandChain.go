@@ -56,10 +56,10 @@ func (s *status) incrementRecursionCount(commandName string) error {
 			return errors.New("recursion limit for command " + commandName + " reached.")
 		}
 		s.recursionMap[commandName]++
-		Log.Debug("incremented recursion count for command "+ansi.Red+commandName+ansi.Reset+" to: ", s.recursionMap[commandName])
+		Log.Debug("incremented recursion count for command "+ansi.Red+commandName+cp.Reset+" to: ", s.recursionMap[commandName])
 	} else {
 		s.recursionMap[commandName] = 1
-		Log.Debug("adding " + ansi.Red + commandName + ansi.Reset + " to recursionMap")
+		Log.Debug("adding " + ansi.Red + commandName + cp.Reset + " to recursionMap")
 	}
 	return nil
 }

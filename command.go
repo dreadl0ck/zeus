@@ -136,7 +136,7 @@ func (c *command) Run(args []string, async bool) error {
 
 			_, err := os.Stat(output)
 			if err != nil {
-				Log.Debug("["+ansi.Red+c.name+ansi.Reset+"] output missing: ", output)
+				Log.Debug("["+ansi.Red+c.name+cp.Reset+"] output missing: ", output)
 				outputMissing = true
 			}
 
@@ -144,7 +144,7 @@ func (c *command) Run(args []string, async bool) error {
 				// all output files / dirs exist, skip command
 				s.Lock()
 				s.currentCommand++
-				l.Println(printPrompt() + "[" + strconv.Itoa(s.currentCommand) + "/" + strconv.Itoa(s.numCommands) + "] skipping " + cp.Prompt + c.name + ansi.Reset + " because all named outputs exist")
+				l.Println(printPrompt() + "[" + strconv.Itoa(s.currentCommand) + "/" + strconv.Itoa(s.numCommands) + "] skipping " + cp.Prompt + c.name + cp.Reset + " because all named outputs exist")
 				s.Unlock()
 				return nil
 			}
@@ -154,7 +154,7 @@ func (c *command) Run(args []string, async bool) error {
 	cLog.WithFields(logrus.Fields{
 		"prefix": "exec",
 		"args":   args,
-	}).Debug(cp.CmdName + c.name + ansi.Reset)
+	}).Debug(cp.CmdName + c.name + cp.Reset)
 
 	s.Lock()
 	s.currentCommand++
@@ -193,9 +193,9 @@ func (c *command) Run(args []string, async bool) error {
 
 	s.Lock()
 	if c.async {
-		l.Println(printPrompt() + "[" + strconv.Itoa(s.currentCommand) + "/" + strconv.Itoa(s.numCommands) + "] detaching " + cp.Prompt + c.name + ansi.Reset)
+		l.Println(printPrompt() + "[" + strconv.Itoa(s.currentCommand) + "/" + strconv.Itoa(s.numCommands) + "] detaching " + cp.Prompt + c.name + cp.Reset)
 	} else {
-		l.Println(printPrompt() + "[" + strconv.Itoa(s.currentCommand) + "/" + strconv.Itoa(s.numCommands) + "] executing " + cp.Prompt + c.name + ansi.Reset)
+		l.Println(printPrompt() + "[" + strconv.Itoa(s.currentCommand) + "/" + strconv.Itoa(s.numCommands) + "] executing " + cp.Prompt + c.name + cp.Reset)
 	}
 	s.Unlock()
 
@@ -305,7 +305,7 @@ func (c *command) waitForProcess(cmd *exec.Cmd, cleanupFunc func(), script strin
 		l.Println(
 			printPrompt()+"["+strconv.Itoa(s.currentCommand)+"/"+strconv.Itoa(s.numCommands)+"] finished "+cp.Prompt+c.name+cp.Text+" in"+cp.Prompt,
 			time.Now().Sub(start),
-			ansi.Reset,
+			cp.Reset,
 		)
 		s.Unlock()
 
@@ -356,7 +356,7 @@ func (c *command) execDependencies() error {
 
 					s.Lock()
 					s.currentCommand++
-					l.Println(printPrompt() + "[" + strconv.Itoa(s.currentCommand) + "/" + strconv.Itoa(s.numCommands) + "] skipping " + cp.Prompt + dep.name + ansi.Reset)
+					l.Println(printPrompt() + "[" + strconv.Itoa(s.currentCommand) + "/" + strconv.Itoa(s.numCommands) + "] skipping " + cp.Prompt + dep.name + cp.Reset)
 					s.Unlock()
 
 					continue
@@ -567,17 +567,17 @@ func findCommands() {
 func (c *command) dump() {
 	w := 15
 	fmt.Println("# ---------------------------------------------------------------------------------------------------------------------- #")
-	fmt.Println(pad("#  cmdName", w), cp.CmdName+c.name+ansi.Reset)
+	fmt.Println(pad("#  cmdName", w), cp.CmdName+c.name+cp.Reset)
 	fmt.Println("# ---------------------------------------------------------------------------------------------------------------------- #")
 	fmt.Println(pad("#  path", w), c.path)
-	fmt.Println(pad("#  args", w), getArgumentString(c.args)+ansi.Reset)
+	fmt.Println(pad("#  args", w), getArgumentString(c.args)+cp.Reset)
 	fmt.Println(pad("#  description", w), c.description)
 	fmt.Println(pad("#  help", w), c.help)
 	if len(c.dependencies) > 0 {
 		fmt.Println(pad("#  len(dependencies)", w), len(c.dependencies))
 		fmt.Println("# ====================================================================================================================== #")
 		for i, cmd := range c.dependencies {
-			fmt.Println("#  dependencies[" + cp.CmdName + strconv.Itoa(i) + ansi.Reset + "]")
+			fmt.Println("#  dependencies[" + cp.CmdName + strconv.Itoa(i) + cp.Reset + "]")
 			fmt.Println("## command: " + cmd)
 
 			fields := strings.Fields(cmd)
@@ -656,7 +656,7 @@ func initScript(path string) error {
 	cmdMap.items[cmd.name] = cmd
 	cmdMap.Unlock()
 
-	Log.WithField("prefix", "initScript").Debug("added " + cp.CmdName + cmd.name + ansi.Reset + " to the command map")
+	Log.WithField("prefix", "initScript").Debug("added " + cp.CmdName + cmd.name + cp.Reset + " to the command map")
 
 	return nil
 

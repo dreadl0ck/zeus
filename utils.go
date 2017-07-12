@@ -106,7 +106,7 @@ func dumpScript(script, language string, e error, stdErr string) {
 // when no line shall be highlighted pass -1
 func printScript(contents, path string, highlightLine int) {
 
-	fmt.Println("\n" + ansi.Reset + " |---------------------------------------------------------------------------------------------|")
+	fmt.Println("\n" + cp.Reset + " |---------------------------------------------------------------------------------------------|")
 	fmt.Println("     Script: " + path)
 	fmt.Println(" |---------------------------------------------------------------------------------------------|")
 	for i, s := range strings.Split(contents, "\n") {
@@ -122,7 +122,7 @@ func printScript(contents, path string, highlightLine int) {
 		}
 
 		if i == highlightLine {
-			fmt.Println(" "+ansi.Red+lineNumber, s+ansi.Reset)
+			fmt.Println(" "+ansi.Red+lineNumber, s+cp.Reset)
 		} else {
 			fmt.Println(" "+lineNumber, s)
 		}
@@ -151,7 +151,7 @@ func printCodeSnippet(contents, path string, highlightLine int) {
 		rangeEnd = highlightLine + scope
 	}
 
-	fmt.Println("\n" + ansi.Reset + " |---------------------------------------------------------------------------------------------|")
+	fmt.Println("\n" + cp.Reset + " |---------------------------------------------------------------------------------------------|")
 	fmt.Println("     File: " + path)
 	fmt.Println(" |---------------------------------------------------------------------------------------------|")
 	for i, s := range strings.Split(contents, "\n") {
@@ -171,7 +171,7 @@ func printCodeSnippet(contents, path string, highlightLine int) {
 		}
 
 		if i == highlightLine {
-			fmt.Println(" "+ansi.Red+lineNumber, s+ansi.Reset)
+			fmt.Println(" "+ansi.Red+lineNumber, s+cp.Reset)
 		} else {
 			fmt.Println(" "+lineNumber, s)
 		}

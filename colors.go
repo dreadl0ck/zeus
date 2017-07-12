@@ -45,6 +45,7 @@ type ansiProfile struct {
 	CmdFields  string
 	CmdArgs    string
 	CmdArgType string
+	Reset      string
 	sync.RWMutex
 }
 
@@ -150,7 +151,10 @@ func handleColorsCommand(args []string) {
 		return
 	}
 
-	profile := args[1]
+	var (
+		err     error
+		profile = args[1]
+	)
 
 	// lock to prevent a race on the global ansiProfile instance
 	cp.Lock()
@@ -181,7 +185,24 @@ func handleColorsCommand(args []string) {
 	// update value in config
 	conf.Lock()
 	conf.fields.ColorProfile = profile
+	if profile == "off" {
+		conf.fields.Colors = false
+		// load uncolored ascii art
+		asciiArt, err = assetBox.String("ascii_art.txt")
+		if err != nil {
+			Log.WithError(err).Fatal("failed to get ascii_art.txt from rice box")
+		}
+	} else {
+		conf.fields.Colors = true
+		// load colored ascii art
+		asciiArt, err = assetBox.String("ascii_art_color.txt")
+		if err != nil {
+			Log.WithError(err).Fatal("failed to get ascii_art_color.txt from rice box")
+		}
+	}
 	conf.Unlock()
+
+	blockWriteEvent()
 
 	// update config on disk
 	conf.update()
@@ -214,6 +235,7 @@ func initColorProfile() {
 	switch profile {
 	case "off":
 		cp = colorsOffProfile().parse()
+		cp.Reset = ""
 	case "default":
 		cp = defaultProfile().parse()
 	case "black":
@@ -240,5 +262,6 @@ func (cp *ColorProfile) parse() *ansiProfile {
 		CmdFields:  ansi.ColorCode(cp.CmdFields),
 		CmdName:    ansi.ColorCode(cp.CmdName),
 		CmdOutput:  ansi.ColorCode(cp.CmdOutput),
+		Reset:      ansi.Reset,
 	}
 }

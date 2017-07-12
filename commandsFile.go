@@ -125,7 +125,7 @@ func parseCommandsFile(path string) error {
 
 	// only print info when using the interactive shell
 	if len(os.Args) == 1 {
-		l.Println(cp.Text+"initialized "+cp.Prompt, len(cmdMap.items), cp.Text+" commands from CommandsFile in: "+cp.Prompt, time.Now().Sub(start), ansi.Reset+"\n")
+		l.Println(cp.Text+"initialized "+cp.Prompt, len(cmdMap.items), cp.Text+" commands from CommandsFile in: "+cp.Prompt, time.Now().Sub(start), cp.Reset+"\n")
 	}
 
 	return nil

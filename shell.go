@@ -27,11 +27,9 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-
 	"time"
 
 	"github.com/dreadl0ck/readline"
-	"github.com/mgutz/ansi"
 )
 
 var (
@@ -76,7 +74,7 @@ func readlineLoop() error {
 		HistoryLimit:    historyLimit,
 		HistoryFile:     historyFileName,
 		Listener:        listener,
-		InterruptPrompt: "\nBye." + ansi.Reset,
+		InterruptPrompt: "\nBye." + cp.Reset,
 	})
 	readlineMutex.Unlock()
 	if err != nil {
@@ -123,7 +121,7 @@ func handleLine(line string) {
 
 	switch line {
 	case exitCommand:
-		l.Println(cp.Text + "Bye." + ansi.Reset)
+		l.Println(cp.Text + "Bye." + cp.Reset)
 		clearProcessMap()
 		os.Exit(0)
 

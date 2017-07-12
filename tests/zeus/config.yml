@@ -10,9 +10,9 @@
 autoFormat: false
 colors: true
 passCommandsToShell: true
-webInterface: false
+webInterface: true
 interactive: true
-debug: false
+debug: true
 projectNamePrompt: true
 recursionDepth: 1
 historyLimit: 20

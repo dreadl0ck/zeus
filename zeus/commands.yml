@@ -33,6 +33,7 @@ globals:
 # async                     # bool           # detach comamnd async in a screen session, attach on demand
 # path                      # string         # custom path for script file
 # exec                      # string         # supply the script directly without a file
+# language                  # string         # set the language for the script
 commands:
 
     # Utils
@@ -76,7 +77,7 @@ commands:
         outputs:
             - bin/zeus
         exec: |
-            echo "[ZEUS v${version}] building ${buildDir}/${binaryName} for current OS"
+            efffcho "[ZEUS v${version}] building ${buildDir}/${binaryName} for current OS"
             rice embed-go
             godep go build -o ${buildDir}/${binaryName}
     build-linux:
@@ -134,7 +135,7 @@ commands:
             - clean
         exec: |
             echo "[ZEUS v${version}] starting race detection enabled tests"
-            go test -v -race
+            GORACE="history_size=2 halt_on_error=1" go test -v -race
 
     # run the tests
     test:

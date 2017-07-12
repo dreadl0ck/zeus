@@ -7,22 +7,15 @@
 #                          v0.8
 #
 
-buildNumber: 0
+buildNumber: 3
 deadline: ""
 milestones: []
 aliases: {}
 events:
-  0d1cf948de45c034:
-    name: commandsFile watcher
-    id: 0d1cf948de45c034
-    path: zeus/commands.yml
-    op: 2
-    fileextension: .yml
-    command: internal
-  3d0ed83beb88fb53:
+  942df4ad1025da38:
     name: config watcher
-    id: 3d0ed83beb88fb53
-    path: zeus/config.yml
+    id: 942df4ad1025da38
+    path: tests/zeus/config.yml
     op: 2
     fileextension: .yml
     command: internal

@@ -11,12 +11,6 @@
     COMMIT: 
 ------------------------------------------------------------------------------------
 
-## in progress
-
-- refactored tests: moved everything in zeus dir
-- update docs
-- release with goreleaser
-
 ## v0.8.1
 
 - BUG: write events corrupt with vim?

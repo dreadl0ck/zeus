@@ -109,11 +109,13 @@ func StartWebListener(openInBrowser bool) {
 	// init router
 	r := createRouter()
 
+	conf.Lock()
 	if conf.fields.Debug {
 		// start asset watchers for development
 		go startJSWatcher()
 		go startSassWatcher()
 	}
+	conf.Unlock()
 
 	// listen and serve
 	err := http.ListenAndServe(":"+strconv.Itoa(conf.fields.PortWebPanel), r)

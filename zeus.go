@@ -231,7 +231,7 @@ func main() {
 	// disable colors
 	if !conf.fields.Colors {
 
-		print(ansi.Reset)
+		print(cp.Reset)
 
 		// lock once
 		cp.Lock()
@@ -240,6 +240,14 @@ func main() {
 		Log.Formatter = &prefixed.TextFormatter{
 			DisableColors:    true,
 			DisableTimestamp: conf.fields.DisableTimestamps,
+		}
+
+		ansi.DisableColors(true)
+	} else {
+		// load colored ascii art
+		asciiArt, err = assetBox.String("ascii_art_color.txt")
+		if err != nil {
+			Log.WithError(err).Fatal("failed to get ascii_art_color.txt from rice box")
 		}
 	}
 

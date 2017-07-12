@@ -1,5 +1,4 @@
 bin/*
-zeus.log
-zeus_error_dump.sh
-zeus/zeus_history
+zeus/dumps
+zeus/.history
 coverage.out

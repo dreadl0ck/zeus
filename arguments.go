@@ -175,7 +175,7 @@ func (c *command) parseArguments(args []string) (string, error) {
 			}
 
 			if cmdArg, ok = c.args[argSlice[0]]; !ok {
-				return "", errors.New(ErrInvalidArgumentLabel.Error() + ": " + ansi.Red + argSlice[0] + ansi.Reset)
+				return "", errors.New(ErrInvalidArgumentLabel.Error() + ": " + ansi.Red + argSlice[0] + cp.Reset)
 			}
 
 			if err := validArgType(argSlice[1], cmdArg.argType); err != nil {
@@ -209,7 +209,7 @@ func (c *command) parseArguments(args []string) (string, error) {
 				}
 			} else {
 				// empty value and not optional - error
-				return "", errors.New("missing argument: " + ansi.Red + arg.name + ":" + strings.Title(arg.argType.String()) + ansi.Reset)
+				return "", errors.New("missing argument: " + ansi.Red + arg.name + ":" + strings.Title(arg.argType.String()) + cp.Reset)
 			}
 		} else {
 			// write value into buffer

@@ -12,7 +12,7 @@ colors: true
 passCommandsToShell: true
 webInterface: false
 interactive: true
-debug: true
+debug: false
 projectNamePrompt: true
 recursionDepth: 1
 historyLimit: 20

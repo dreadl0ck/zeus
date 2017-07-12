@@ -43,6 +43,10 @@
 - writing all dumps into dumps dir
 - moved all language specific globals into globals dir
 - improved argument type validation and error feedback
+- added color ascii art
+- refactored tests: moved everything in zeus dir
+- updated docs
+- added goreleaser config
 
 ## 23.05.17 - v0.7.4
 

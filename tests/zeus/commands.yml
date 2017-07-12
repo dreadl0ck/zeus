@@ -146,11 +146,10 @@ commands:
         help: |
             this is an example for the dependencies
         outputs:
-            - tests/dependency1
+            - tests/bin/dependency1
         buildNumber: true
         exec: |
-            touch tests/dependency1
-            rm -f tests/dependency2
+            touch tests/bin/dependency1
     
     dependency2:
         description: test dependencies
@@ -160,5 +159,33 @@ commands:
             - dependency1
         buildNumber: true
         exec: |
-            touch tests/dependency2
-            rm -f tests/dependency1
+            touch tests/bin/dependency2
+    all:
+        description: description for command all
+        help: help text for command all
+        arguments:
+        dependencies:
+            - clean
+            - configure
+        outputs:
+
+    clean:
+        description: description for command clean
+        help: help text for command clean
+        arguments:
+        dependencies:
+        outputs:
+
+    build:
+        description: description for command build
+        help: help text for command build
+        arguments:
+        dependencies:
+        outputs:
+
+    configure:
+        description: description for command configure
+        help: help text for command configure
+        arguments:
+        dependencies:
+        outputs:

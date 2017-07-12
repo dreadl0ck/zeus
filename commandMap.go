@@ -39,7 +39,7 @@ func (cm *commandMap) flush() {
 	}
 
 	// reset cmdMap
-	cmdMap = newCommandMap()
+	cmdMap.items = make(map[string]*command, 0)
 
 	// remove all command completions
 	completer.Lock()
@@ -86,9 +86,9 @@ func (cm *commandMap) init(start time.Time) {
 	// only print info when using the interactive shell
 	if len(os.Args) == 1 {
 		if len(cm.items) == 1 {
-			l.Println(cp.Text+"initialized "+cp.Prompt, "1", cp.Text+" command in: "+cp.Prompt, time.Now().Sub(start), ansi.Reset+"\n")
+			l.Println(cp.Text+"initialized "+cp.Prompt, "1", cp.Text+" command in: "+cp.Prompt, time.Now().Sub(start), cp.Reset+"\n")
 		} else {
-			l.Println(cp.Text+"initialized "+cp.Prompt, len(cmdMap.items), cp.Text+" commands in: "+cp.Prompt, time.Now().Sub(start), ansi.Reset+"\n")
+			l.Println(cp.Text+"initialized "+cp.Prompt, len(cmdMap.items), cp.Text+" commands in: "+cp.Prompt, time.Now().Sub(start), cp.Reset+"\n")
 		}
 	}
 
