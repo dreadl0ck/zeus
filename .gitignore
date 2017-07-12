@@ -1,4 +1,5 @@
 **bin/**
 zeus/dumps
 zeus/.history
+**dist/**
 coverage.out
