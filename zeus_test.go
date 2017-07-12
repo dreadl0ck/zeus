@@ -25,8 +25,6 @@ import (
 	"testing"
 	"time"
 
-	"os/exec"
-
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -43,40 +41,42 @@ func TestMain(t *testing.T) {
 	if !running {
 
 		running = true
-		Log.Info("TEST MAIN")
 
 		// switch to testing mode
 		testingMode = true
 
 		// parse tests dir on startup
-		zeusDir = "tests"
-		scriptDir = "tests/scripts"
+		zeusDir = "tests/zeus"
+		scriptDir = "tests/zeus/scripts"
 
-		// ignore zeusfile in the project dir for now, it will be tested separately with TestZeusfile()
-		zeusfilePath = ""
+		// ignore commandsFile in the project dir for now, it will be tested separately with TestCommandsFile()
+		// commandsFilePath = ""
+		// manipulate CommandsFile path to not use the ZEUS projects CommandsFile for the tests
+		commandsFilePath = "tests/zeus/commands.yml"
 
 		Convey("When Starting main", t, func(c C) {
 
 			// remove project data from previous test runs
-			os.Remove("tests/data.yml")
+			os.Remove("tests/zeus/data.yml")
 
 			go main()
 
 			time.Sleep(500 * time.Millisecond)
 
-			cmdMap.Lock()
-			c.So(len(cmdMap.items), ShouldBeGreaterThan, 0)
-			cmdMap.Unlock()
+			func() {
+				cmdMap.Lock()
+				defer cmdMap.Unlock()
+				c.So(len(cmdMap.items), ShouldBeGreaterThan, 0)
+			}()
 
 			// config should be initialized
-			conf.Lock()
-			c.So(conf, ShouldNotBeNil)
-			// enable debug mode
-			conf.fields.Debug = true
-			conf.Unlock()
-
-			// manipulate Zeusfile path to not use the ZEUS projects Zeusfile for the tests
-			zeusfilePath = "tests/Zeusfile.yml"
+			func() {
+				conf.Lock()
+				defer conf.Unlock()
+				c.So(conf, ShouldNotBeNil)
+				// enable debug mode
+				conf.fields.Debug = true
+			}()
 
 			go StartWebListener(false)
 
@@ -187,17 +187,6 @@ func TestDeadlines(t *testing.T) {
 	})
 }
 
-/*
- *    Utils
- */
-
-func printEvents() {
-
-	for id, e := range projectData.fields.Events {
-		Log.Info("ID: " + id + ", Name: " + e.Name + ", Command: " + e.Command)
-	}
-}
-
 func TestEvents(t *testing.T) {
 
 	TestMain(t)
@@ -214,7 +203,7 @@ func TestEvents(t *testing.T) {
 
 			printEvents()
 
-			// there should be only the config and the script or zeusfile watcher event
+			// there should be only the config watcher event
 			c.So(len(projectData.fields.Events), ShouldEqual, 2)
 		}()
 
@@ -230,8 +219,6 @@ func TestEvents(t *testing.T) {
 		func() {
 			projectData.Lock()
 			defer projectData.Unlock()
-
-			// printEvents()
 
 			c.So(len(projectData.fields.Events), ShouldEqual, 3)
 		}()
@@ -319,13 +306,13 @@ func TestMakefileMigration(t *testing.T) {
 	Convey("Testing makefile migration", t, func() {
 
 		// remove previous generated directory
-		os.Remove("tests/zeus")
+		// os.Remove("tests/zeus/migration-test")
 
 		// migrate test Makefile into tests/zeus
-		migrateMakefile("tests/zeus")
+		migrateMakefile("tests/zeus/migration-test")
 
 		// clean up
-		os.Remove("tests/zeus")
+		// os.Remove("tests/zeus/migration-test")
 	})
 }
 
@@ -410,26 +397,25 @@ func TestDependencies(t *testing.T) {
 	})
 }
 
-func TestZeusfile(t *testing.T) {
+func TestCommandsFile(t *testing.T) {
 
 	TestMain(t)
 
-	Convey("Testing Zeusfile parsing", t, func(c C) {
+	Convey("Testing CommandsFile parsing", t, func(c C) {
 
-		// parse ZEUS project Zeusfile
-		err := parseZeusfile("zeus/Zeusfile.yml")
+		// parse ZEUS project CommandsFile
+		err := parseCommandsFile("zeus/commands.yml")
 		c.So(err, ShouldBeNil)
 
 		// event creation is async, wait a little bit
 		time.Sleep(100 * time.Millisecond)
 
-		// get zeusfile watcher eventID
+		// get commandsFile watcher eventID
 		var eventID string
 
 		projectData.Lock()
 		for id, e := range projectData.fields.Events {
-			l.Println("#####NAME: ", e.Name)
-			if e.Name == "zeusfile watcher" {
+			if e.Name == "commandsFile watcher" {
 				eventID = id
 			}
 		}
@@ -443,16 +429,16 @@ func TestZeusfile(t *testing.T) {
 	})
 }
 
-func TestBootstrap(t *testing.T) {
+// func TestBootstrap(t *testing.T) {
 
-	TestMain(t)
+// 	TestMain(t)
 
-	Convey("Testing zeus bootstrapping", t, func(c C) {
+// 	Convey("Testing zeus bootstrapping", t, func(c C) {
 
-		// make sure zeus dir does not exist
-		os.Remove("tests/zeus")
-	})
-}
+// 		// make sure zeus dir does not exist
+// 		os.Remove("tests/zeus/bootstrap-test")
+// 	})
+// }
 
 func TestGenerate(t *testing.T) {
 
@@ -464,32 +450,32 @@ func TestGenerate(t *testing.T) {
 		handleLine("generate build.sh build")
 		handleLine("generate testChain.sh async -> optional bla=asdf req=asdfd -> error")
 
-		os.Remove("tests/generated")
+		os.Remove("tests/zeus/generated")
 	})
 }
 
-func TestZeusfileMigration(t *testing.T) {
+// func TestCommandsFileMigration(t *testing.T) {
 
-	TestMain(t)
+// 	TestMain(t)
 
-	Convey("Testing Zeusfile to zeusDir migration", t, func(c C) {
+// 	Convey("Testing CommandsFile to zeusDir migration", t, func(c C) {
 
-		os.Remove("tests/zeus-migration-test")
-		os.Remove("tests/Zeusfile.yml")
-		os.Remove("tests/Zeusfile_old.yml")
+// 		os.Remove("tests/zeus-migration-test")
+// 		os.Remove("tests/CommandsFile.yml")
+// 		os.Remove("tests/CommandsFile_old.yml")
 
-		c.So(exec.Command("cp", "zeus/Zeusfile.yml", "tests/Zeusfile.yml").Run(), ShouldBeNil)
+// 		c.So(exec.Command("cp", "zeus/CommandsFile.yml", "tests/CommandsFile.yml").Run(), ShouldBeNil)
 
-		zeusDir = "tests/zeus-migration-test"
+// 		zeusDir = "tests/zeus/zeus-migration-test"
 
-		c.So(migrateZeusfile(), ShouldBeNil)
+// 		//c.So(migrateCommandsFile(), ShouldBeNil)
 
-		zeusDir = "tests"
+// 		zeusDir = "tests"
 
-		// clean up
-		os.Remove("tests/zeus-migration-test")
-	})
-}
+// 		// clean up
+// 		os.Remove("tests/zeus/zeus-migration-test")
+// 	})
+// }
 
 func TestProcesses(t *testing.T) {
 
@@ -536,7 +522,7 @@ func TestCustomCompleters(t *testing.T) {
 		c.So(todoIndexCompleter(""), ShouldBeEmpty)
 
 		// complete PIDs for killing processes
-		c.So(pIDCompleter(""), ShouldNotBeEmpty)
+		// c.So(pIDCompleter(""), ShouldNotBeEmpty)
 
 		// complete available filetypes for the event target directory
 		c.So(fileTypeCompleter("events add WRITE tests/"), ShouldNotBeEmpty)

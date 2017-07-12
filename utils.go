@@ -21,6 +21,7 @@ package main
 import (
 	"crypto/rand"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -29,6 +30,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"reflect"
+	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -37,39 +39,51 @@ import (
 
 	yaml "gopkg.in/yaml.v2"
 
-	"github.com/Sirupsen/logrus"
 	gosxnotifier "github.com/deckarep/gosx-notifier"
-	"github.com/fsnotify/fsnotify"
+	"github.com/mgutz/ansi"
 )
 
 var (
 	// prompt for the interactive shell
 	zeusPrompt  = "zeus"
 	signalMutex = &sync.Mutex{}
+
+	// ErrNoLineNumberFound means there was no line number in the error message
+	ErrNoLineNumberFound = errors.New("no line number found in error string")
 )
 
 // dump the currently executed script to disk
-func dumpScript(script, language string, e error) {
+func dumpScript(script, language string, e error, stdErr string) {
 
-	var (
-		p  *parser
-		ok bool
-	)
+	stat, err := os.Stat(zeusDir + "/dumps")
+	if err != nil {
+		err := os.Mkdir(zeusDir+"/dumps", 0700)
+		if err != nil {
+			Log.WithError(err).Error("failed to create dumps directory")
+			return
+		}
+	} else {
+		if !stat.IsDir() {
+			Log.Error("dumpScript: " + zeusDir + "/dumps is a file")
+			return
+		}
+	}
 
-	ps.Lock()
-	if p, ok = ps.items[language]; !ok {
-		ps.Unlock()
-		Log.WithFields(logrus.Fields{
-			"language": language,
-		}).Error("no parser found")
+	lang, err := ls.getLang(language)
+	if err != nil {
+		Log.WithError(err).Error("failed to get lang")
 		return
 	}
-	ps.Unlock()
+
+	var stdErrOutputComment string
+	for _, line := range strings.Split(stdErr, "\n") {
+		stdErrOutputComment += lang.Comment + " " + line + "\n"
+	}
 
 	var (
-		t            = p.language.Comment + " Timestamp: " + time.Now().Format(timestampFormat) + "\n"
-		errString    = p.language.Comment + " Error: " + e.Error() + "\n\n"
-		dumpFileName = zeusDir + "/error_dump" + p.language.FileExtension
+		t            = lang.Comment + " Timestamp: " + time.Now().Format(timestampFormat) + "\n"
+		errString    = lang.Comment + " Error: " + e.Error() + "\n" + lang.Comment + " StdErr: \n" + stdErrOutputComment + "\n\n"
+		dumpFileName = zeusDir + "/dumps/error_dump" + lang.FileExtension
 	)
 
 	f, err := os.OpenFile(dumpFileName, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0700)
@@ -79,22 +93,23 @@ func dumpScript(script, language string, e error) {
 	}
 	defer f.Close()
 
-	f.WriteString(p.language.Bang + "\n" + p.language.Comment + "\n")
-	f.WriteString(p.language.Comment + " ZEUS Error Dump\n")
+	f.WriteString(lang.Bang + "\n" + lang.Comment + "\n")
+	f.WriteString(lang.Comment + " ZEUS Error Dump\n")
 	f.WriteString(t)
 	f.WriteString(errString)
 	f.WriteString(script)
 	Log.Debug("script dumped: ", dumpFileName)
 }
 
-// print the current script to stdout
-// adds line numbers
-func printScript(script, name string) {
+// print the complete script to stdout
+// adds line numbers and optionally highlight a line
+// when no line shall be highlighted pass -1
+func printScript(contents, path string, highlightLine int) {
 
+	fmt.Println("\n" + ansi.Reset + " |---------------------------------------------------------------------------------------------|")
+	fmt.Println("     Script: " + path)
 	fmt.Println(" |---------------------------------------------------------------------------------------------|")
-	fmt.Println("     Script: " + name)
-	fmt.Println(" |---------------------------------------------------------------------------------------------|")
-	for i, s := range strings.Split(script, "\n") {
+	for i, s := range strings.Split(contents, "\n") {
 
 		var lineNumber string
 		switch true {
@@ -105,9 +120,63 @@ func printScript(script, name string) {
 		default:
 			lineNumber = strconv.Itoa(i) + "  "
 		}
-		fmt.Println(" "+lineNumber, s)
+
+		if i == highlightLine {
+			fmt.Println(" "+ansi.Red+lineNumber, s+ansi.Reset)
+		} else {
+			fmt.Println(" "+lineNumber, s)
+		}
 	}
+	fmt.Println(" |---------------------------------------------------------------------------------------------|" + cp.Text)
+}
+
+// print a code snippet to stdout
+// adds line numbers and optionally highlight a line
+// when no line shall be highlighted pass -1
+// when a value for highlight line is supplied,
+// $scope lines before and after the line will be printed
+func printCodeSnippet(contents, path string, highlightLine int) {
+
+	var (
+		rangeStart int
+		rangeEnd   int
+	)
+
+	conf.Lock()
+	scope := conf.fields.CodeSnippetScope
+	conf.Unlock()
+
+	if highlightLine > 0 {
+		rangeStart = highlightLine - scope
+		rangeEnd = highlightLine + scope
+	}
+
+	fmt.Println("\n" + ansi.Reset + " |---------------------------------------------------------------------------------------------|")
+	fmt.Println("     File: " + path)
 	fmt.Println(" |---------------------------------------------------------------------------------------------|")
+	for i, s := range strings.Split(contents, "\n") {
+
+		if i < rangeStart || i > rangeEnd {
+			continue
+		}
+
+		var lineNumber string
+		switch true {
+		case i > 9:
+			lineNumber = strconv.Itoa(i) + " "
+		case i > 99:
+			lineNumber = strconv.Itoa(i)
+		default:
+			lineNumber = strconv.Itoa(i) + "  "
+		}
+
+		if i == highlightLine {
+			fmt.Println(" "+ansi.Red+lineNumber, s+ansi.Reset)
+		} else {
+			fmt.Println(" "+lineNumber, s)
+		}
+	}
+	fmt.Println(" |---------------------------------------------------------------------------------------------|" + cp.Text)
 }
 
 // handle OS SIGNALS for a clean exit and clean up all spawned processes
@@ -142,23 +211,16 @@ func pad(in string, length int) string {
 	return in
 }
 
-// create a readable string from a commandChain
+// create a readable string from a dependency array
 // example: clean -> build name=testBuild -> install
-func formatcommandChain(commands commandChain) (out string) {
+func formatDependencies(deps []string) (out string) {
 
-	for i, cmd := range commands {
+	for i, cmd := range deps {
 
-		out += cmd.name
-
-		// check if command has params set
-		if len(cmd.params) > 0 {
-			for _, p := range cmd.params {
-				out += " " + p
-			}
-		}
+		out += cmd
 
 		// if not last elem
-		if !(i == len(commands)-1) {
+		if !(i == len(deps)-1) {
 			out += " -> "
 		}
 	}
@@ -170,20 +232,76 @@ func clearScreen() {
 	print("\033[H\033[2J")
 }
 
-// count total length of the commands dependencies
-func countDependencies(chain commandChain) int {
-	count := 0
-	for _, cmd := range chain {
-		count++
-		if len(cmd.dependencies) > 0 {
-			count += countDependencies(cmd.dependencies)
+// extract a line number from an stdErr buffer
+// returns the first occurence of a line containing the 'line' keyword followed by a number
+// used to highlight a line in a script when an error during execution occurs
+func extractLineNumFromError(errMsg, errLineNumberSymbol string) (int, error) {
+
+	// split buffer by newlines
+	for _, line := range strings.Split(errMsg, "\n") {
+
+		// check line contains 'line' keyword
+		if strings.Contains(line, errLineNumberSymbol) {
+
+			numExp := regexp.MustCompile("[0-9]+")
+
+			// split string by keyword
+			// the line number will appear after the keyword
+			slice := strings.Split(line, errLineNumberSymbol)
+			if len(slice) > 1 {
+
+				// look for first number match after 'line' keyword
+				res := numExp.FindAllString(slice[1], 1)
+				if len(res) > 0 {
+
+					// convert result string to integer
+					i, err := strconv.Atoi(res[0])
+					if err != nil {
+						return 0, err
+					}
+					return i, nil
+				}
+			}
 		}
 	}
-	return count
+	return 0, ErrNoLineNumberFound
 }
 
-func getTotalDependencyCount(c *command) int {
-	return 1 + countDependencies(c.dependencies)
+// count total length of the commands dependencies
+func countDependencies(deps []string) (int, error) {
+	count := 1
+	for _, dep := range deps {
+
+		fields := strings.Fields(dep)
+		if len(fields) == 0 {
+			return 0, ErrEmptyDependency
+		}
+
+		// lookup
+		cmd, err := cmdMap.getCommand(fields[0])
+		if err != nil {
+			return 0, errors.New("invalid dependency: " + err.Error())
+		}
+
+		err = s.incrementRecursionCount(cmd.name)
+		if err != nil {
+			return 0, err
+		}
+
+		count++
+		if len(cmd.dependencies) > 0 {
+			c, err := countDependencies(cmd.dependencies)
+			if err != nil {
+				return 0, err
+			}
+			count += c
+		}
+	}
+	return count, nil
+}
+
+func getTotalDependencyCount(c *command) (int, error) {
+	return countDependencies(c.dependencies)
 }
 
 // print the prompt for the interactive shell
@@ -273,7 +391,7 @@ func handleHelpCommand(args []string) {
 		return
 	}
 
-	printHelpUsageErr()
+	l.Println("unknown command:", args[1])
 }
 
 func printHelpUsageErr() {
@@ -282,7 +400,7 @@ func printHelpUsageErr() {
 }
 
 // check if the argument type matches the expected one
-func validArgType(in string, k reflect.Kind) bool {
+func validArgType(in string, k reflect.Kind) error {
 
 	var err error
 
@@ -294,15 +412,36 @@ func validArgType(in string, k reflect.Kind) bool {
 	case reflect.Float64:
 		_, err = strconv.ParseFloat(in, 10)
 	case reflect.String:
+
+		// check if input is explicitely marked as string
+		if strings.HasPrefix(in, "\"") && strings.HasSuffix(in, "\"") {
+			return nil
+		} else if strings.HasPrefix(in, "'") && strings.HasSuffix(in, "'") {
+			return nil
+		}
+
+		// you could pass everything as a string
+		// so lets check if its not something else...
+		_, err = strconv.ParseBool(in)
+		if err == nil {
+			return errors.New("got bool but want string")
+		}
+		_, err = strconv.ParseInt(in, 10, 0)
+		if err == nil {
+			return errors.New("got int but want string")
+		}
+		_, err = strconv.ParseFloat(in, 10)
+		if err == nil {
+			return errors.New("got float but want string")
+		}
+
+		// all good
+		return nil
 	default:
-		return false
+		return errors.New("recevied unknown type")
 	}
 
-	if err == nil {
-		return true
-	}
-	Log.WithField("prefix", "validArgType").WithError(err).Error("invalid arg value")
-	return false
+	return err
 }
 
 // display an OS notification
@@ -346,51 +485,14 @@ func randomString() string {
 
 	var rb = make([]byte, 8)
 
+	// read random bytes
 	_, err := rand.Read(rb)
 	if err != nil {
 		Log.WithError(err).Fatal(ErrReadingRandomString)
 	}
 
+	// return hex string
 	return hex.EncodeToString(rb)
-}
-
-// watch script directory for changes and parse commands again
-// optionally with the same eventID that was loaded from projectData
-func watchScripts(eventID string) {
-
-	// dont add a new watcher when the event exists
-	projectData.Lock()
-	for _, e := range projectData.fields.Events {
-		if e.Name == "script watcher" {
-			projectData.Unlock()
-			return
-		}
-	}
-	projectData.Unlock()
-
-	err := addEvent(newEvent(scriptDir, fsnotify.Write, "script watcher", "", eventID, "internal", func(e fsnotify.Event) {
-
-		Log.Debug("change event: ", e.Name)
-
-		err := addCommand(e.Name, true)
-		if err != nil {
-			Log.WithError(err).Error("failed to parse command: ", e.Name)
-		}
-	}))
-	if err != nil {
-		Log.WithError(err).Error("failed to watch script headers")
-	}
-}
-
-// dump datastructure as YAML - useful for debugging
-func dumpYAML(i interface{}) {
-	out, err := yaml.Marshal(i)
-	if err != nil {
-		log.Println("ERROR: failed to marshal to YAML:", err)
-		return
-	}
-
-	fmt.Println(string(out))
 }
 
 // print file content with linenumbers to stdout - useful for debugging
@@ -406,9 +508,6 @@ func printFileContents(data []byte) {
 func printCompletions(previous string) {
 
 	switch previous {
-	case bootstrapCommand:
-		fmt.Println("file dir")
-		return
 	case makefileCommand:
 		fmt.Println("migrate")
 		return
@@ -417,6 +516,7 @@ func printCompletions(previous string) {
 	// print builtins
 	var completions = []string{
 		helpCommand,
+		// bootstrapCommand,
 		formatCommand,
 		dataCommand,
 		aliasCommand,
@@ -440,27 +540,24 @@ func printCompletions(previous string) {
 		}
 	}
 
-	// bootstrap is available when there's no dir or zeusfile
-	fmt.Print("bootstrap ")
-
-	// check for zeusfile
+	// check for commandsFile
 	var (
-		zeusfile = new(Zeusfile)
-		contents []byte
-		err      error
+		commandsFile = new(CommandsFile)
+		contents     []byte
+		err          error
 	)
 
-	contents, err = ioutil.ReadFile("Zeusfile.yml")
+	contents, err = ioutil.ReadFile(commandsFilePath)
 	if err == nil {
 
 		// unmarshal data
-		err = yaml.Unmarshal(contents, zeusfile)
+		err = yaml.Unmarshal(contents, commandsFile)
 		if err != nil {
 			fmt.Println()
 			return
 		}
 
-		for name := range zeusfile.Commands {
+		for name := range commandsFile.Commands {
 			if name == previous {
 				return
 			}
@@ -468,10 +565,12 @@ func printCompletions(previous string) {
 		}
 	} else {
 
+		// bootstrap is available when there's no zeusDir or commandsFile
+		fmt.Print("bootstrap ")
+
 		// read scripts
 		files, err := ioutil.ReadDir(scriptDir)
 		if err != nil {
-			fmt.Println(err)
 			return
 		}
 
@@ -501,4 +600,42 @@ func wireEnv(cmd *exec.Cmd) {
 	cmd.Stderr = os.Stderr
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
+}
+
+/*
+ * YAML Utils
+ */
+
+// extract YAML field name
+// returns an empty string if the field is not valid
+func extractYAMLField(line string) string {
+	return strings.TrimSuffix(strings.TrimSpace(yamlField.FindString(line)), ":")
+}
+
+func getYAMLFieldPosition(fieldName string) (line int, col int, err error) {
+
+	b, err := ioutil.ReadFile(commandsFilePath)
+	if err != nil {
+		return line, col, err
+	}
+
+	for index, l := range strings.Split(string(b), "\n") {
+		if strings.Contains(l, fieldName+":") {
+			line = index
+			col = countLeadingSpace(l)
+		}
+	}
+
+	return
+}
+
+// dump datastructure as YAML - useful for debugging
+func dumpYAML(i interface{}) {
+	out, err := yaml.Marshal(i)
+	if err != nil {
+		log.Println("ERROR: failed to marshal to YAML:", err)
+		return
+	}
+
+	fmt.Println(string(out))
 }

@@ -19,6 +19,7 @@
 package main
 
 import (
+	"flag"
 	"log"
 	"os"
 	"path/filepath"
@@ -27,11 +28,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/Sirupsen/logrus"
-
-	"flag"
-
 	rice "github.com/GeertJohan/go.rice"
+	"github.com/Sirupsen/logrus"
 	"github.com/dreadl0ck/readline"
 	"github.com/mgutz/ansi"
 	prefixed "github.com/x-cray/logrus-prefixed-formatter"
@@ -39,7 +37,7 @@ import (
 
 var (
 	// current zeus version
-	version = "0.7.4"
+	version = "0.8"
 
 	// Log instance for internal logs
 	Log = newAtomicLogger()
@@ -71,12 +69,15 @@ var (
 		Vars: make(map[string]string, 0),
 	}
 
-	debug      bool
-	asciiArt   string
-	workingDir string
+	debug        bool
+	asciiArt     string
+	asciiArtYAML string
+	workingDir   string
 
 	// status info
-	s = &status{}
+	s = &status{
+		recursionMap: make(map[string]int, 0),
+	}
 
 	// running a test?
 	testingMode bool
@@ -96,18 +97,46 @@ func newAtomicLogger() *atomicLogger {
 
 func init() {
 
-	// set up formatter
-	Log.Formatter = new(prefixed.TextFormatter)
-}
-
-func main() {
-
 	var (
-		cLog            = Log.WithField("prefix", "main")
 		err             error
 		flagCompletions = flag.String("completions", "", "get available command completions")
 		flagHelp        = flag.Bool("h", false, "print zeus help and exit")
 	)
+
+	// set up formatter
+	Log.Formatter = &prefixed.TextFormatter{}
+
+	if runtime.GOOS == "windows" {
+		Log.Fatal("windows is not (yet) supported.")
+	}
+
+	asciiArt, err = assetBox.String("ascii_art.txt")
+	if err != nil {
+		Log.WithError(err).Fatal("failed to get ascii_art.txt from rice box")
+	}
+	asciiArtYAML, err = assetBox.String("ascii_art.yml")
+	if err != nil {
+		Log.WithError(err).Fatal("failed to get ascii_art.yml from rice box")
+	}
+
+	// add version number
+	asciiArtYAML += version + "\n#\n\n"
+
+	if len(os.Args) > 1 {
+		if os.Args[1] == bootstrapCommand {
+			runBootstrapCommand()
+
+			// remove bootstrap arg
+			os.Args = []string{os.Args[0]}
+		}
+	}
+
+	if len(os.Args) > 2 {
+		if os.Args[1] == "makefile" && os.Args[2] == "migrate" {
+			migrateMakefile(zeusDir)
+			os.Exit(0)
+		}
+	}
 
 	flag.Parse()
 
@@ -120,34 +149,33 @@ func main() {
 		printHelp()
 	}
 
-	if runtime.GOOS == "windows" {
-		cLog.Fatal("windows is not (yet) supported.")
-	}
-
-	if len(os.Args) > 1 {
-		if os.Args[1] == bootstrapCommand {
-			if len(os.Args) > 2 {
-				switch os.Args[2] {
-				case "file":
-					runBootstrapZeusfileCommand()
-				case "dir":
-					runBootstrapDirCommand()
-				}
-				return
+	stat, err := os.Stat(scriptDir)
+	if err != nil {
+		if stat, err = os.Stat(commandsFilePath); err != nil {
+			Log.WithError(err).Error("no " + scriptDir + " directory or CommandsFile found.")
+			Log.Info("run 'zeus bootstrap' to create a default setup, or 'zeus makefile migrate' if you want to migrate from a GNU Makefile.")
+			os.Exit(1)
+		} else {
+			// make sure its a file
+			if stat.IsDir() {
+				Log.Fatal(commandsFilePath + " is not a file")
 			}
-			printBootstrapCommandUsageErr()
-			return
+		}
+	} else {
+		// make sure its a directory
+		if !stat.IsDir() {
+			Log.Fatal("zeus/ is not a directory")
 		}
 	}
+}
 
-	if len(os.Args) > 2 {
-		if os.Args[1] == "makefile" && os.Args[2] == "migrate" {
-			migrateMakefile(zeusDir)
-			return
-		}
-	}
+func main() {
 
-	checkZeusEnvironment()
+	var (
+		cLog           = Log.WithField("prefix", "main")
+		err            error
+		configWarnings []string
+	)
 
 	// look for project data
 	projectData, err = parseProjectData()
@@ -157,7 +185,7 @@ func main() {
 	}
 
 	// look for project config
-	conf, err = parseProjectConfig()
+	conf, configWarnings, err = parseProjectConfig()
 	if err != nil {
 		cLog.WithError(err).Debug("failed to parse project config")
 		cLog.Info("initializing default configuration")
@@ -226,6 +254,11 @@ func main() {
 		printProjectHeader()
 	}
 
+	// print config warnings
+	for _, w := range configWarnings {
+		Log.Warn(w)
+	}
+
 	// start watchers when running in interactive mode
 	if conf.fields.Interactive {
 
@@ -243,26 +276,35 @@ func main() {
 		printMakefileCommandOverview()
 	}
 
-	// check if a Zeusfile for the project exists
-	err = parseZeusfile(zeusfilePath)
-	if err == ErrFailedToReadZeusfile {
+	// check if a CommandsFile for the project exists
+	err = parseCommandsFile(commandsFilePath)
+	if err == ErrFailedToReadCommandsFile {
 
-		Log.Debug("no Zeusfile found. parsing scriptDir...")
+		// remove commandsFileWatcher
+		var id string
+		projectData.Lock()
+		for _, e := range projectData.fields.Events {
+			if e.Name == "commandsFile watcher" {
+				id = e.ID
+			}
+		}
+		projectData.Unlock()
 
-		// check if there are globals
-		parseGlobals()
+		if id != "" {
+			removeEvent(id)
+		}
+
+		Log.Debug("no CommandsFile found. looking for scripts...")
 
 		// create commandList from ZEUS dir
 		findCommands()
-
-		// watch scripts directory in interactive mode
-		if conf.fields.Interactive {
-			go watchScripts("")
-		}
+	} else if err != nil {
+		Log.Error("failed to parse commandsFile: ", err, "\n")
 	}
-	if err != nil && err != ErrFailedToReadZeusfile {
-		Log.Error(err)
-		println()
+
+	// watch commandsFile for changes in interactive mode
+	if err == nil && conf.fields.Interactive {
+		go watchCommandsFile(commandsFilePath, "")
 	}
 
 	if conf.fields.ProjectNamePrompt {
@@ -302,23 +344,17 @@ func printHelp() {
 	l.Println("ZEUS - An Electrifying Build System")
 	l.Println("author: dreadl0ck@protonmail.ch")
 	l.Println("for documentation see: https://github.com/dreadl0ck/zeus")
-	l.Println("run 'zeus bootstrap dir' or 'zeus bootstrap file' to create a default ZEUS directory")
+	l.Println("run 'zeus bootstrap' to create a default ZEUS setup")
 	l.Println("or 'zeus makefile migrate' if you want to migrate from a GNU Makefile.")
-	l.Println("to get an overview over an existing ZEUS project, run 'zeus help' or 'zeus' for for the interactive shell.")
+	l.Println("to get an overview over an existing ZEUS project, run 'zeus help' or 'zeus' for the interactive shell.")
 	os.Exit(0)
 }
 
 // print the project ascii art and project infos
 func printProjectHeader() {
 
-	var err error
-	clearScreen()
-
 	// print ascii art
-	asciiArt, err = assetBox.String("ascii_art.txt")
-	if err != nil {
-		Log.WithError(err).Fatal("failed to get ascii art from rice box")
-	}
+	clearScreen()
 	l.Println(cp.Text + asciiArt + "v" + version)
 
 	l.Println(cp.Text + pad("Project Name", 14) + cp.Prompt + filepath.Base(workingDir) + cp.Text + "\n")
@@ -336,28 +372,6 @@ func printProjectHeader() {
 
 	// project infos
 	listMilestones()
-}
-
-// check if zeus directory or Zeusfile exists
-func checkZeusEnvironment() {
-	stat, err := os.Stat(scriptDir)
-	if err != nil {
-		if stat, err = os.Stat(zeusfilePath); err != nil {
-			Log.WithError(err).Error("no " + scriptDir + " directory or Zeusfile found.")
-			Log.Info("run 'zeus bootstrap dir' or 'zeus bootstrap file' to create a default one, or 'zeus makefile migrate' if you want to migrate from a GNU Makefile.")
-			os.Exit(1)
-		} else {
-			// make sure its a file
-			if stat.IsDir() {
-				Log.Fatal(zeusfilePath + " is not a file")
-			}
-		}
-	} else {
-		// make sure its a directory
-		if !stat.IsDir() {
-			Log.Fatal("zeus/ is not a directory")
-		}
-	}
 }
 
 // handle commandline arguments
@@ -433,11 +447,17 @@ func handleArgs() {
 
 				validCommand = true
 
+				count, err := getTotalDependencyCount(cmd)
+				if err != nil {
+					l.Println(err)
+					return
+				}
+
 				s.Lock()
-				s.numCommands = getTotalDependencyCount(cmd)
+				s.numCommands = count
 				s.Unlock()
 
-				err := cmd.Run(os.Args[2:], cmd.async)
+				err = cmd.Run(os.Args[2:], cmd.async)
 				if err != nil {
 					cLog.WithError(err).Error("failed to execute " + cmd.name)
 					cleanup()
@@ -449,7 +469,12 @@ func handleArgs() {
 
 			// check if its a commandchain supplied with "" or ''
 			if strings.Contains(os.Args[1], commandChainSeparator) {
-				parseAndExecuteCommandChain(strings.Join(os.Args[1:], " "))
+				fields := strings.Split(os.Args[1], commandChainSeparator)
+				if cmdChain, ok := validCommandChain(fields); ok {
+					cmdChain.exec(fields)
+				} else {
+					l.Println("invalid commandChain")
+				}
 				return
 			}
 

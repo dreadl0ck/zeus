@@ -7,6 +7,43 @@
           \/    \/           \/   /\\/\ //\
                 An Electrifying Build System
 
+## 12.07.17 - v0.8
+
+- renamed Zeusfile: commands.yml
+- removed headers completely
+- script information now always supplied in commandsFile (commands.yml)
+- refactored globals: removed globals.yml -> global vars now always supplied in commandsFile
+- empty exec field: look for script in scriptDir
+- fixed: "no such file or directory: zeus/scripts" error in bash completion
+- passing dependencies as array to YAML
+- removed parsing and job logic
+- added printFile highlight line parameter
+- added validation for commandsFile
+- refactored bootstrap cmd + fixed tab completion
+- always add ZEUS header with version to config and data
+- allow passing flags to editor (for jumping to a specfic position etc)
+- improved create builtin: bootstrap zeusfile entry and jump in editor to the new entry
+- improved edit command to open at position of commands for vim + micro
+- implemented commandMap.flush()
+- removed params field from command
+- added extractLineNumFromError() and improved feedback for parse and validation errors by highlighting line that contains the error
+- added printCodeSnippet() and CodeSnippetScope config field
+- improved error feedback for config warnings
+- made all config and data fields lowercase again to stay conform with commands.yml
+- display path in printCommands()
+- added path field for commandData to set custom path for execScript
+- edit command: handle different script locations (commandsFile, scriptDir, custom)
+- starting shell after bootstrap command
+- refactored convert command -> subcommand of create: create script all / name
+- refactored makefile migration
+- catch error: self as dependency
+- catching cyclos
+- commented out tab debug messages
+- added stdErr output to error_dumps header
+- writing all dumps into dumps dir
+- moved all language specific globals into globals dir
+- improved argument type validation and error feedback
+
 ## 23.05.17 - v0.7.4
 
 - renamed run field in zeusfile to exec

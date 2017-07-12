@@ -62,29 +62,30 @@ func newAtomicCompleter() *atomicCompleter {
 // if there's a key in the config that is not in here there will be a warning
 func configItems() []readline.PrefixCompleterInterface {
 	return []readline.PrefixCompleterInterface{
-		readline.PcItem("MakefileOverview", readline.PcItem("true"), readline.PcItem("false")),
-		readline.PcItem("AutoFormat", readline.PcItem("true"), readline.PcItem("false")),
-		readline.PcItem("FixParseErrors", readline.PcItem("true"), readline.PcItem("false")),
-		readline.PcItem("Colors", readline.PcItem("true"), readline.PcItem("false")),
-		readline.PcItem("PassCommandsToShell", readline.PcItem("true"), readline.PcItem("false")),
-		readline.PcItem("WebInterface", readline.PcItem("true"), readline.PcItem("false")),
-		readline.PcItem("Interactive", readline.PcItem("true"), readline.PcItem("false")),
-		readline.PcItem("Debug", readline.PcItem("true"), readline.PcItem("false")),
-		readline.PcItem("RecursionDepth"),
-		readline.PcItem("ProjectNamePrompt", readline.PcItem("true"), readline.PcItem("false")),
-		readline.PcItem("ColorProfile"),
-		readline.PcItem("HistoryFile", readline.PcItem("true"), readline.PcItem("false")),
-		readline.PcItem("HistoryLimit"),
-		readline.PcItem("ExitOnInterrupt", readline.PcItem("true"), readline.PcItem("false")),
-		readline.PcItem("DisableTimestamps", readline.PcItem("true"), readline.PcItem("false")),
-		readline.PcItem("PrintBuiltins", readline.PcItem("true"), readline.PcItem("false")),
-		readline.PcItem("DumpScriptOnError", readline.PcItem("true"), readline.PcItem("false")),
-		readline.PcItem("StopOnError", readline.PcItem("true"), readline.PcItem("false")),
-		readline.PcItem("PortWebPanel"),
-		readline.PcItem("PortGlueServer"),
-		readline.PcItem("DateFormat"),
-		readline.PcItem("TodoFilePath"),
-		readline.PcItem("Editor"),
+		readline.PcItem("makefileOverview", readline.PcItem("true"), readline.PcItem("false")),
+		readline.PcItem("autoFormat", readline.PcItem("true"), readline.PcItem("false")),
+		readline.PcItem("fixParseErrors", readline.PcItem("true"), readline.PcItem("false")),
+		readline.PcItem("colors", readline.PcItem("true"), readline.PcItem("false")),
+		readline.PcItem("passCommandsToShell", readline.PcItem("true"), readline.PcItem("false")),
+		readline.PcItem("eebInterface", readline.PcItem("true"), readline.PcItem("false")),
+		readline.PcItem("interactive", readline.PcItem("true"), readline.PcItem("false")),
+		readline.PcItem("debug", readline.PcItem("true"), readline.PcItem("false")),
+		readline.PcItem("recursionDepth"),
+		readline.PcItem("projectNamePrompt", readline.PcItem("true"), readline.PcItem("false")),
+		readline.PcItem("colorProfile"),
+		readline.PcItem("historyFile", readline.PcItem("true"), readline.PcItem("false")),
+		readline.PcItem("historyLimit"),
+		readline.PcItem("exitOnInterrupt", readline.PcItem("true"), readline.PcItem("false")),
+		readline.PcItem("disableTimestamps", readline.PcItem("true"), readline.PcItem("false")),
+		readline.PcItem("printBuiltins", readline.PcItem("true"), readline.PcItem("false")),
+		readline.PcItem("dumpScriptOnError", readline.PcItem("true"), readline.PcItem("false")),
+		readline.PcItem("stopOnError", readline.PcItem("true"), readline.PcItem("false")),
+		readline.PcItem("portWebPanel"),
+		readline.PcItem("portGlueServer"),
+		readline.PcItem("dateFormat"),
+		readline.PcItem("todoFilePath"),
+		readline.PcItem("editor"),
+		readline.PcItem("codeSnippetScope"),
 	}
 }
 
@@ -120,7 +121,6 @@ func keyKombItems() []readline.PrefixCompleterInterface {
 // return a new default completer instance
 func newCompleter() *readline.PrefixCompleter {
 	c := readline.NewPrefixCompleter(
-		// readline.PcItemDynamic(commandChainCompleter),
 		readline.PcItem(exitCommand),
 		readline.PcItem(helpCommand,
 			readline.PcItemDynamic(commandCompleter),
@@ -140,6 +140,10 @@ func newCompleter() *readline.PrefixCompleter {
 		),
 		readline.PcItem(createCommand,
 			readline.PcItemDynamic(languageCompleter),
+			readline.PcItem("script",
+				readline.PcItem("all"),
+				readline.PcItemDynamic(commandCompleter),
+			),
 		),
 		readline.PcItem(eventsCommand,
 			readline.PcItem("add",
@@ -184,7 +188,7 @@ func newCompleter() *readline.PrefixCompleter {
 				readline.PcItemDynamic(todoIndexCompleter),
 			),
 		),
-		readline.PcItem("generate",
+		readline.PcItem(generateCommand,
 			readline.PcItemDynamic(commandCompleter),
 		),
 		readline.PcItem(colorsCommand,
@@ -196,7 +200,7 @@ func newCompleter() *readline.PrefixCompleter {
 			readline.PcItem("set"),
 			readline.PcItem("remove"),
 		),
-		readline.PcItem("update"),
+		readline.PcItem(updateCommand),
 		readline.PcItem(builtinsCommand),
 		readline.PcItem(keysCommand,
 			readline.PcItem("set",
@@ -206,17 +210,26 @@ func newCompleter() *readline.PrefixCompleter {
 				keyKombItems()...,
 			),
 		),
-		readline.PcItem("edit",
+		readline.PcItem(editCommand,
 			readline.PcItemDynamic(commandCompleter),
-			readline.PcItem("data"),
-			readline.PcItem("config"),
-			readline.PcItem("todo"),
+			readline.PcItem("commands",
+				readline.PcItem("line"),
+			),
+			readline.PcItem("data",
+				readline.PcItem("line"),
+			),
+			readline.PcItem("config",
+				readline.PcItem("line"),
+			),
+			readline.PcItem("todo",
+				readline.PcItem("line"),
+			),
 			readline.PcItem("globals",
 				readline.PcItemDynamic(languageCompleter),
 			),
 		),
-		readline.PcItem("web"),
-		readline.PcItem("procs",
+		readline.PcItem(webCommand),
+		readline.PcItem(procsCommand,
 			readline.PcItem("detach",
 				readline.PcItemDynamic(commandCompleter),
 			),
@@ -227,8 +240,7 @@ func newCompleter() *readline.PrefixCompleter {
 				readline.PcItemDynamic(pIDCompleter),
 			),
 		),
-		readline.PcItem("wiki"),
-		readline.PcItem(zeusfileCommand),
+		readline.PcItem(wikiCommand),
 		// completions for common shell commands
 		readline.PcItem("git",
 			readline.PcItem("add"),
@@ -287,31 +299,11 @@ func commandCompleter(path string) (res []string) {
 
 // complete available parser languages
 func languageCompleter(path string) (res []string) {
-	ps.Lock()
-	defer ps.Unlock()
-	for name := range ps.items {
+	ls.Lock()
+	defer ls.Unlock()
+	for name := range ls.items {
 		res = append(res, name)
 	}
-	return
-}
-
-// @TODO: fix it
-// complete available commands for chains
-func commandChainCompleter(path string) (res []string) {
-
-	// only fire if line has correct suffix
-	if !strings.HasSuffix(path, commandChainSeparator+" ") {
-		return
-	}
-
-	// return all available commands
-	cmdMap.Lock()
-	defer cmdMap.Unlock()
-	for name := range cmdMap.items {
-		res = append(res, name)
-	}
-
-	l.Println("returning", res)
 	return
 }
 
@@ -397,7 +389,7 @@ func fileTypeCompleter(path string) (res []string) {
 
 func directoryCompleter(path string) []string {
 
-	l.Println("\npath before", path)
+	// l.Println("\npath before", path)
 
 	fields := strings.Fields(path)
 	if len(fields) > 0 {
@@ -408,7 +400,7 @@ func directoryCompleter(path string) []string {
 		}
 	}
 
-	l.Println("path after", path)
+	// l.Println("path after", path)
 
 	// if shellCommandWithPath.MatchString(path) {
 	// 	// extract path from command
@@ -434,10 +426,10 @@ func directoryCompleter(path string) []string {
 		if len(arr) > 1 {
 			// trim base
 			path = strings.TrimSuffix(path, filepath.Base(path))
-			l.Println("multilevel path, reading: ", path)
+			// l.Println("multilevel path, reading: ", path)
 			files, _ = ioutil.ReadDir(path)
 		} else {
-			l.Println("reading current directory")
+			// l.Println("reading current directory")
 			files, _ = ioutil.ReadDir("./")
 		}
 	}
@@ -447,7 +439,7 @@ func directoryCompleter(path string) []string {
 		}
 	}
 
-	l.Println(names)
+	// l.Println(names)
 
 	return names
 

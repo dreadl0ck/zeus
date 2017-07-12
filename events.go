@@ -40,6 +40,13 @@ var (
 	ErrInvalidUsage = errors.New("invalid usage")
 )
 
+// temporarely disable change event
+func blockWriteEvent() {
+	disableWriteEventMutex.Lock()
+	disableWriteEvent = true
+	disableWriteEventMutex.Unlock()
+}
+
 // Event represents a watched path, along with an an action
 // that will be performed when an operation of the specified type occurs
 type Event struct {
@@ -79,7 +86,7 @@ func printEventsUsageErr() {
 func handleEventsCommand(args []string) {
 
 	if len(args) < 2 {
-		listEvents()
+		printEvents()
 		return
 	}
 
@@ -138,7 +145,7 @@ func registerEvent(args []string) {
 		return
 	}
 
-	if _, ok := validCommandChain(fields, true); ok {
+	if _, ok := validCommandChain(fields); ok {
 		Log.Info("adding command chain")
 	} else {
 		Log.Info("adding shell command")
@@ -150,8 +157,8 @@ func registerEvent(args []string) {
 
 			Log.Debug("event fired, name: ", event.Name, " path: ", args[3])
 
-			if cmdChain, ok := validCommandChain(fields, true); ok {
-				cmdChain.exec()
+			if cmdChain, ok := validCommandChain(fields); ok {
+				cmdChain.exec(fields)
 			} else {
 
 				// its a shell command
@@ -187,9 +194,9 @@ func getEventType(event string) (fsnotify.Op, error) {
 }
 
 // list all currently registered events
-func listEvents() {
+func printEvents() {
 
-	w := 20
+	w := 25
 
 	l.Println(cp.Prompt + pad("name", w) + pad("ID", w) + pad("operation", w) + pad("command", w) + pad("filetype", w) + pad("path", w))
 	for _, e := range projectData.fields.Events {
@@ -345,10 +352,8 @@ func reloadEvent(e *Event) {
 		if conf.fields.AutoFormat {
 			go f.watchScriptDir(e.ID)
 		}
-	case "zeusfile watcher":
-		go watchZeusfile(zeusfilePath, e.ID)
-	case "script watcher":
-		go watchScripts(e.ID)
+	case "commandsFile watcher":
+		go watchCommandsFile(commandsFilePath, e.ID)
 	default:
 		Log.Warn("reload event called for an unknown event: ", e.Name)
 	}

@@ -958,8 +958,8 @@ Globals allow you to declare variables and functions in global scope and share t
 
 There are two kinds of globals:
 
-1 **zeus/globals.yml** for global variables visible to all scripts
-2 **zeus/globals.[scriptExtension]** for language specific code such as functions
+1. **zeus/globals.yml** for global variables visible to all scripts
+2. **zeus/globals.[scriptExtension]** for language specific code such as functions
 
 When using a Zeusfile, the global variables can be declared in the *globals* section.
 
@@ -1157,10 +1157,7 @@ instead of the default OSX *osascript* interpreter.
 For macOS javascript is particularly interesting, because it can be used to interact with the system,
 display GUI elements like progress bars, import ObjC libs and more!
 
-
 ## Internals
-
-For parsing the header fields, golang RE2 regular expressions are used.
 
 ANSI Escape Sequences are from the [ansi](https://github.com/mgutz/ansi) package.
 

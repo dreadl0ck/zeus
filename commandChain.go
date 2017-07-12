@@ -19,131 +19,151 @@
 package main
 
 import (
+	"errors"
 	"strings"
 	"sync"
+
+	"github.com/mgutz/ansi"
 )
 
 type status struct {
+	recursionMap   map[string]int
 	numCommands    int
 	currentCommand int
 	sync.RWMutex
 }
 
-type commandChain []*command
-
-// execute a commandChain directly
-func (cmdChain commandChain) exec() {
-
-	s.Lock()
-	s.numCommands = countDependencies(cmdChain)
-	s.Unlock()
-
-	for _, c := range cmdChain {
-		err := c.Run([]string{}, c.async)
-		if err != nil {
-			Log.WithError(err).Error("failed to execute " + c.name)
-		}
-	}
-
+func (s *status) reset() {
 	// reset counters
 	s.Lock()
 	s.numCommands = 0
 	s.currentCommand = 0
+	s.recursionMap = make(map[string]int, 0)
 	s.Unlock()
 }
 
-// parse and execute a given commandChain string
-func parseAndExecuteCommandChain(chain string) {
+func (s *status) incrementRecursionCount(commandName string) error {
 
-	var (
-		cLog = Log.WithField("prefix", "parseAndExecuteCommandChain")
-		cmds = strings.Split(chain, commandChainSeparator)
-	)
-
-	if len(cmds) < 1 {
-		l.Println("invalid command chain")
-		return
-	}
-
-	firstCommand := strings.Fields(cmds[0])
-	p, err := getParserForScript(firstCommand[0])
-	if err != nil {
-		Log.WithError(err).Error("failed to get parser for command:" + firstCommand[0])
-		return
-	}
-
-	job := p.AddJob(chain, false)
-	defer p.RemoveJob(job)
-
-	commandList, err := job.parseCommandChain(chain)
-	if err != nil {
-		cLog.WithError(err).Error("failed to parse command chain")
-		return
-	}
-
-	cmdChain, err := job.getCommandChain(commandList, nil)
-	if err != nil {
-		cLog.WithError(err).Error("failed to get command chain")
-		return
-	}
+	conf.Lock()
+	limit := conf.fields.RecursionDepth
+	conf.Unlock()
 
 	s.Lock()
-	s.numCommands = countDependencies(cmdChain)
-	s.Unlock()
+	defer s.Unlock()
 
-	for _, c := range cmdChain {
-		err := c.Run([]string{}, c.async)
-		if err != nil {
-			cLog.WithError(err).Error("failed to execute " + c.name)
+	if val, ok := s.recursionMap[commandName]; ok {
+		if val == limit {
+			return errors.New("recursion limit for command " + commandName + " reached.")
+		}
+		s.recursionMap[commandName]++
+		Log.Debug("incremented recursion count for command "+ansi.Red+commandName+ansi.Reset+" to: ", s.recursionMap[commandName])
+	} else {
+		s.recursionMap[commandName] = 1
+		Log.Debug("adding " + ansi.Red + commandName + ansi.Reset + " to recursionMap")
+	}
+	return nil
+}
+
+type commandChain []*command
+
+// create a readable string from a commandChain
+// example: clean -> build name=testBuild -> install
+func (cmdChain commandChain) String() (out string) {
+
+	for i, cmd := range cmdChain {
+
+		out += cmd.name
+
+		// if not last elem
+		if !(i == len(cmdChain)-1) {
+			out += " -> "
 		}
 	}
+	return
+}
 
-	// reset counters
+// parse and execute a given commandChain string
+func (cmdChain commandChain) exec(cmds []string) {
+
+	defer s.reset()
+
+	// set numCommands counter
 	s.Lock()
-	s.numCommands = 0
-	s.currentCommand = 0
+	for _, c := range cmdChain {
+		count, err := getTotalDependencyCount(c)
+		if err != nil {
+			s.Unlock()
+			Log.WithError(err).Error("failed to get dependency count")
+			return
+		}
+		s.numCommands += count
+	}
 	s.Unlock()
+
+	// exec and pass args
+	for i, c := range cmdChain {
+		err := c.Run(strings.Fields(cmds[i])[1:], c.async)
+		if err != nil {
+			Log.WithError(err).Error("failed to execute " + c.name)
+			return
+		}
+	}
 }
 
 // check if its a valid command chain
 // returns an initialized commandChain with all the commands
 // and a boolean inidicating wheter its valid or not
-func validCommandChain(args []string, silent bool) (commandChain, bool) {
+func validCommandChain(commands []string) (commandChain, bool) {
 
 	var (
-		chain = strings.Join(args, " ")
-		cmds  = strings.Split(chain, commandChainSeparator)
+		cmdChain     commandChain
+		recursionMap = make(map[string]int, 0)
 	)
 
-	if len(cmds) < 1 {
-		l.Println("invalid command chain")
+	conf.Lock()
+	maxRecursion := conf.fields.RecursionDepth
+	conf.Unlock()
+
+	if len(commands) < 1 {
+		l.Println("invalid command chain: empty")
 		return nil, false
 	}
 
-	firstCommand := strings.Fields(cmds[0])
+	for index, entry := range commands {
 
-	p, err := getParserForScript(firstCommand[0])
-	if err != nil {
-		Log.WithError(err).Error("failed to get parser for command:" + firstCommand[0])
-		return nil, false
-	}
+		fields := strings.Fields(entry)
+		if len(fields) > 0 {
 
-	job := p.AddJob(chain, silent)
+			// check if command exists
+			cmd, err := cmdMap.getCommand(fields[0])
+			if err != nil {
+				l.Println(err)
+				return nil, false
+			}
 
-	commandList, err := job.parseCommandChain(chain)
-	if err != nil {
-		Log.WithError(err).Error("failed to parse command chain")
-		return nil, false
-	}
+			// validate args
+			_, err = cmd.parseArguments(fields[1:])
+			if err != nil {
+				l.Println(err)
+				return nil, false
+			}
 
-	defer p.RemoveJob(job)
+			if val, ok := recursionMap[cmd.name]; ok {
+				if val == maxRecursion {
+					l.Println("recursion limit", maxRecursion, "reached for command:", cmd.name)
+					return nil, false
+				}
+				recursionMap[cmd.name]++
+			} else {
+				recursionMap[cmd.name] = 1
+			}
 
-	cmdChain, err := job.getCommandChain(commandList, nil)
-	if err != nil {
-		if !silent {
-			Log.WithError(err).Error("failed to get command chain")
+			// add to commandChain
+			cmdChain = append(cmdChain, cmd)
+		} else {
+			l.Println("empty field at index:", index)
+			return nil, false
 		}
-		return nil, false
 	}
 
 	return cmdChain, true

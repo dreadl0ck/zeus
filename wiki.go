@@ -45,17 +45,20 @@ var wikiIndexHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Requ
 
 	tpl, err := assetBox.String("wiki_index.html")
 	if err != nil {
-		Log.WithError(err).Fatal("failed to read wiki index HTML")
+		Log.WithError(err).Error("failed to read wiki index HTML")
+		return
 	}
 
 	t, err := template.New("wiki").Parse(tpl)
 	if err != nil {
-		Log.WithError(err).Fatal("failed to create index template")
+		Log.WithError(err).Error("failed to create index template")
+		return
 	}
 
 	err = t.Execute(w, template.HTML(blackfriday.MarkdownCommon(index)))
 	if err != nil {
-		Log.WithError(err).Fatal("failed to exec template")
+		Log.WithError(err).Error("failed to exec template")
+		return
 	}
 })
 
@@ -69,16 +72,19 @@ var wikiDocsHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Reque
 	if strings.HasSuffix(fileName, ".html") {
 		tpl, err := ioutil.ReadFile(fileName)
 		if err != nil {
-			Log.WithError(err).Fatal("failed to read wiki HTML file: ", fileName)
+			Log.WithError(err).Error("failed to read wiki HTML file: ", fileName)
+			return
 		}
 		t, err := template.New("wiki").Parse(string(tpl))
 		if err != nil {
-			Log.WithError(err).Fatal("failed to create index template")
+			Log.WithError(err).Error("failed to create index template")
+			return
 		}
 
 		err = t.Execute(w, nil)
 		if err != nil {
-			Log.WithError(err).Fatal("failed to exec template")
+			Log.WithError(err).Error("failed to exec template")
+			return
 		}
 
 		return
@@ -116,18 +122,21 @@ var wikiDocsHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Reque
 	// get template
 	tpl, err := assetBox.String("wiki_index.html")
 	if err != nil {
-		Log.WithError(err).Fatal("failed to read wiki index HTML")
+		Log.WithError(err).Error("failed to read wiki index HTML")
+		return
 	}
 
 	// parse template
 	t, err := template.New("wiki").Parse(tpl)
 	if err != nil {
-		Log.WithError(err).Fatal("failed to create index template")
+		Log.WithError(err).Error("failed to create index template")
+		return
 	}
 
 	// execute template
 	err = t.Execute(w, template.HTML(blackfriday.MarkdownCommon(b)))
 	if err != nil {
-		Log.WithError(err).Fatal("failed to exec template")
+		Log.WithError(err).Error("failed to exec template")
+		return
 	}
 })

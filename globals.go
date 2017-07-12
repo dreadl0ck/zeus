@@ -22,39 +22,14 @@ import (
 	"io/ioutil"
 	"strconv"
 	"sync"
-
-	"gopkg.in/yaml.v2"
 )
-
-var globalsFromZeusfile bool
 
 type globals struct {
 
 	// mapped variable names to values
-	Vars map[string]string `yaml:"variables"`
+	Vars map[string]string
 
 	sync.RWMutex
-}
-
-// check for globals script
-func parseGlobals() {
-
-	if !globalsFromZeusfile {
-		globalsContent, err := ioutil.ReadFile(zeusDir + "/globals.yml")
-		if err != nil {
-			Log.WithError(err).Debug("failed to read globals")
-			return
-		}
-
-		g.Lock()
-		defer g.Unlock()
-
-		err = yaml.Unmarshal(globalsContent, g)
-		if err != nil {
-			Log.WithError(err).Error("failed to unmarshal globals")
-			return
-		}
-	}
 }
 
 // print the contents of all globals on stdout
@@ -72,10 +47,10 @@ func listGlobals() {
 			l.Println(cp.Text+pad(name, w), val)
 		}
 
-		ps.Lock()
-		defer ps.Unlock()
-		for name, p := range ps.items {
-			code, err := ioutil.ReadFile(zeusDir + "/globals" + p.language.FileExtension)
+		ls.Lock()
+		defer ls.Unlock()
+		for name, lang := range ls.items {
+			code, err := ioutil.ReadFile(zeusDir + "/globals/globals" + lang.FileExtension)
 			if err == nil {
 				l.Println("\n" + cp.Prompt + name)
 				l.Println(cp.Text + string(code))

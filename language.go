@@ -18,6 +18,46 @@
 
 package main
 
+import "sync"
+import "errors"
+
+var (
+	commandChainSeparator = "->"
+
+	// global language store
+	ls = &languageStore{
+		items: map[string]*Language{
+			"bash":       bashLanguage(),
+			"python":     pythonLanguage(),
+			"javascript": javaScriptLanguage(),
+			"ruby":       rubyLanguage(),
+			"lua":        luaLanguage(),
+		},
+	}
+
+	// ErrUnknownLanguage means there's no syntax definition for the desired language
+	ErrUnknownLanguage = errors.New("unknown language")
+)
+
+// thread safe store for all languages
+type languageStore struct {
+	items map[string]*Language
+	sync.Mutex
+}
+
+func (langStore *languageStore) getLang(name string) (*Language, error) {
+
+	langStore.Lock()
+	defer langStore.Unlock()
+
+	if lang, ok := langStore.items[name]; ok {
+
+		// return language instance
+		return lang, nil
+	}
+	return nil, ErrUnknownLanguage
+}
+
 // Language describes interpreter and syntactic elements of a scripting language
 type Language struct {
 	Name string `yaml:"name"`
@@ -52,62 +92,73 @@ type Language struct {
 
 	// extension for filetype
 	FileExtension string `yaml:"fileExtension"`
+
+	CorrectErrLineNumber bool   `yaml:"correctErrLineNumber"`
+	ErrLineNumberSymbol  string `yaml:"errLineNumberSymbol"`
 }
 
 func bashLanguage() *Language {
 	return &Language{
-		Name:               "bash",
-		Interpreter:        "/bin/bash",
-		Bang:               "#!/bin/bash",
-		Comment:            "#",
-		AssignmentOperator: "=",
-		FlagStopOnError:    "-e",
-		FlagEvaluateScript: "-c",
-		FileExtension:      ".sh",
+		Name:                 "bash",
+		Interpreter:          "/bin/bash",
+		Bang:                 "#!/bin/bash",
+		Comment:              "#",
+		AssignmentOperator:   "=",
+		FlagStopOnError:      "-e",
+		FlagEvaluateScript:   "-c",
+		FileExtension:        ".sh",
+		CorrectErrLineNumber: false,
+		ErrLineNumberSymbol:  "line",
 	}
 }
 
 func pythonLanguage() *Language {
 	return &Language{
-		Name:               "python",
-		Interpreter:        "/usr/bin/python",
-		Bang:               "#!/usr/bin/python",
-		Comment:            "#",
-		AssignmentOperator: " = ",
-		FlagEvaluateScript: "-c",
-		FileExtension:      ".py",
-		ExecOpPrefix:       "import os; os.system(\"",
-		ExecOpSuffix:       "\")",
+		Name:                 "python",
+		Interpreter:          "/usr/bin/python",
+		Bang:                 "#!/usr/bin/python",
+		Comment:              "#",
+		AssignmentOperator:   " = ",
+		FlagEvaluateScript:   "-c",
+		FileExtension:        ".py",
+		ExecOpPrefix:         "import os; os.system(\"",
+		ExecOpSuffix:         "\")",
+		CorrectErrLineNumber: true,
+		ErrLineNumberSymbol:  "line",
 	}
 }
 
 func javaScriptLanguage() *Language {
 	return &Language{
-		Name:               "javascript",
-		Interpreter:        "/usr/bin/osascript",
-		Bang:               "#!/usr/bin/osascript -l JavaScript",
-		Comment:            "//",
-		AssignmentOperator: " = ",
-		VariableKeyword:    "var ",
-		UseTempFile:        true,
-		FileExtension:      ".js",
-		ExecOpPrefix:       "ObjC.import('stdlib'); $.system(\"",
-		ExecOpSuffix:       "\");",
+		Name:                 "javascript",
+		Interpreter:          "/usr/bin/osascript",
+		Bang:                 "#!/usr/bin/osascript -l JavaScript",
+		Comment:              "//",
+		AssignmentOperator:   " = ",
+		VariableKeyword:      "var ",
+		UseTempFile:          true,
+		FileExtension:        ".js",
+		ExecOpPrefix:         "ObjC.import('stdlib'); $.system(\"",
+		ExecOpSuffix:         "\");",
+		CorrectErrLineNumber: false,
+		ErrLineNumberSymbol:  "line",
 	}
 }
 
 func rubyLanguage() *Language {
 	return &Language{
-		Name:               "ruby",
-		Interpreter:        "/usr/bin/ruby",
-		Bang:               "#!/usr/bin/ruby",
-		Comment:            "#",
-		AssignmentOperator: " = ",
-		VariableKeyword:    "$",
-		FlagEvaluateScript: "-e",
-		FileExtension:      ".rb",
-		ExecOpPrefix:       "`",
-		ExecOpSuffix:       "`",
+		Name:                 "ruby",
+		Interpreter:          "/usr/bin/ruby",
+		Bang:                 "#!/usr/bin/ruby",
+		Comment:              "#",
+		AssignmentOperator:   " = ",
+		VariableKeyword:      "$",
+		FlagEvaluateScript:   "-e",
+		FileExtension:        ".rb",
+		ExecOpPrefix:         "`",
+		ExecOpSuffix:         "`",
+		CorrectErrLineNumber: true,
+		ErrLineNumberSymbol:  "-e:",
 	}
 }
 
@@ -116,12 +167,14 @@ func luaLanguage() *Language {
 		Name:        "lua",
 		Interpreter: "/usr/local/bin/lua",
 		//Bang:               "#!/usr/local/bin/lua",
-		Comment:            "--",
-		AssignmentOperator: " = ",
-		VariableKeyword:    "local ",
-		FlagEvaluateScript: "-e",
-		FileExtension:      ".lua",
-		ExecOpPrefix:       "os.execute(\"",
-		ExecOpSuffix:       "\")",
+		Comment:              "--",
+		AssignmentOperator:   " = ",
+		VariableKeyword:      "local ",
+		FlagEvaluateScript:   "-e",
+		FileExtension:        ".lua",
+		ExecOpPrefix:         "os.execute(\"",
+		ExecOpSuffix:         "\")",
+		CorrectErrLineNumber: true,
+		ErrLineNumberSymbol:  "line",
 	}
 }

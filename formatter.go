@@ -223,15 +223,13 @@ func (f *formatter) watchScriptDir(eventID string) {
 		if strings.HasSuffix(event.Name, ".sh") {
 
 			// ignore further WRITE events while formatting a script
-			disableWriteEvent = true
+			blockWriteEvent()
 
 			// format script
 			err := f.formatPath(event.Name)
 			if err != nil {
 				Log.WithError(err).Error("failed to format file")
 			}
-
-			disableWriteEvent = false
 		}
 	}))
 	if err != nil {

@@ -28,6 +28,8 @@ import (
 	"strings"
 	"sync"
 
+	"time"
+
 	"github.com/fsnotify/fsnotify"
 	prefixed "github.com/x-cray/logrus-prefixed-formatter"
 	"gopkg.in/yaml.v2"
@@ -49,7 +51,7 @@ var (
 	// regex for matching YAML keys from config file contents
 	configYamlField = regexp.MustCompile("^(\\s)*[A-Z]+(.|\\s)*:")
 
-	// regex for matching YAML keys from script header
+	// regex for matching YAML keys from commands, config or data file
 	yamlField = regexp.MustCompile("^(\\s)*[a-z]+(.|\\s)*:")
 )
 
@@ -60,31 +62,31 @@ type config struct {
 }
 
 type configFields struct {
-	AutoFormat          bool                     `yaml:"AutoFormat"`
-	FixParseErrors      bool                     `yaml:"FixParseErrors"`
-	Colors              bool                     `yaml:"Colors"`
-	PassCommandsToShell bool                     `yaml:"PassCommandsToShell"`
-	WebInterface        bool                     `yaml:"WebInterface"`
-	Interactive         bool                     `yaml:"Interactive"`
-	Debug               bool                     `yaml:"Debug"`
-	RecursionDepth      int                      `yaml:"RecursionDepth"`
-	ProjectNamePrompt   bool                     `yaml:"ProjectNamePrompt"`
-	ColorProfile        string                   `yaml:"ColorProfile"`
-	HistoryFile         bool                     `yaml:"HistoryFile"`
-	HistoryLimit        int                      `yaml:"HistoryLimit"`
-	PortWebPanel        int                      `yaml:"PortWebPanel"`
-	PortGlueServer      int                      `yaml:"PortGlueServer"`
-	ExitOnInterrupt     bool                     `yaml:"ExitOnInterrupt"`
-	DisableTimestamps   bool                     `yaml:"DisableTimestamps"`
-	PrintBuiltins       bool                     `yaml:"PrintBuiltins"`
-	MakefileOverview    bool                     `yaml:"MakefileOverview"`
-	StopOnError         bool                     `yaml:"StopOnError"`
-	DumpScriptOnError   bool                     `yaml:"DumpScriptOnError"`
-	DateFormat          string                   `yaml:"DateFormat"`
-	TodoFilePath        string                   `yaml:"TodoFilePath"`
-	Editor              string                   `yaml:"Editor"`
-	ColorProfiles       map[string]*ColorProfile `yaml:"ColorProfiles"`
-	Languages           []*Language              `yaml:"Languages"`
+	AutoFormat          bool                     `yaml:"autoFormat"`
+	Colors              bool                     `yaml:"colors"`
+	PassCommandsToShell bool                     `yaml:"passCommandsToShell"`
+	WebInterface        bool                     `yaml:"webInterface"`
+	Interactive         bool                     `yaml:"interactive"`
+	Debug               bool                     `yaml:"debug"`
+	ProjectNamePrompt   bool                     `yaml:"projectNamePrompt"`
+	RecursionDepth      int                      `yaml:"recursionDepth"`
+	HistoryLimit        int                      `yaml:"historyLimit"`
+	CodeSnippetScope    int                      `yaml:"codeSnippetScope"`
+	PortWebPanel        int                      `yaml:"portWebPanel"`
+	PortGlueServer      int                      `yaml:"portGlueServer"`
+	HistoryFile         bool                     `yaml:"historyFile"`
+	ExitOnInterrupt     bool                     `yaml:"exitOnInterrupt"`
+	DisableTimestamps   bool                     `yaml:"disableTimestamps"`
+	PrintBuiltins       bool                     `yaml:"printBuiltins"`
+	MakefileOverview    bool                     `yaml:"makefileOverview"`
+	StopOnError         bool                     `yaml:"stopOnError"`
+	DumpScriptOnError   bool                     `yaml:"dumpScriptOnError"`
+	ColorProfile        string                   `yaml:"colorProfile"`
+	DateFormat          string                   `yaml:"dateFormat"`
+	TodoFilePath        string                   `yaml:"todoFilePath"`
+	Editor              string                   `yaml:"editor"`
+	ColorProfiles       map[string]*ColorProfile `yaml:"colorProfiles"`
+	Languages           []*Language              `yaml:"languages"`
 }
 
 // newConfig returns the default configuration in case there is no config file
@@ -93,23 +95,23 @@ func newConfig() *config {
 		fields: &configFields{
 			MakefileOverview:    false,
 			AutoFormat:          false,
-			FixParseErrors:      true,
 			Colors:              true,
 			PassCommandsToShell: true,
 			WebInterface:        false,
 			Interactive:         true,
 			Debug:               false,
-			RecursionDepth:      1,
 			ProjectNamePrompt:   true,
 			HistoryFile:         true,
+			RecursionDepth:      1,
 			HistoryLimit:        20,
 			PortWebPanel:        8080,
+			CodeSnippetScope:    15,
 			ExitOnInterrupt:     true,
 			DisableTimestamps:   false,
 			PrintBuiltins:       false,
 			StopOnError:         true,
 			DumpScriptOnError:   true,
-			// german date format
+			// default: german date format DD-MM-YYYY
 			DateFormat:   "02-01-2006",
 			TodoFilePath: "TODO.md",
 			Editor:       "micro",
@@ -129,11 +131,11 @@ func printConfigUsageErr() {
 
 // check for unknown fields in the config
 // since YAML simply ignores them and intializes them with their default values
-func validateConfig(path string) ([]byte, error) {
+func validateConfig(path string) (data []byte, warnings []string, err error) {
 
 	c, err := ioutil.ReadFile(path)
 	if err != nil {
-		return nil, err
+		return nil, warnings, err
 	}
 
 	var (
@@ -150,55 +152,56 @@ func validateConfig(path string) ([]byte, error) {
 				if field == strings.TrimSpace(string(item.GetName())) {
 					for _, f := range parsedFields {
 						if f == field {
-							Log.Warn("line " + strconv.Itoa(i) + ": duplicate config field: " + field)
+							warnings = append(warnings, "line "+strconv.Itoa(i)+": duplicate config field: "+field)
 						}
 					}
 					parsedFields = append(parsedFields, field)
 					foundField = true
 				}
 			}
-			if !foundField && field != "rwmutex" && field != "ColorProfiles" && field != "Languages" {
-				Log.Warn("line "+strconv.Itoa(i)+": unknown config field: ", field)
+			if !foundField && field != "colorProfiles" && field != "languages" {
+				warnings = append(warnings, "line "+strconv.Itoa(i)+": unknown config field: "+field)
 			}
 			foundField = false
 		}
 	}
 
-	return c, nil
+	return c, warnings, nil
 }
 
 // parse the local project YAML config
-func parseProjectConfig() (*config, error) {
+func parseProjectConfig() (c *config, warnings []string, err error) {
 
 	projectConfigPath = zeusDir + "/config.yml"
 
 	// init default config
-	var c = newConfig()
+	c = newConfig()
+	var contents []byte
 
 	stat, err := os.Stat(projectConfigPath)
 	if err != nil {
-		return nil, err
+		return nil, warnings, err
 	}
 
 	if stat.IsDir() {
-		return nil, ErrConfigFileIsADirectory
+		return nil, warnings, ErrConfigFileIsADirectory
 	}
 
-	contents, err := validateConfig(projectConfigPath)
+	contents, warnings, err = validateConfig(projectConfigPath)
 	if err != nil {
-		return nil, err
+		return nil, warnings, err
 	}
 
 	err = yaml.Unmarshal(contents, c.fields)
 	if err != nil {
 		Log.WithError(err).Fatal("failed to unmarshal confg - invalid YAML:")
 		printFileContents(contents)
-		return nil, err
+		return nil, warnings, err
 	}
 
 	c.handle()
 
-	return c, nil
+	return c, warnings, nil
 }
 
 // handle config shell command
@@ -234,11 +237,13 @@ func (c *config) update() {
 	c.Lock()
 	defer c.Unlock()
 
+	// marshal config
 	b, err := yaml.Marshal(c.fields)
 	if err != nil {
 		Log.WithError(err).Fatal("failed to marshal config YAML:")
 	}
 
+	// make sure zeusDir exists
 	if _, err := os.Stat(zeusDir); err != nil {
 		err = os.Mkdir(zeusDir, 0700)
 		if err != nil {
@@ -253,7 +258,7 @@ func (c *config) update() {
 	}
 
 	// write to file
-	_, err = f.Write(b)
+	_, err = f.Write(append([]byte(asciiArtYAML), b...))
 	if err != nil {
 		Log.WithError(err).Fatal("failed to write config")
 	}
@@ -295,18 +300,27 @@ func (c *config) watch(eventID string) {
 
 	err := addEvent(newEvent(projectConfigPath, fsnotify.Write, "config watcher", ".yml", eventID, "internal", func(event fsnotify.Event) {
 
+		// without sleeping every line written to stdout has the length of the previous line as offset
+		// sleeping at least 100 millisecs seems to work - strange
+		time.Sleep(100 * time.Millisecond)
+		l.Println()
+
 		Log.Debug("config watcher event: ", event.Name)
 
-		b, err := validateConfig(projectConfigPath)
+		contents, warnings, err := validateConfig(projectConfigPath)
 		if err != nil {
 			Log.WithError(err).Error("failed to read config")
 			return
 		}
 
+		for _, w := range warnings {
+			Log.Warn(w)
+		}
+
 		// lock config
 		c.Lock()
 
-		err = yaml.Unmarshal(b, c.fields)
+		err = yaml.Unmarshal(contents, c.fields)
 		if err != nil {
 			Log.WithError(err).Error("config parse error")
 			c.Unlock()
@@ -348,7 +362,7 @@ func (c *config) setValue(field, value string) {
 	c.Lock()
 
 	// check if the named field exists on the struct
-	f := reflect.Indirect(reflect.ValueOf(c.fields)).FieldByName(field)
+	f := reflect.Indirect(reflect.ValueOf(c.fields)).FieldByName(strings.Title(field))
 
 	c.Unlock()
 
@@ -402,8 +416,8 @@ func (c *config) handle() {
 	Log.Lock()
 	defer Log.Unlock()
 
-	// handle debug mode
-	// @TODO: this produces a data race
+	// handle debug mode on the fly
+	// @TODO: this produces a data race in tests
 	// if c.Debug {
 	// 	Log.Level = logrus.DebugLevel
 	// } else {
@@ -432,12 +446,12 @@ func (c *config) handle() {
 		cleanFormatterEvent()
 	}
 
-	ps.Lock()
-	defer ps.Unlock()
+	ls.Lock()
+	defer ls.Unlock()
 
 	// overwrite default languages with those from config
 	for _, lang := range c.fields.Languages {
-		ps.items[lang.Name] = newParser(lang)
+		ls.items[lang.Name] = lang
 	}
 }
 

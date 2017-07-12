@@ -144,12 +144,6 @@ func handleLine(line string) {
 	case infoCommand:
 		printProjectInfo()
 
-	case zeusfileCommand:
-		err := migrateZeusfile()
-		if err != nil {
-			Log.WithError(err).Error("failed to migrate zeusfile")
-		}
-
 	case formatCommand:
 		f.formatCommand()
 
@@ -236,7 +230,12 @@ func handleLine(line string) {
 		default:
 			// check if its a commandchain
 			if strings.Contains(line, commandChainSeparator) {
-				parseAndExecuteCommandChain(line)
+				fields := strings.Split(line, commandChainSeparator)
+				if cmdChain, ok := validCommandChain(fields); ok {
+					cmdChain.exec(fields)
+				} else {
+					l.Println("invalid commandChain")
+				}
 				return
 			}
 
@@ -258,11 +257,7 @@ func handleLine(line string) {
 					projectData.Unlock()
 					handleLine(command)
 
-					// reset counters
-					s.Lock()
-					s.numCommands = 0
-					s.currentCommand = 0
-					s.Unlock()
+					s.reset()
 					return
 				}
 				projectData.Unlock()
@@ -280,12 +275,19 @@ func handleLine(line string) {
 			}
 			cmdMap.Unlock()
 
+			defer s.reset()
+			count, err := getTotalDependencyCount(cmd)
+			if err != nil {
+				l.Println(err)
+				return
+			}
+
 			s.Lock()
-			s.numCommands = s.numCommands + getTotalDependencyCount(cmd)
+			s.numCommands = s.numCommands + count
 			s.Unlock()
 
 			// run the command
-			err := cmd.Run(args, cmd.async)
+			err = cmd.Run(args, cmd.async)
 			if err != nil {
 				fmt.Printf("command "+cmd.name+" failed. error: %v\n", err)
 			}
@@ -293,12 +295,6 @@ func handleLine(line string) {
 			if cmd.async {
 				time.Sleep(100 * time.Millisecond)
 			}
-
-			// reset counters
-			s.Lock()
-			s.numCommands = 0
-			s.currentCommand = 0
-			s.Unlock()
 		}
 	}
 }

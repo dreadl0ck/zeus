@@ -47,24 +47,24 @@ type data struct {
 }
 
 type dataFields struct {
-	BuildNumber int `yaml:"BuildNumber"`
+	BuildNumber int `yaml:"buildNumber"`
 
 	// project deadline
-	Deadline string `yaml:"Deadline"`
+	Deadline string `yaml:"deadline"`
 
 	// project milestones
-	Milestones []*milestone `yaml:"Milestones"`
+	Milestones []*milestone `yaml:"milestones"`
 
 	// alias names mapped to commands
-	Aliases map[string]string `yaml:"Aliases"`
+	Aliases map[string]string `yaml:"aliases"`
 
 	// mapping from watched path to the corresponding event
-	Events map[string]*Event `yaml:"Events"`
+	Events map[string]*Event `yaml:"events"`
 
-	Author string `yaml:"Author"`
+	Author string `yaml:"author"`
 
 	// keys mapped to commands
-	KeyBindings map[string]string `yaml:"KeyBindings"`
+	KeyBindings map[string]string `yaml:"keyBindings"`
 }
 
 func newData() *data {
@@ -87,31 +87,26 @@ func (d *data) update() {
 	d.Lock()
 	defer d.Unlock()
 
+	// marshal data
 	b, err := yaml.Marshal(d.fields)
 	if err != nil {
 		Log.WithError(err).Error("failed to marshal zeus data")
 		return
 	}
 
+	// get file handle
 	f, err := os.OpenFile(projectDataPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0700)
 	if err != nil {
 		Log.WithError(err).Error("failed to open zeus data")
 		return
 	}
 
-	disableWriteEventMutex.Lock()
-	disableWriteEvent = true
-	disableWriteEventMutex.Unlock()
-
-	_, err = f.Write(b)
+	// write to file
+	_, err = f.Write(append([]byte(asciiArtYAML), b...))
 	if err != nil {
 		Log.WithError(err).Error("failed to write zeus data")
 		return
 	}
-
-	disableWriteEventMutex.Lock()
-	disableWriteEvent = false
-	disableWriteEventMutex.Unlock()
 }
 
 // parse the project data YAML
@@ -183,8 +178,8 @@ func loadEvents() {
 				Log.Debug("event fired, name: ", event.Name, " path: ", path)
 
 				// validate commandChain
-				if cmdChain, ok := validCommandChain(fields, false); ok {
-					cmdChain.exec()
+				if cmdChain, ok := validCommandChain(fields); ok {
+					cmdChain.exec(fields)
 				} else {
 
 					Log.Debug("passing chain to shell")

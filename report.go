@@ -18,10 +18,8 @@
 
 package main
 
-import "os"
-
 var (
 	// format for TimeStamp in report
-	timestampFormat  = "[Mon Jan 2 15:04:05 2006]"
-	reportFileHandle *os.File
+	timestampFormat = "[Mon Jan 2 15:04:05 2006]"
+	// reportFileHandle *os.File
 )

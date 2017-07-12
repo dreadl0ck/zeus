@@ -8,46 +8,43 @@
                 An Electrifying Build System
 
 ------------------------------------------------------------------------------------
-    COMMIT:
+    COMMIT: 
 ------------------------------------------------------------------------------------
 
-## v0.7.5
+## in progress
 
-- remove headers completely and supply script information in Zeusfile
-- remove globals.yml -> supply global vars always in Zeusfile + dont parse globals for every command execution
-- always populate execScript field when parsing, to avoid reading the file contents for every execution? This would require updating all dependency instances of the command as well... switch to looking up dep commands and pass args via Run func ?
-- pass dependencies as array to YAML (would be cleaner with a large number of deps)
-- make formatter modular: add it as a field to parser, to allow using a specific formatter for each language
+- refactored tests: moved everything in zeus dir
+- update docs
+- release with goreleaser
+
+## v0.8.1
+
+- BUG: write events corrupt with vim?
+- add typescript support
+- use gometalinter
+- make formatter modular: add it as a field to language, to allow using a specific formatter for each language
+- create core package, make it importable + add godoc badge
+- add golang sloc as default and add clocPath to config
+- create commands for starting the js & scss watchers and add events, remove code from project
+- release sasscompile and jstool -> add examples for event usage to README
+- make date optional for milestones -> pass params in value= form
+- improve git filter: parse output and format correctly in a table view + add colors + commit hashes, options: author=, date=, subject=, grep=
+- improve test coverage
 
 ## readline
 
-- fix dynamic command chain completer
+- fix tab completion for commandChainSeparator
+- fixed dynamic command chain completer
 - fix path completion bug
 - fix argument completion
 
 ## next up
 
-- add golang sloc and make cloc optional in config
-- create commands for starting the js & scss watchers, remove code from project
-- release sasscompile and jstool -> add examples for event usage to README
-- create core package, make it importable and add godocs
-
-- make date optional for milestones
-- improve git filter: parse output and format correctly + add colors + commit hashes, options: author=, date=, subject=, grep=
-- improve create builtin: bootstrap headers interactively + bootstrap zeusfile entry
-
+- web panel for all projects on localhost @ zeus.build
 - generate reports
-- improve tests
-- improve parse error feedback
-
 - integrate config-bob & vault
 - integrate fstree & fsdiff as builtins
 - add encrypted storage
-- add scripting engine for using builtins during scripts
-
-
-## future plans
-
 - SVG & ascii dependency tree
 - buildserver daemon
-- web panel for all projects on localhost @ zeus.build
+- add plugin api for language specific packages with new builtins (deadcode linter etc)

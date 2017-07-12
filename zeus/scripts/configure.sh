@@ -1,10 +1,5 @@
 #!/bin/bash
 
-# {zeus}
-# description: prepare JS and CSS and move assets into place
-# help: Prepare JS and CSS
-# {zeus}
-
 echo "copying LICENSE and README.md to wiki/docs"
 
 # copy readme and license into wiki/docs to make them available for the web-wiki

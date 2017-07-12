@@ -18,104 +18,73 @@
 
 package main
 
-import "os"
-import "time"
+import (
+	"bytes"
+	"io/ioutil"
+	"os"
+	"strings"
+	"time"
 
-/*
- *	Bootstrapping
- */
+	yaml "gopkg.in/yaml.v1"
+)
 
-// create a file with name and content
-func bootstrapScript(name string) {
-
-	var cLog = Log.WithField("prefix", "bootstrapFile")
-
-	cLog.Info("creating file: ", name)
-	f, err := os.Create(scriptDir + "/" + name)
-	if err != nil {
-		cLog.WithError(err).Fatal("failed to create file: ", scriptDir+"/"+name)
-	}
-	defer f.Close()
-
-	f.WriteString(`#!/bin/bash
-
-# {zeus}
-# description: description for ` + name + `
-# arguments:
-# dependencies:
-# outputs:
-# help: help text for ` + name + `
-# {zeus}
-
-echo "implement ` + name + `"
-`)
-
-	return
-}
-
-func printBootstrapCommandUsageErr() {
-	l.Println("usage: zeus bootstrap <file | dir>")
-}
-
-// bootstrap basic zeus scripts
+// bootstrap basic zeus setup
 // useful when starting from scratch
-func runBootstrapDirCommand() {
+func runBootstrapCommand() {
 
 	err := os.MkdirAll(scriptDir, 0700)
 	if err != nil {
 		Log.WithError(err).Fatal("failed to create zeus directory")
 	}
 
-	bootstrapScript("clean.sh")
-	bootstrapScript("build.sh")
-	bootstrapScript("run.sh")
-	bootstrapScript("test.sh")
-	bootstrapScript("install.sh")
-	bootstrapScript("bench.sh")
-}
-
-// bootstrap basic zeus scripts
-// useful when starting from scratch
-func runBootstrapZeusfileCommand() {
-
-	f, err := os.Create("Zeusfile.yml")
+	f, err := os.Create(commandsFilePath)
 	if err != nil {
-		Log.WithError(err).Fatal("failed to create Zeusfile")
+		Log.WithError(err).Fatal("failed to create CommandsFile")
 	}
 	defer f.Close()
+	f.WriteString(asciiArtYAML + `
 
-	f.WriteString(`############
-# ZEUSFILE #
-############
+# default language
+language: bash
 
-# globals for all build commands
+# globals for all commands
 globals:
 
-# all commands
-commands: 
+# command data
+commands:
+    
+    # build the binary
     build:
         description: build project
-        dependencies: clean
+        dependencies:
+            - clean
         buildNumber: true
-        exec: 
-	clean:
+        exec: |
+            echo "build the binary"
+
+    # clean up the mess
+    clean:
         description: clean up to prepare for build
         exec: rm -rf bin/*
+    
+    # perform install
     install:
-        dependencies: clean
+        dependencies:
+            - clean
         description: install to $PATH
         help: Install the application to the default system location
-        exec:
+        exec: |
+            echo "perform install"
 `)
 }
 
 func printCreateCommandUsageErr() {
 	l.Println("usage:")
-	l.Println("zeus create <language> <command>")
+	l.Println("zeus create [<language> <commandName>] [script <all> | <commandName>]")
 }
 
 // bootstrap a single new command
-// either append to Zeusfile or create a new script
+// either append to CommandsFile or create a new script
 // then drop into editor
 func handleCreateCommand(args []string) {
 
@@ -124,93 +93,204 @@ func handleCreateCommand(args []string) {
 		return
 	}
 
-	cmdMap.Lock()
+	switch args[1] {
 
-	// check if command exists
-	if _, ok := cmdMap.items[args[2]]; ok {
-		cmdMap.Unlock()
-		l.Println("command " + args[2] + " exists!")
-		return
-	}
-	cmdMap.Unlock()
+	// create script <all> | <commandName>
+	case "script":
+		switch args[2] {
+		case "all":
+			err := createAllScripts()
+			if err != nil {
+				Log.WithError(err).Error("failed to create scripts from commands.yml")
+			}
+		default:
+			// check if command exists
+			cmdMap.Lock()
+			if cmd, ok := cmdMap.items[args[2]]; ok {
+				cmdMap.Unlock()
 
-	var lang *Language
+				// get commandData from commandsFile
+				var commandsFile = newCommandsFile()
 
-	// look up language fileExtension and bang
-	ps.Lock()
-	for name, p := range ps.items {
-		if name == args[1] {
-			lang = p.language
-		}
-	}
-	ps.Unlock()
+				contents, err := ioutil.ReadFile(commandsFilePath)
+				if err != nil {
+					l.Println("unable to read " + commandsFilePath + ": " + err.Error())
+					return
+				}
 
-	if lang == nil {
-		l.Println("no parser for " + args[1])
-		return
-	}
+				err = yaml.Unmarshal(contents, commandsFile)
+				if err != nil {
+					l.Println("failed to unmarshal commandsFile: " + err.Error())
+					return
+				}
 
-	// check if there's a Zeusfile
-	_, err := os.Stat(zeusfilePath)
-	if err == nil {
-		// append command to Zeusfile
-		f, err := os.OpenFile(zeusfilePath, os.O_APPEND|os.O_WRONLY, 0744)
-		if err != nil {
-			Log.WithError(err).Error("failed to open Zeusfile for writing")
+				if d, ok := commandsFile.Commands[args[2]]; ok {
+					err = createScript(d, cmd.name)
+					if err != nil {
+						l.Println("failed to create script: " + err.Error())
+					}
+				} else {
+					l.Println("could not find " + args[2] + " in commandsFile: " + err.Error())
+				}
+
+				err = stripExecSectionFromCommandsFile(cmd.name)
+				if err != nil {
+					l.Println("failed to strip exec section from commandsFile: " + err.Error())
+				}
+				return
+			}
+			cmdMap.Unlock()
+			l.Println("command " + args[2] + " does not exist!")
 			return
 		}
 
-		f.WriteString("\n" + `    ` + args[2] + `:
+	// create <lang> <commandName>
+	default:
+		lang, err := ls.getLang(args[1])
+		if err != nil {
+			l.Println("getLang: ", err)
+			return
+		}
+
+		// check if command exists
+		cmdMap.Lock()
+		if _, ok := cmdMap.items[args[2]]; ok {
+			cmdMap.Unlock()
+			l.Println("command " + args[2] + " exists!")
+			return
+		}
+		cmdMap.Unlock()
+
+		// check if there's a CommandsFile
+		_, err = os.Stat(commandsFilePath)
+		if err == nil {
+
+			// append command to CommandsFile
+			f, err := os.OpenFile(commandsFilePath, os.O_APPEND|os.O_WRONLY, 0744)
+			if err != nil {
+				Log.WithError(err).Error("failed to open CommandsFile for writing")
+				return
+			}
+
+			f.WriteString("\n" + `    ` + args[2] + `:
         language: ` + lang.Name + `
         description:
         help:
         arguments:
         dependencies:
         outputs:
-        exec:
-`)
-		f.Close()
-	} else {
-		filename := scriptDir + "/" + args[2] + lang.FileExtension
-
-		// check if the script already exists
-		_, err := os.Stat(filename)
-		if err == nil {
-			l.Println("file " + filename + " exists!")
-			return
-		}
-
-		f, err := os.Create(filename)
-		if err != nil {
-			l.Println("failed to create file: ", err)
-			return
-		}
-
-		f.WriteString(lang.Bang + `
-
-# {zeus}
-# description:
-# arguments:
-# dependencies:
-# outputs:
-# help:
-# {zeus}
-
+        exec: implement ` + args[2] + ` command
 `)
 
-		f.Close()
-		l.Println("created zeus command at " + filename)
+			err = f.Close()
+			if err != nil {
+				l.Println(err)
+				return
+			}
+		} else {
+			filename := scriptDir + "/" + args[2] + lang.FileExtension
 
-		// parse new command
-		err = addCommand(filename, true)
-		if err != nil {
-			Log.WithError(err).Error("failed to add command")
+			// check if the script already exists
+			_, err := os.Stat(filename)
+			if err == nil {
+				l.Println("file " + filename + " exists!")
+				return
+			}
+
+			f, err := os.Create(filename)
+			if err != nil {
+				l.Println("failed to create file: ", err)
+				return
+			}
+
+			f.WriteString(lang.Bang + "\n")
+
+			err = f.Close()
+			if err != nil {
+				l.Println(err)
+				return
+			}
+
+			l.Println("created zeus command at " + filename)
 		}
+
+		// the WRITE event will cause the commandsFile to be parsed again - this happens async
+		// lets wait a little bit...
+		time.Sleep(120 * time.Millisecond)
+
+		// start editor
+		handleEditCommand([]string{"edit", args[2]})
+	}
+}
+
+func stripExecSectionFromCommandsFile(commandName string) error {
+
+	c, err := ioutil.ReadFile(commandsFilePath)
+	if err != nil {
+		return err
 	}
 
-	// parsing commands is async, wait a little
-	time.Sleep(100 * time.Millisecond)
+	var (
+		commandStarted               bool
+		execStarted                  bool
+		b                            bytes.Buffer
+		offsetCommandNamesAndGlobals int
+	)
 
-	// start editor
-	handleEditCommand([]string{"edit", args[2]})
+	// iterate over contents line by line
+	for _, line := range strings.Split(string(c), "\n") {
+
+		if strings.Contains(line, commandName+":") {
+			commandStarted = true
+		}
+
+		if offsetCommandNamesAndGlobals == 0 {
+			if commandStarted {
+				offsetCommandNamesAndGlobals = countLeadingSpace(line)
+			}
+		}
+
+		if commandStarted {
+
+			// check if next command started, for every line after the command started
+			if !strings.Contains(line, commandName+":") {
+				leadingSpace := countLeadingSpace(line)
+				if leadingSpace == offsetCommandNamesAndGlobals {
+					commandStarted = false
+					b.WriteString(line + "\n")
+					continue
+				}
+			}
+
+			field := extractYAMLField(line)
+			if field == "exec" {
+				execStarted = true
+			}
+
+			// check if a new YAML field started
+			if execStarted && field != "" && field != "exec" {
+				execStarted = false
+			}
+
+			if execStarted {
+				// skip line
+				continue
+			}
+		}
+
+		b.WriteString(line + "\n")
+	}
+
+	f, err := os.OpenFile(commandsFilePath, os.O_WRONLY|os.O_TRUNC, 0700)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	blockWriteEvent()
+
+	// update commandsFile
+	f.WriteString(b.String())
+
+	return nil
 }

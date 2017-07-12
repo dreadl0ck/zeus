@@ -25,7 +25,12 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/Sirupsen/logrus"
+	"github.com/mgutz/ansi"
+)
+
+var (
+	// ErrDuplicateArgumentNames means the name for an argument was reused
+	ErrDuplicateArgumentNames = errors.New("duplicate argument name")
 )
 
 // argument types
@@ -53,7 +58,7 @@ type commandArg struct {
 	value string
 }
 
-// validate arguments string from Zeusfile / Header
+// validate arguments string from CommandsFile
 // and return the validatedArgs as map
 func validateArgs(args []string) (map[string]*commandArg, error) {
 
@@ -170,16 +175,11 @@ func (c *command) parseArguments(args []string) (string, error) {
 			}
 
 			if cmdArg, ok = c.args[argSlice[0]]; !ok {
-				Log.Error("invalid label: " + argSlice[0])
-				return "", ErrInvalidArgumentLabel
+				return "", errors.New(ErrInvalidArgumentLabel.Error() + ": " + ansi.Red + argSlice[0] + ansi.Reset)
 			}
 
-			if !validArgType(argSlice[1], cmdArg.argType) {
-				Log.WithError(ErrInvalidArgumentType).WithFields(logrus.Fields{
-					"value": argSlice[1],
-					"label": cmdArg.name,
-				}).Error("expected type: ", cmdArg.argType.String(), ", got: ", reflect.TypeOf(argSlice[1]).String())
-				return "", ErrInvalidArgumentType
+			if err := validArgType(argSlice[1], cmdArg.argType); err != nil {
+				return "", errors.New(ErrInvalidArgumentType.Error() + ": " + err.Error() + ", label=" + cmdArg.name + ", value=" + argSlice[1])
 			}
 
 			if strings.Count(argStr, cmdArg.name+"=") > 1 {
@@ -209,7 +209,7 @@ func (c *command) parseArguments(args []string) (string, error) {
 				}
 			} else {
 				// empty value and not optional - error
-				return "", errors.New("missing argument: " + arg.name)
+				return "", errors.New("missing argument: " + ansi.Red + arg.name + ":" + strings.Title(arg.argType.String()) + ansi.Reset)
 			}
 		} else {
 			// write value into buffer

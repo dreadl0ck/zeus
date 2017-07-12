@@ -27,7 +27,9 @@ import (
 	"strings"
 )
 
-// contants for builtin names
+var editorProcRunning bool
+
+// constants for builtin names
 const (
 	exitCommand       = "exit"
 	helpCommand       = "help"
@@ -51,7 +53,6 @@ const (
 	webCommand        = "web"
 	createCommand     = "create"
 	bootstrapCommand  = "bootstrap"
-	zeusfileCommand   = "migrate-zeusfile"
 	gitFilterCommand  = "git-filter"
 	todoCommand       = "todo"
 	updateCommand     = "update"
@@ -83,7 +84,6 @@ var builtins = map[string]string{
 	webCommand:        "start web interface",
 	wikiCommand:       "start web wiki ",
 	createCommand:     "bootstrap single commands",
-	zeusfileCommand:   "migrate zeusfile into a zeus directory",
 	gitFilterCommand:  "filter git log output",
 	todoCommand:       "manage todos",
 	updateCommand:     "update zeus version",
@@ -191,8 +191,12 @@ func printSortedCommandKeys(sortedCommandKeys []string) {
 			l.Print(cp.Text + "├─── " + cp.CmdName + cmd.name + " " + getArgumentString(cmd.args) + cp.Text)
 		}
 
+		if cmd.path != "" {
+			printLine(pad("path", maxLen)+cp.CmdFields+cmd.path, lastElem, !(len(cmd.dependencies) > 0) && !(len(cmd.outputs) > 0) && !cmd.async && !cmd.buildNumber && !(len(cmd.description) > 0))
+		}
+
 		if len(cmd.dependencies) > 0 {
-			printLine(pad("dependencies", maxLen)+cp.CmdFields+formatcommandChain(cmd.dependencies), lastElem, !(len(cmd.outputs) > 0) && !cmd.async && !cmd.buildNumber && !(len(cmd.description) > 0))
+			printLine(pad("dependencies", maxLen)+cp.CmdFields+formatDependencies(cmd.dependencies), lastElem, !(len(cmd.outputs) > 0) && !cmd.async && !cmd.buildNumber && !(len(cmd.description) > 0))
 		}
 
 		if len(cmd.outputs) > 0 {
@@ -271,7 +275,6 @@ func printGitFilterCommandUsageErr() {
 	l.Println("usage: git-filter [keyword]")
 }
 
-// @TODO: parse output and format correctly + add colors and commit hashes
 func handleGitFilterCommand(args []string) {
 
 	l.Println()
@@ -324,7 +327,7 @@ func printTodos() {
 
 	for _, line := range strings.Split(string(contents), "\n") {
 		if strings.HasPrefix(line, "#") {
-			l.Println(cp.Prompt + line)
+			l.Println("\n" + cp.Prompt + line + "\n")
 		}
 		if strings.HasPrefix(line, "- ") {
 			index++
@@ -460,12 +463,19 @@ func handleEditCommand(args []string) {
 
 	var path string
 
+	// get editor from config
+	conf.Lock()
+	editor := conf.fields.Editor
+	conf.Unlock()
+
 	cmdMap.Lock()
 	defer cmdMap.Unlock()
 
 	switch args[1] {
 	case "config":
 		path = zeusDir + "/config.yml"
+	case "commands":
+		path = commandsFilePath
 	case "todo":
 		conf.Lock()
 		path = conf.fields.TodoFilePath
@@ -475,44 +485,86 @@ func handleEditCommand(args []string) {
 	case "globals":
 		if len(args) > 2 {
 
-			var (
-				p  *parser
-				ok bool
-			)
-
-			ps.Lock()
-			if p, ok = ps.items[args[2]]; !ok {
-				ps.Unlock()
-				l.Println("no parser for " + args[2])
+			lang, err := ls.getLang(args[1])
+			if err != nil {
+				l.Println(err)
 				return
 			}
-			ps.Unlock()
 
-			path = zeusDir + "/globals" + p.language.FileExtension
+			path = zeusDir + "/globals/globals" + lang.FileExtension
 		} else {
-			path = zeusDir + "/globals.yml"
+			path = commandsFilePath
 		}
 	default:
 		// check if its a valid command
 		if cmd, ok := cmdMap.items[args[1]]; ok {
-			if _, err := os.Stat(zeusfilePath); err != nil {
-				path = cmd.path
+
+			// command has a path set?
+			if cmd.path == "" {
+				path = commandsFilePath
 			} else {
-				path = zeusfilePath
+				path = cmd.path
+
+				if _, err := os.Stat(cmd.path); err != nil {
+					path = commandsFilePath
+				}
 			}
 		} else {
-			l.Println("invalid command: ", args[1])
+			l.Println("invalid command:", args[1])
 			return
 		}
 	}
 
-	// get editor from config
-	conf.Lock()
-	editor := conf.fields.Editor
-	conf.Unlock()
+	// commmand is in commandsFile? let's start the editor at the correct position!
+	if path == commandsFilePath {
 
-	cmd := exec.Command(editor, path)
+		// check if editor supports starting at a position
+		// it could be supplied as a path, so we just check the path suffix
+		switch {
+		case strings.HasSuffix(editor, "vim"):
+			// find position of command in commandsfile
+			line, col, err := getYAMLFieldPosition(args[1])
+			if err != nil {
+				l.Println(err)
+				return
+			}
+			args = append(args, "+call cursor("+strconv.Itoa(line+1)+","+strconv.Itoa(col)+")")
+		case strings.HasSuffix(editor, "micro"):
+			// find position of command in commandsfile
+			line, col, err := getYAMLFieldPosition(args[1])
+			if err != nil {
+				l.Println(err)
+				return
+			}
+			args = append(args, "-startpos="+strconv.Itoa(line+1)+","+strconv.Itoa(col))
+		default: // not supported
+		}
+	}
+
+	var editorArgs []string
+
+	// prepend args
+	if len(args) > 2 {
+		if args[2] == "line" {
+			if !(len(args) > 3) {
+				printEditCommandUsageErr()
+				return
+			}
+			editorArgs = append(editorArgs, "-startpos="+args[3]+",0")
+		} else {
+			editorArgs = append(editorArgs, args[2:]...)
+		}
+	}
+
+	// append path
+	editorArgs = append(editorArgs, path)
+
+	Log.Debug(editor, editorArgs)
+
+	cmd := exec.Command(editor, editorArgs...)
 	wireEnv(cmd)
+
+	editorProcRunning = true
 
 	err := cmd.Run()
 	if err != nil {
@@ -527,6 +579,8 @@ func handleEditCommand(args []string) {
 			Log.WithError(err).Error("edit command failed: fix editor in config")
 		}
 	}
+
+	editorProcRunning = false
 }
 
 func printGenerateCommandUsageErr() {

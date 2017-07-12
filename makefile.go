@@ -64,6 +64,7 @@ func migrateMakefile(zeusDirectory string) {
 
 	var (
 		file            *os.File
+		cmdFile         *os.File
 		writeInProgress bool
 		err             error
 		perm            = os.FileMode(0700)
@@ -77,8 +78,25 @@ func migrateMakefile(zeusDirectory string) {
 		if testingMode {
 			contents, err = ioutil.ReadFile("tests/Makefile")
 		} else {
-			Log.WithError(err).Debug("unable to read Makefile")
+			Log.WithError(err).Error("unable to read Makefile")
 			return
+		}
+	}
+
+	// bail out if a command with the same name exists
+	for _, line := range bytes.Split(contents, []byte("\n")) {
+
+		if makefileTarget.Match(line) && !bytes.Contains(line, []byte("\t")) {
+
+			targetName := strings.TrimSuffix(string(line), ":")
+
+			cmdMap.Lock()
+			if _, ok := cmdMap.items[targetName]; ok {
+				cmdMap.Unlock()
+				Log.Error("makefile target name '" + targetName + "' already taken. please choose a different name.")
+				return
+			}
+			cmdMap.Unlock()
 		}
 	}
 
@@ -88,6 +106,23 @@ func migrateMakefile(zeusDirectory string) {
 		Log.WithError(err).Error("failed to create: ", dir)
 		return
 	}
+
+	// make sure a commandsFile exists
+	_, err = os.Stat(commandsFilePath)
+	if err != nil {
+		cmdFile, err = os.Create(commandsFilePath)
+		if err != nil {
+			l.Println(err)
+			return
+		}
+	} else {
+		cmdFile, err = os.OpenFile(commandsFilePath, os.O_APPEND|os.O_WRONLY, 0700)
+		if err != nil {
+			l.Println(err)
+			return
+		}
+	}
+	defer cmdFile.Close()
 
 	for _, line := range bytes.Split(contents, []byte("\n")) {
 
@@ -130,21 +165,34 @@ func migrateMakefile(zeusDirectory string) {
 			defer file.Close()
 
 			file.WriteString("#!/bin/bash" + "\n\n")
-			file.WriteString("# {zeus}" + "\n")
-			file.WriteString("# dependencies: " + strings.Join(args[1:], " -> ") + "\n")
-			file.WriteString("# arguments: " + "\n")
-			file.WriteString("# description: simple help text for command " + targetName + "\n")
-			file.WriteString("# help: help text for command " + targetName + "\n")
-			file.WriteString("# {zeus}" + "\n\n")
 
+			var depString string
+			if len(args[1:]) > 0 {
+				depString = "\n            - " + strings.Join(args[1:], "\n            - ")
+			}
+
+			blockWriteEvent()
+
+			// add entry to cmdFile
+			cmdFile.WriteString("\n" + `    ` + targetName + `:
+        description: description for command ` + targetName + `
+        help: help text for command ` + targetName + `
+        arguments:
+        dependencies:` + depString + `
+        outputs:
+`)
 			writeInProgress = true
 		}
 	}
 
 	// handle globals
-	migrateGlobals(contents, dir)
+	migrateGlobals(contents)
 
-	l.Println("migrated Makefile")
+	// parse commands
+	err = parseCommandsFile(commandsFilePath)
+	if err != nil {
+		l.Println(err)
+	}
 }
 
 func migrateLine(line []byte) []byte {
@@ -198,7 +246,7 @@ func migrateLine(line []byte) []byte {
 	return line
 }
 
-func migrateGlobals(contents []byte, dir string) {
+func migrateGlobals(contents []byte) {
 	var globals string
 	for _, line := range bytes.Split(contents, []byte("\n")) {
 		if global.Match(line) {
@@ -207,7 +255,7 @@ func migrateGlobals(contents []byte, dir string) {
 	}
 
 	if len(globals) > 0 {
-		f, err := os.Create(dir + "/globals.sh")
+		f, err := os.Create(zeusDir + "/globals.sh")
 		if err != nil {
 			Log.WithError(err).Error("failed to create globals file")
 			return
@@ -215,7 +263,7 @@ func migrateGlobals(contents []byte, dir string) {
 		defer f.Close()
 		f.WriteString("#!/bin/bash\n\n")
 		f.WriteString(globals + "\n")
-		l.Println("created " + dir + "/globals.sh")
+		l.Println("created " + zeusDir + "/globals.sh")
 	}
 }
 

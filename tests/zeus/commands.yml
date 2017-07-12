@@ -1,0 +1,164 @@
+# ________ ____  __ __  ______     
+#  \___   // __ \|  |  \/  ___/    
+#   /    /\  ___/|  |  /\___ \    
+#  /_____ \\___  >____//____  >  
+#        \/    \/           \/  
+#                    Build System
+#                          v0.8
+#
+# default interpreter used for Zeusfile code is bash
+# that means all commands without the language field are treated as shell scripts
+# to change the default script language, use the language field
+# to change the language of an individual command, use the language field directly on the command
+language: bash
+
+# globals are visible for all commands
+# they can contain variables
+# for language specific code create a globals.[scriptExtension] file in the zeus directory
+globals:
+    binaryName: zeus
+    buildDir: bin
+    version: 0.8
+
+# all commands
+# available fields:
+# Field                     # Type           # Info
+# ------------------------- # -------------- # --------------------------------------------------------------
+# description               # string         # a short description text that will be display on startup
+# help                      # string         # a multi line manual entry for detailed explanations
+# dependencies              # []string       # a list of dependency commands with their arguments
+# outputs                   # []string       # a list of ouputs files / directories
+# buildNumber               # bool           # increment buildNumber each execution
+# arguments                 # []string       # list of typed arguments, allows optionals and default values
+# async                     # bool           # detach comamnd async in a screen session, attach on demand
+# path                      # string         # custom path for script file
+# exec                      # string         # supply the script directly without a file
+commands:
+    
+    # multi language examples
+    #
+
+    python:
+        description: a python script
+        language: python
+        arguments:
+             - src:String
+             - dst:String
+        exec: |
+            python_greet()
+            print("src=" + src)
+            print("dst=" + dst)
+
+    ruby:
+        description: a ruby script
+        language: ruby
+        arguments:
+             - src:String
+             - dst:String
+        exec: |
+            puts "hello from ruby!"
+            puts "source=" + $src
+            puts "destination=" + $dst
+    lua:
+        description: a lua script
+        language: lua
+        arguments:
+             - src:String
+             - dst:String
+        exec: |
+            print("Hello World! from lua!")
+            print("source=", src)
+            print("destination=", dst)
+
+    javascript:
+        description: a javascript program
+        language: javascript
+        arguments:
+             - src:String
+             - dst:String
+        exec: |
+            console.log("[ZEUS v" + version + "] Hello World!");
+            console.log("source=" + src);
+            console.log("destination=" + dst);
+
+    # examples
+    #
+    
+    cycle1:
+        description: produce a cycle
+        dependencies:
+            - cycle2
+        outputs:
+        exec: echo "cycle1 called!"
+
+    cycle2:
+        description: produce a cycle
+        dependencies:
+             - cycle1
+        exec: echo "cycle2 called!"
+    
+    arguments:
+        description: test optional command arguments
+        help: |
+            this is an example for the optional commands argument
+            imagine a remote login scenario
+        arguments:
+            - user:String? = bob
+            - password:String
+            - ipAddr:String
+            - port:Int? = 80
+        dependencies:
+        outputs:
+        exec: |
+            print("test-optionals:")
+            print("user=" + user)
+            print("password=" + password)
+            print("ipAddr=" + ipAddr)
+            print("port=" + port)
+
+    buildNumber:
+        description: increase build number each execution
+        buildNumber: true
+        exec: echo "increasing buildNumber"
+    
+    chain:
+        description: test chained commands
+        dependencies:
+            - dependency2
+            - async
+            - arguments password=test ipAddr=192.168.1.5
+        exec: echo "testing chained commands"
+
+    async:
+        description: test asyncronous command execution
+        help: |
+            this is an example for the asyncronous command execution
+        outputs:
+        async: true
+        exec: |
+            sleep 3 && echo "ping" && sleep 3 && echo "ping"
+            sleep 3 && echo "ping" && sleep 3 && echo "ping"
+            sleep 3 && echo "ping" && sleep 3 && echo "ping"
+            sleep 3 && echo "ping" && sleep 3 && echo "ping"
+    
+    dependency1:
+        description: test dependencies
+        help: |
+            this is an example for the dependencies
+        outputs:
+            - tests/dependency1
+        buildNumber: true
+        exec: |
+            touch tests/dependency1
+            rm -f tests/dependency2
+    
+    dependency2:
+        description: test dependencies
+        help: |
+            this is an example for the dependencies
+        dependencies:
+            - dependency1
+        buildNumber: true
+        exec: |
+            touch tests/dependency2
+            rm -f tests/dependency1
