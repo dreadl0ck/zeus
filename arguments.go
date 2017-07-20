@@ -154,8 +154,8 @@ func validateArgs(args []string) (map[string]*commandArg, error) {
 func (c *command) parseArguments(args []string) (string, error) {
 
 	var (
-		argStr = strings.Join(args, " ")
-		argBuf bytes.Buffer
+		argBuf     bytes.Buffer
+		ocurrences = make(map[string]int, 0)
 	)
 
 	// parse args
@@ -178,12 +178,18 @@ func (c *command) parseArguments(args []string) (string, error) {
 				return "", errors.New(ErrInvalidArgumentLabel.Error() + ": " + ansi.Red + argSlice[0] + cp.Reset)
 			}
 
-			if err := validArgType(argSlice[1], cmdArg.argType); err != nil {
-				return "", errors.New(ErrInvalidArgumentType.Error() + ": " + err.Error() + ", label=" + cmdArg.name + ", value=" + argSlice[1])
+			if _, ok := ocurrences[argSlice[0]]; ok {
+				ocurrences[argSlice[0]]++
+			} else {
+				ocurrences[argSlice[0]] = 1
 			}
 
-			if strings.Count(argStr, cmdArg.name+"=") > 1 {
+			if ocurrences[argSlice[0]] > 1 {
 				return "", errors.New("argument label appeared more than once: " + cmdArg.name)
+			}
+
+			if err := validArgType(argSlice[1], cmdArg.argType); err != nil {
+				return "", errors.New(ErrInvalidArgumentType.Error() + ": " + err.Error() + ", label=" + cmdArg.name + ", value=" + argSlice[1])
 			}
 
 			c.args[argSlice[0]].value = argSlice[1]

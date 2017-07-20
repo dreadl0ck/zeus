@@ -194,6 +194,7 @@ milestones [remove <name>] [set <name> <0-100>] [add <name> <date> [description]
 ### Homebrew
 
 ```shell
+$ brew tap dreadl0ck/formulas
 $ brew install zeus
 ```
 
