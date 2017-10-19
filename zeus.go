@@ -29,7 +29,7 @@ import (
 	"sync"
 
 	rice "github.com/GeertJohan/go.rice"
-	"github.com/Sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"github.com/dreadl0ck/readline"
 	"github.com/mgutz/ansi"
 	prefixed "github.com/x-cray/logrus-prefixed-formatter"
@@ -37,7 +37,7 @@ import (
 
 var (
 	// current zeus version
-	version = "0.8"
+	version = "0.8.1"
 
 	// Log instance for internal logs
 	Log = newAtomicLogger()

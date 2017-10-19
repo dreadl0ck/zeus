@@ -126,7 +126,7 @@ func (d *commandData) init(commandsFile *CommandsFile, name string) error {
 	// assemble commands args
 	args, err := validateArgs(d.Arguments)
 	if err != nil {
-		return errors.New("CommandsFile, command " + name + ": " + err.Error())
+		return errors.New("command " + name + ": " + err.Error())
 	}
 
 	var lang string
@@ -143,36 +143,11 @@ func (d *commandData) init(commandsFile *CommandsFile, name string) error {
 		args:        args,
 		description: d.Description,
 		help:        d.Help,
-		// 		PrefixCompleter: readline.PcItem(name,
-		// 			readline.PcItemDynamic(func(path string) (res []string) {
-		// 				var allRequiredArgsSet = true
-		// 				for _, a := range args {
-		// 					if !strings.Contains(path, a.name+"=") {
-		// 						res = append(res, a.name+"=")
-		// 						if !a.optional {
-		// 							allRequiredArgsSet = false
-		// 						}
-		// 					}
-		// 				}
-		// 				if allRequiredArgsSet && strings.HasSuffix(path, commandChainSeparator) {
-		// 					// return all available commands
-		// 					cmdMap.Lock()
-		// 					defer cmdMap.Unlock()
-		// 					for name := range cmdMap.items {
-		// 						res = append(res, name)
-		// 					}
-		// 					return
-		// 				}
-		// 				if allRequiredArgsSet {
-		// 					res = append(res, "->")
-		// 				}
-		// 				return
-		// 			}),
-		// 		),
 		PrefixCompleter: readline.PcItem(name,
-
-			// completer for current commands arguments
 			readline.PcItemDynamic(func(path string) (res []string) {
+
+				// fmt.Println("\npath:", path)
+
 				var allRequiredArgsSet = true
 				for _, a := range args {
 					if !strings.Contains(path, a.name+"=") {
@@ -182,72 +157,106 @@ func (d *commandData) init(commandsFile *CommandsFile, name string) error {
 						}
 					}
 				}
-				if allRequiredArgsSet {
-					res = append(res, commandChainSeparator)
+
+				// fmt.Println("allRequiredArgsSet:", allRequiredArgsSet, ", result:", res)
+				if !allRequiredArgsSet {
+					return
 				}
-				// l.Println("\npath:", path)
-				// l.Println("result:", res)
-				return
-			},
 
-				// completer for next command names
-				readline.PcItemDynamic(func(path string) (res []string) {
-
+				if allRequiredArgsSet && strings.HasSuffix(path, commandChainSeparator) {
 					// return all available commands
 					cmdMap.Lock()
 					defer cmdMap.Unlock()
 					for name := range cmdMap.items {
 						res = append(res, name)
 					}
-					// l.Println("\npath:", path)
-					// l.Println("result:", res)
 					return
-				},
-
-					// completer for next commands args
-					readline.PcItemDynamic(func(path string) (res []string) {
-
-						slice := strings.Split(path, commandChainSeparator)
-						if len(slice) == 0 {
-							return
-						}
-
-						cmdArgSlice := strings.Fields(slice[len(slice)-1])
-						if len(cmdArgSlice) == 0 {
-							return
-						}
-
-						cmdMap.Lock()
-						c, ok := cmdMap.items[cmdArgSlice[0]]
-						if !ok {
-							cmdMap.Unlock()
-							return
-						}
-						cmdMap.Unlock()
-
-						// return the next commands completer?
-						// return c.PrefixCompleter.Callback(path)
-
-						var allRequiredArgsSet = true
-						for _, a := range c.args {
-							if !strings.Contains(path, a.name+"=") {
-								res = append(res, a.name+"=")
-								if !a.optional {
-									allRequiredArgsSet = false
-								}
-							}
-						}
-						if allRequiredArgsSet {
-							res = append(res, commandChainSeparator)
-						}
-
-						// l.Println("\npath:", path)
-						// l.Println("result:", res)
-						return
-					}),
-				),
-			),
+				}
+				if allRequiredArgsSet {
+					res = append(res, "->")
+				}
+				return
+			}),
 		),
+		// PrefixCompleter: readline.PcItem(name,
+
+		// 	// completer for current commands arguments
+		// 	readline.PcItemDynamic(func(path string) (res []string) {
+		// 		var allRequiredArgsSet = true
+		// 		for _, a := range args {
+		// 			if !strings.Contains(path, a.name+"=") {
+		// 				res = append(res, a.name+"=")
+		// 				if !a.optional {
+		// 					allRequiredArgsSet = false
+		// 				}
+		// 			}
+		// 		}
+		// 		if allRequiredArgsSet {
+		// 			res = append(res, commandChainSeparator)
+		// 		}
+		// 		// l.Println("\npath:", path)
+		// 		// l.Println("result:", res)
+		// 		return
+		// 	},
+
+		// 		// completer for next command names
+		// 		readline.PcItemDynamic(func(path string) (res []string) {
+
+		// 			// return all available commands
+		// 			cmdMap.Lock()
+		// 			defer cmdMap.Unlock()
+		// 			for name := range cmdMap.items {
+		// 				res = append(res, name)
+		// 			}
+		// 			// l.Println("\npath:", path)
+		// 			// l.Println("result:", res)
+		// 			return
+		// 		},
+
+		// 			// completer for next commands args
+		// 			readline.PcItemDynamic(func(path string) (res []string) {
+
+		// 				slice := strings.Split(path, commandChainSeparator)
+		// 				if len(slice) == 0 {
+		// 					return
+		// 				}
+
+		// 				cmdArgSlice := strings.Fields(slice[len(slice)-1])
+		// 				if len(cmdArgSlice) == 0 {
+		// 					return
+		// 				}
+
+		// 				cmdMap.Lock()
+		// 				c, ok := cmdMap.items[cmdArgSlice[0]]
+		// 				if !ok {
+		// 					cmdMap.Unlock()
+		// 					return
+		// 				}
+		// 				cmdMap.Unlock()
+
+		// 				// return the next commands completer?
+		// 				// return c.PrefixCompleter.Callback(path)
+
+		// 				var allRequiredArgsSet = true
+		// 				for _, a := range c.args {
+		// 					if !strings.Contains(path, a.name+"=") {
+		// 						res = append(res, a.name+"=")
+		// 						if !a.optional {
+		// 							allRequiredArgsSet = false
+		// 						}
+		// 					}
+		// 				}
+		// 				if allRequiredArgsSet {
+		// 					res = append(res, commandChainSeparator)
+		// 				}
+
+		// 				// l.Println("\npath:", path)
+		// 				// l.Println("result:", res)
+		// 				return
+		// 			}),
+		// 		),
+		// 	),
+		// ),
 		buildNumber:  d.BuildNumber,
 		dependencies: d.Dependencies,
 		outputs:      d.Outputs,

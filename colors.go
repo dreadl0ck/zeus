@@ -94,9 +94,9 @@ func darkProfile() *ColorProfile {
 // high contrast profile
 func lightProfile() *ColorProfile {
 	return &ColorProfile{
-		Text:       "black",
+		Text:       "white",
 		Prompt:     "yellow",
-		CmdOutput:  "black+h",
+		CmdOutput:  "white+h",
 		CmdName:    "red",
 		CmdFields:  "blue",
 		CmdArgs:    "cyan",

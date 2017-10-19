@@ -4,7 +4,7 @@
 #  /_____ \\___  >____//____  >  
 #        \/    \/           \/  
 #                    Build System
-#                          v0.8
+#                          v0.8.1
 #
 
 autoFormat: false
@@ -28,7 +28,7 @@ stopOnError: true
 dumpScriptOnError: true
 colorProfile: dark
 dateFormat: 02-01-2006
-todoFilePath: TODO.md
+todoFilePath: wiki/docs/TODO.md
 editor: micro
 colorProfiles:
   dark:

@@ -93,6 +93,8 @@ func validateArgs(args []string) (map[string]*commandArg, error) {
 			g.Lock()
 			for name := range g.Vars {
 				if argumentName == name {
+					g.Unlock()
+					listGlobals()
 					return nil, errors.New("argument name " + argumentName + " conflicts with a global variable")
 				}
 			}

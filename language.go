@@ -18,8 +18,10 @@
 
 package main
 
-import "sync"
-import "errors"
+import (
+	"errors"
+	"sync"
+)
 
 var (
 	commandChainSeparator = "->"
@@ -32,6 +34,7 @@ var (
 			"javascript": javaScriptLanguage(),
 			"ruby":       rubyLanguage(),
 			"lua":        luaLanguage(),
+			"sh":         shellLanguage(),
 		},
 	}
 
@@ -102,6 +105,21 @@ func bashLanguage() *Language {
 		Name:                 "bash",
 		Interpreter:          "/bin/bash",
 		Bang:                 "#!/bin/bash",
+		Comment:              "#",
+		AssignmentOperator:   "=",
+		FlagStopOnError:      "-e",
+		FlagEvaluateScript:   "-c",
+		FileExtension:        ".sh",
+		CorrectErrLineNumber: false,
+		ErrLineNumberSymbol:  "line",
+	}
+}
+
+func shellLanguage() *Language {
+	return &Language{
+		Name:                 "sh",
+		Interpreter:          "/bin/sh",
+		Bang:                 "#!/bin/sh",
 		Comment:              "#",
 		AssignmentOperator:   "=",
 		FlagStopOnError:      "-e",

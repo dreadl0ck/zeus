@@ -29,7 +29,7 @@ import (
 	"sync"
 
 	rice "github.com/GeertJohan/go.rice"
-	"github.com/Sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"github.com/desertbit/glue"
 	"github.com/julienschmidt/httprouter"
 )

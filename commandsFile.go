@@ -114,9 +114,11 @@ func parseCommandsFile(path string) error {
 
 	// initialize commands
 	for name, d := range commandsFile.Commands {
-		err = d.init(commandsFile, name)
-		if err != nil {
-			return errors.New("failed to init command: " + err.Error())
+		if d != nil {
+			err = d.init(commandsFile, name)
+			if err != nil {
+				return errors.New("failed to init command: " + err.Error())
+			}
 		}
 	}
 

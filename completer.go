@@ -20,6 +20,7 @@ package main
 
 import (
 	"io/ioutil"
+	"os"
 	"path/filepath"
 	"regexp"
 	"strconv"
@@ -387,101 +388,73 @@ func fileTypeCompleter(path string) (res []string) {
 	return out
 }
 
-func directoryCompleter(path string) []string {
+// return available directories
+func directoryCompleter(path string) (names []string) {
 
-	// l.Println("\npath before", path)
+	files, dir := getFilesInDir(path)
 
-	fields := strings.Fields(path)
-	if len(fields) > 0 {
-		path = fields[len(fields)-1]
-		if !strings.Contains(path, "/") {
-			// search in current dir
-			path = "./"
-		}
-	}
-
-	// l.Println("path after", path)
-
-	// if shellCommandWithPath.MatchString(path) {
-	// 	// extract path from command
-	// 	paths := shellPath.FindAllString(path, -1)
-	// 	path = paths[len(paths)-1]
-	// } else {
-	// 	// search in current dir
-	// 	path = "./"
-	// }
-
-	names := make([]string, 0)
-	files, err := ioutil.ReadDir(path)
-	if err != nil {
-
-		l.Println("err", err)
-
-		// check if path is multilevel
-		// otherwise read current directory
-		// the error for reading the directory can be ignored
-		// because when the path is invalid there will be no completions and an empty string array is returned
-		// this behaviour is equivalent with the bash shell
-		arr := strings.Split(path, "/")
-		if len(arr) > 1 {
-			// trim base
-			path = strings.TrimSuffix(path, filepath.Base(path))
-			// l.Println("multilevel path, reading: ", path)
-			files, _ = ioutil.ReadDir(path)
-		} else {
-			// l.Println("reading current directory")
-			files, _ = ioutil.ReadDir("./")
-		}
-	}
 	for _, f := range files {
-		if f.IsDir() {
-			names = append(names, f.Name()+"/")
-		}
-	}
-
-	// l.Println(names)
-
-	return names
-
-}
-
-func fileCompleter(path string) []string {
-
-	if shellCommandWithPath.MatchString(path) {
-		// extract path from command
-		paths := shellPath.FindAllString(path, -1)
-		path = paths[len(paths)-1]
-	} else {
-		// search in current dir
-		path = "./"
-	}
-
-	names := make([]string, 0)
-	files, err := ioutil.ReadDir(path)
-	if err != nil {
-
-		// check if path is multilevel
-		// otherwise read current directory
-		// the error for reading the directory can be ignored
-		// because when the path is invalid there will be no completions and an empty string array is returned
-		// this behaviour is equivalent with the bash shell
-		arr := strings.Split(path, "/")
-		if len(arr) > 1 {
-			// trim base
-			path = strings.TrimSuffix(path, filepath.Base(path))
-			files, _ = ioutil.ReadDir(path)
-		} else {
-			files, _ = ioutil.ReadDir("./")
-		}
-
-	}
-	for _, f := range files {
-		if f.IsDir() {
-			names = append(names, f.Name()+"/")
+		if dir == "./" {
+			if f.IsDir() {
+				names = append(names, strings.TrimPrefix(f.Name(), "./")+"/")
+			}
 			continue
 		}
-		names = append(names, f.Name())
+		if f.IsDir() {
+			names = append(names, dir+f.Name()+"/")
+		}
+	}
+	return
+}
+
+func getFilesInDir(path string) (files []os.FileInfo, dir string) {
+
+	var (
+		fields = strings.Fields(path)
+		fLen   = len(fields)
+		err    error
+	)
+	if fLen < 2 {
+		path = "./"
+	} else {
+		path = fields[fLen-1]
 	}
 
-	return names
+	dir, _ = filepath.Split(path)
+	files, err = ioutil.ReadDir(dir)
+	if err != nil {
+		if len(strings.Split(dir, "/")) > 1 {
+			files, _ = ioutil.ReadDir(filepath.Base(dir))
+		} else {
+			dir = "./"
+			files, _ = ioutil.ReadDir(dir)
+		}
+	}
+
+	return
+}
+
+func fileCompleter(path string) (names []string) {
+
+	files, dir := getFilesInDir(path)
+
+	for _, f := range files {
+		if dir == "./" {
+			name := strings.TrimPrefix(f.Name(), "./")
+			if f.IsDir() {
+				names = append(names, name+"/")
+				continue
+			}
+			names = append(names, name)
+			continue
+		}
+
+		name := dir + f.Name()
+		if f.IsDir() {
+			names = append(names, name+"/")
+			continue
+		}
+		names = append(names, name)
+	}
+	return
 }

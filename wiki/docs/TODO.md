@@ -11,11 +11,18 @@
     COMMIT: 
 ------------------------------------------------------------------------------------
 
-## v0.8.1
+## v0.8.2
 
-- BUG: write events corrupt with vim?
+- add pitfalls to README (stopOnError in bash)
+- move to dep for vendoring
+- fix argument completion
+- switch to go 1.9 sync.Maps
 - add typescript support
-- use gometalinter
+
+- add install-completions command
+- add edit data / source sub command
+- [BUG] write events corrupt with vim?
+- use gometalinter: add check command target
 - make formatter modular: add it as a field to language, to allow using a specific formatter for each language
 - create core package, make it importable + add godoc badge
 - add golang sloc as default and add clocPath to config
@@ -28,9 +35,7 @@
 ## readline
 
 - fix tab completion for commandChainSeparator
-- fixed dynamic command chain completer
-- fix path completion bug
-- fix argument completion
+- fix dynamic command chain completer
 
 ## next up
 

@@ -7,6 +7,14 @@
           \/    \/           \/   /\\/\ //\
                 An Electrifying Build System
 
+## 19.10.17 - v0.8.1
+
+- fixed deadlock in argument handling
+- fixed path and dir tab completion
+- added support for /bin/sh
+- fixed panic for empty commands
+- commented out usage of unreleased js and sass tools
+
 ## 12.07.17 - v0.8
 
 - renamed Zeusfile: commands.yml

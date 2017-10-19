@@ -4,7 +4,7 @@
 #  /_____ \\___  >____//____  >  
 #        \/    \/           \/  
 #                    Build System
-#                          v0.8
+#                          v0.8.1
 #
 
 buildNumber: 3
@@ -15,7 +15,14 @@ events:
   26e62682ac41162b:
     name: config watcher
     id: 26e62682ac41162b
-    path: tests/zeus/config.yml
+    path: zeus/config.yml
+    op: 2
+    fileextension: .yml
+    command: internal
+  59610f78fc068891:
+    name: commandsFile watcher
+    id: 59610f78fc068891
+    path: zeus/commands.yml
     op: 2
     fileextension: .yml
     command: internal
