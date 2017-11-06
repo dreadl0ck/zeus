@@ -81,7 +81,7 @@ commands:
         exec: |
             echo "[ZEUS v${version}] building ${buildDir}/${binaryName} for current OS"
             rice embed-go
-            godep go build -o ${buildDir}/${binaryName}
+            go build -o ${buildDir}/${binaryName}
     build-linux:
         description: build project for linux amd64
         help: compile binary for linux amd64 into buildDir
@@ -93,7 +93,7 @@ commands:
         exec: |
             echo "[ZEUS v${version}] building for linux amd64"
             rice embed-go
-            GOOS=linux GOARCH=amd64 godep go build -o ${buildDir}/zeus-linux
+            GOOS=linux GOARCH=amd64 go build -o ${buildDir}/zeus-linux
     build-race:
         buildNumber: true
         dependencies:
@@ -128,7 +128,7 @@ commands:
         exec: |
             echo "[ZEUS v${version}] installing zeus to $GOBIN"
             rice embed-go
-            godep go install
+            go install
     
     # run the test with race detection enabled
     test-race:

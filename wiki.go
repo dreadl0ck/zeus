@@ -55,7 +55,7 @@ var wikiIndexHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	err = t.Execute(w, template.HTML(blackfriday.MarkdownCommon(index)))
+	err = t.Execute(w, template.HTML(blackfriday.Run(index)))
 	if err != nil {
 		Log.WithError(err).Error("failed to exec template")
 		return
@@ -134,7 +134,7 @@ var wikiDocsHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Reque
 	}
 
 	// execute template
-	err = t.Execute(w, template.HTML(blackfriday.MarkdownCommon(b)))
+	err = t.Execute(w, template.HTML(blackfriday.Run(b)))
 	if err != nil {
 		Log.WithError(err).Error("failed to exec template")
 		return

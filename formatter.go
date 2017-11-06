@@ -19,58 +19,28 @@
 package main
 
 import (
-	"bytes"
 	"errors"
-	"io"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strings"
 	"time"
 
 	"github.com/fsnotify/fsnotify"
-	"github.com/mvdan/sh/fileutil"
-	"github.com/mvdan/sh/syntax"
-)
-
-var (
-	// ErrNotAShellScript means its not a shellscript
-	ErrNotAShellScript = errors.New("file is not a shellscript")
-
-	// ErrNoDirectory means its not a directory
-	ErrNoDirectory = errors.New("not a directory")
 )
 
 // generic formatter type
-// contains all relevant information for formatting scripts
 type formatter struct {
+	language *Language
 
-	// buffers
-	readBuf  bytes.Buffer
-	writeBuf bytes.Buffer
-	language string
-
-	openMode    int
-	parseMode   syntax.ParseMode
-	printConfig syntax.PrintConfig
-
-	// regexes
-	validShebang *regexp.Regexp
-	shellFile    *regexp.Regexp
+	// path to binary
+	binPath string
 }
 
 // initialize the formatter to handle shell scripts
-func newFormatter() *formatter {
+func newFormatter(path string, l *Language) *formatter {
 	return &formatter{
-		readBuf:  bytes.Buffer{},
-		writeBuf: bytes.Buffer{},
-		language: "bash",
-
-		openMode:  os.O_RDWR,
-		parseMode: syntax.ParseComments,
-
-		validShebang: regexp.MustCompile(`^#!\s?/(usr/)?bin/(env *)?(sh|bash)`),
-		shellFile:    regexp.MustCompile(`\.(sh|bash)$`),
+		language: l,
+		binPath:  path,
 	}
 }
 
@@ -79,61 +49,6 @@ func (f *formatter) formatPath(path string) error {
 
 	var cLog = Log.WithField("prefix", "formatPath")
 	cLog.Debug("formatting: ", path)
-
-	// open file at path
-	file, err := os.OpenFile(path, f.openMode, 0)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-
-	// flush buffer
-	f.readBuf.Reset()
-
-	// copy file content into buffer
-	if _, err := io.Copy(&f.readBuf, file); err != nil {
-		return err
-	}
-
-	// no data - no formatting
-	if len(f.readBuf.Bytes()) == 0 {
-		return nil
-	}
-
-	// check shebang
-	src := f.readBuf.Bytes()
-	if !f.validShebang.Match(src[:32]) {
-		return nil
-	}
-
-	reader := bytes.NewReader(src)
-
-	// parse script
-	prog, err := syntax.Parse(reader, path, f.parseMode)
-	if err != nil {
-		return err
-	}
-
-	// flush buffer
-	f.writeBuf.Reset()
-
-	// format buffer contents
-	f.printConfig.Fprint(&f.writeBuf, prog)
-	res := f.writeBuf.Bytes()
-
-	// check if there were changes
-	if !bytes.Equal(src, res) {
-
-		// truncate file
-		if err := empty(file); err != nil {
-			return err
-		}
-
-		// write result
-		if _, err := file.Write(res); err != nil {
-			return err
-		}
-	}
 	return nil
 }
 
@@ -148,7 +63,7 @@ func (f *formatter) formatzeusDir() error {
 		return err
 	}
 	if !info.IsDir() {
-		return ErrNoDirectory
+		return errors.New("scriptDir path is not a directory")
 	}
 
 	return filepath.Walk(scriptDir, func(path string, info os.FileInfo, err error) error {
@@ -161,11 +76,6 @@ func (f *formatter) formatzeusDir() error {
 		if err != nil {
 			cLog.WithError(err).Error("error walking zeus directory")
 			return err
-		}
-
-		conf := fileutil.CouldBeScript(info)
-		if conf == fileutil.ConfNotScript {
-			return ErrNotAShellScript
 		}
 
 		err = f.formatPath(path)

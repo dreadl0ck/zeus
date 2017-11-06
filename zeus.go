@@ -29,9 +29,9 @@ import (
 	"sync"
 
 	rice "github.com/GeertJohan/go.rice"
-	"github.com/sirupsen/logrus"
 	"github.com/dreadl0ck/readline"
 	"github.com/mgutz/ansi"
+	"github.com/sirupsen/logrus"
 	prefixed "github.com/x-cray/logrus-prefixed-formatter"
 )
 
@@ -63,7 +63,7 @@ var (
 	projectData *data
 
 	// shell formatter
-	f = newFormatter()
+	f = newFormatter("path/to/your/formatter", bashLanguage())
 
 	g = &globals{
 		Vars: make(map[string]string, 0),
