@@ -401,7 +401,7 @@ func directoryCompleter(path string) (names []string) {
 			continue
 		}
 		if f.IsDir() {
-			names = append(names, dir+f.Name()+"/")
+			names = append(names, f.Name()+"/")
 		}
 	}
 	return
@@ -449,12 +449,11 @@ func fileCompleter(path string) (names []string) {
 			continue
 		}
 
-		name := dir + f.Name()
 		if f.IsDir() {
-			names = append(names, name+"/")
+			names = append(names, f.Name()+"/")
 			continue
 		}
-		names = append(names, name)
+		names = append(names, f.Name())
 	}
 	return
 }

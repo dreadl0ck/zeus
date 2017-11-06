@@ -3,3 +3,4 @@ zeus/dumps
 zeus/.history
 **dist/**
 coverage.out
+tests/zeus/.history

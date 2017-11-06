@@ -15,11 +15,11 @@
 
 - add pitfalls to README (stopOnError in bash)
 - move to dep for vendoring
-- fix argument completion
-- switch to go 1.9 sync.Maps
 - add typescript support
-
 - add install-completions command
+- add release version=xxx command
+
+- fix argument completion
 - add edit data / source sub command
 - [BUG] write events corrupt with vim?
 - use gometalinter: add check command target
