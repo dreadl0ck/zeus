@@ -2,4 +2,4 @@
 
 echo "installing zeus"
 rice embed-go
-godep go install
+go install

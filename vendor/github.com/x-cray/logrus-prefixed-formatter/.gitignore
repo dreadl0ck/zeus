@@ -29,3 +29,6 @@ _testmain.go
 
 # OS X
 .DS_Store
+
+# Unit testing
+*.coverprofile

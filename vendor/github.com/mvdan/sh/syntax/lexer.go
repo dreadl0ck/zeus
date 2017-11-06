@@ -28,11 +28,20 @@ func paramOps(r rune) bool {
 	return false
 }
 
+// these start a parameter expansion name
+func paramNameOp(r rune) bool {
+	switch r {
+	case '}', ':', '+', '=', '%', '[', ']', '/', '^', ',', '@':
+		return false
+	}
+	return true
+}
+
 // tokenize these inside arithmetic expansions
 func arithmOps(r rune) bool {
 	switch r {
 	case '+', '-', '!', '*', '/', '%', '(', ')', '^', '<', '>', ':', '=',
-		',', '?', '|', '&', ']':
+		',', '?', '|', '&', '[', ']', '#':
 		return true
 	}
 	return false
@@ -46,38 +55,45 @@ func wordBreak(r rune) bool {
 	return false
 }
 
-func (p *parser) rune() rune {
+func (p *Parser) rune() rune {
+	if p.r == '\n' {
+		// p.r instead of b so that newline
+		// character positions don't have col 0.
+		p.npos.line++
+		p.npos.col = 1
+	} else {
+		p.npos.col += p.w
+	}
 retry:
-	if p.npos < len(p.bs) {
-		if b := p.bs[p.npos]; b < utf8.RuneSelf {
-			if p.npos++; b == '\n' {
-				p.f.lines = append(p.f.lines, p.getPos())
-			}
+	if p.bsp < len(p.bs) {
+		if b := p.bs[p.bsp]; b < utf8.RuneSelf {
+			p.bsp++
 			if p.litBs != nil {
 				p.litBs = append(p.litBs, b)
 			}
 			r := rune(b)
-			p.r = r
+			p.r, p.w = r, 1
 			return r
 		}
-		if p.npos+utf8.UTFMax >= len(p.bs) {
+		if p.bsp+utf8.UTFMax >= len(p.bs) {
 			// we might need up to 4 bytes to read a full
 			// non-ascii rune
 			p.fill()
 		}
 		var w int
-		p.r, w = utf8.DecodeRune(p.bs[p.npos:])
+		p.r, w = utf8.DecodeRune(p.bs[p.bsp:])
 		if p.litBs != nil {
-			p.litBs = append(p.litBs, p.bs[p.npos:p.npos+w]...)
+			p.litBs = append(p.litBs, p.bs[p.bsp:p.bsp+w]...)
 		}
-		p.npos += w
+		p.bsp += w
 		if p.r == utf8.RuneError && w == 1 {
-			p.posErr(p.getPos(), "invalid UTF-8 encoding")
+			p.posErr(p.npos, "invalid UTF-8 encoding")
 		}
+		p.w = uint16(w)
 	} else {
 		if p.r == utf8.RuneSelf {
 		} else if p.fill(); p.bs == nil {
-			p.npos++
+			p.bsp++
 			p.r = utf8.RuneSelf
 		} else {
 			goto retry
@@ -86,20 +102,13 @@ retry:
 	return p.r
 }
 
-func (p *parser) unrune(r rune) {
-	if p.r != utf8.RuneSelf {
-		p.npos -= utf8.RuneLen(p.r)
-		p.r = r
-	}
-}
-
 // fill reads more bytes from the input src into readBuf. Any bytes that
 // had not yet been used at the end of the buffer are slid into the
 // beginning of the buffer.
-func (p *parser) fill() {
-	left := len(p.bs) - p.npos
-	p.offs += p.npos
-	copy(p.readBuf[:left], p.readBuf[p.npos:])
+func (p *Parser) fill() {
+	p.offs += p.bsp
+	left := len(p.bs) - p.bsp
+	copy(p.readBuf[:left], p.readBuf[p.bsp:])
 	var n int
 	var err error
 	if p.readErr == nil {
@@ -121,14 +130,12 @@ func (p *parser) fill() {
 	} else {
 		p.bs = p.readBuf[:left+n]
 	}
-	p.npos = 0
+	p.bsp = 0
 }
 
-func (p *parser) nextKeepSpaces() {
+func (p *Parser) nextKeepSpaces() {
 	r := p.r
-	if p.pos = p.getPos(); r > utf8.RuneSelf {
-		p.pos -= Pos(utf8.RuneLen(r) - 1)
-	}
+	p.pos = p.getPos()
 	switch p.quote {
 	case paramExpRepl:
 		switch r {
@@ -174,7 +181,7 @@ func (p *parser) nextKeepSpaces() {
 	}
 }
 
-func (p *parser) next() {
+func (p *Parser) next() {
 	if p.r == utf8.RuneSelf {
 		p.tok = _EOF
 		return
@@ -217,9 +224,7 @@ skipSpace:
 			break skipSpace
 		}
 	}
-	if p.pos = p.getPos(); r > utf8.RuneSelf {
-		p.pos -= Pos(utf8.RuneLen(r) - 1)
-	}
+	p.pos = p.getPos()
 	switch {
 	case p.quote&allRegTokens != 0:
 		switch r {
@@ -231,8 +236,8 @@ skipSpace:
 			for r != utf8.RuneSelf && r != '\n' {
 				r = p.rune()
 			}
-			if p.mode&ParseComments > 0 {
-				p.f.Comments = append(p.f.Comments, &Comment{
+			if p.keepComments {
+				*p.curComs = append(*p.curComs, Comment{
 					Hash: p.pos,
 					Text: p.endLit(),
 				})
@@ -240,6 +245,13 @@ skipSpace:
 				p.litBs = nil
 			}
 			p.next()
+		case '[':
+			if p.quote == arrayElems {
+				p.tok = leftBrack
+				p.rune()
+			} else {
+				p.advanceLitNone(r)
+			}
 		case '?', '*', '+', '@', '!':
 			if p.peekByte('(') {
 				switch r {
@@ -282,14 +294,14 @@ skipSpace:
 	}
 }
 
-func (p *parser) peekByte(b byte) bool {
-	if p.npos == len(p.bs) && p.readErr == nil {
+func (p *Parser) peekByte(b byte) bool {
+	if p.bsp == len(p.bs) && p.readErr == nil {
 		p.fill()
 	}
-	return p.npos < len(p.bs) && p.bs[p.npos] == b
+	return p.bsp < len(p.bs) && p.bs[p.bsp] == b
 }
 
-func (p *parser) regToken(r rune) token {
+func (p *Parser) regToken(r rune) token {
 	switch r {
 	case '\'':
 		p.rune()
@@ -306,7 +318,7 @@ func (p *parser) regToken(r rune) token {
 			p.rune()
 			return andAnd
 		case '>':
-			if !p.bash() {
+			if p.lang == LangPOSIX {
 				break
 			}
 			if p.rune() == '>' {
@@ -322,23 +334,23 @@ func (p *parser) regToken(r rune) token {
 			p.rune()
 			return orOr
 		case '&':
-			if !p.bash() {
+			if p.lang == LangPOSIX {
 				break
 			}
 			p.rune()
-			return pipeAll
+			return orAnd
 		}
 		return or
 	case '$':
 		switch p.rune() {
 		case '\'':
-			if !p.bash() {
+			if p.lang == LangPOSIX {
 				break
 			}
 			p.rune()
 			return dollSglQuote
 		case '"':
-			if !p.bash() {
+			if p.lang == LangPOSIX {
 				break
 			}
 			p.rune()
@@ -347,7 +359,7 @@ func (p *parser) regToken(r rune) token {
 			p.rune()
 			return dollBrace
 		case '[':
-			if !p.bash() {
+			if p.lang != LangBash {
 				break
 			}
 			p.rune()
@@ -361,7 +373,7 @@ func (p *parser) regToken(r rune) token {
 		}
 		return dollar
 	case '(':
-		if p.rune() == '(' && p.bash() {
+		if p.rune() == '(' && p.lang != LangPOSIX {
 			p.rune()
 			return dblLeftParen
 		}
@@ -372,17 +384,23 @@ func (p *parser) regToken(r rune) token {
 	case ';':
 		switch p.rune() {
 		case ';':
-			if p.rune() == '&' && p.bash() {
+			if p.rune() == '&' && p.lang == LangBash {
 				p.rune()
-				return dblSemiFall
+				return dblSemiAnd
 			}
 			return dblSemicolon
 		case '&':
-			if !p.bash() {
+			if p.lang == LangPOSIX {
 				break
 			}
 			p.rune()
-			return semiFall
+			return semiAnd
+		case '|':
+			if p.lang != LangMirBSDKorn {
+				break
+			}
+			p.rune()
+			return semiOr
 		}
 		return semicolon
 	case '<':
@@ -391,7 +409,7 @@ func (p *parser) regToken(r rune) token {
 			if r = p.rune(); r == '-' {
 				p.rune()
 				return dashHdoc
-			} else if r == '<' && p.bash() {
+			} else if r == '<' && p.lang != LangPOSIX {
 				p.rune()
 				return wordHdoc
 			}
@@ -403,7 +421,7 @@ func (p *parser) regToken(r rune) token {
 			p.rune()
 			return dplIn
 		case '(':
-			if !p.bash() {
+			if p.lang != LangBash {
 				break
 			}
 			p.rune()
@@ -422,7 +440,7 @@ func (p *parser) regToken(r rune) token {
 			p.rune()
 			return clbOut
 		case '(':
-			if !p.bash() {
+			if p.lang != LangBash {
 				break
 			}
 			p.rune()
@@ -432,7 +450,7 @@ func (p *parser) regToken(r rune) token {
 	}
 }
 
-func (p *parser) dqToken(r rune) token {
+func (p *Parser) dqToken(r rune) token {
 	switch r {
 	case '"':
 		p.rune()
@@ -446,7 +464,7 @@ func (p *parser) dqToken(r rune) token {
 			p.rune()
 			return dollBrace
 		case '[':
-			if !p.bash() {
+			if p.lang != LangBash {
 				break
 			}
 			p.rune()
@@ -462,7 +480,7 @@ func (p *parser) dqToken(r rune) token {
 	}
 }
 
-func (p *parser) paramToken(r rune) token {
+func (p *Parser) paramToken(r rune) token {
 	switch r {
 	case '}':
 		p.rune()
@@ -514,7 +532,7 @@ func (p *parser) paramToken(r rune) token {
 		p.rune()
 		return leftBrack
 	case '/':
-		if p.rune() == '/' {
+		if p.rune() == '/' && p.quote != paramExpRepl {
 			p.rune()
 			return dblSlash
 		}
@@ -537,7 +555,7 @@ func (p *parser) paramToken(r rune) token {
 	}
 }
 
-func (p *parser) arithmToken(r rune) token {
+func (p *Parser) arithmToken(r rune) token {
 	switch r {
 	case '!':
 		if p.rune() == '=' {
@@ -651,6 +669,9 @@ func (p *parser) arithmToken(r rune) token {
 			return xorAssgn
 		}
 		return caret
+	case '[':
+		p.rune()
+		return leftBrack
 	case ']':
 		p.rune()
 		return rightBrack
@@ -660,27 +681,30 @@ func (p *parser) arithmToken(r rune) token {
 	case '?':
 		p.rune()
 		return quest
-	default: // ':'
+	case ':':
 		p.rune()
 		return colon
+	default: // '#'
+		p.rune()
+		return hash
 	}
 }
 
-func (p *parser) newLit(r rune) {
+func (p *Parser) newLit(r rune) {
 	// don't let r == utf8.RuneSelf go to the second case as RuneLen
 	// would return -1
 	if r <= utf8.RuneSelf {
 		p.litBs = p.litBuf[:1]
 		p.litBs[0] = byte(r)
-	} else if p.npos <= len(p.bs) {
+	} else if p.bsp <= len(p.bs) {
 		w := utf8.RuneLen(r)
-		p.litBs = append(p.litBuf[:0], p.bs[p.npos-w:p.npos]...)
+		p.litBs = append(p.litBuf[:0], p.bs[p.bsp-w:p.bsp]...)
 	}
 }
 
-func (p *parser) discardLit(n int) { p.litBs = p.litBs[:len(p.litBs)-n] }
+func (p *Parser) discardLit(n int) { p.litBs = p.litBs[:len(p.litBs)-n] }
 
-func (p *parser) endLit() (s string) {
+func (p *Parser) endLit() (s string) {
 	if p.r == utf8.RuneSelf {
 		s = string(p.litBs)
 	} else if len(p.litBs) > 0 {
@@ -690,7 +714,7 @@ func (p *parser) endLit() (s string) {
 	return
 }
 
-func (p *parser) advanceLitOther(r rune) {
+func (p *Parser) advanceLitOther(r rune) {
 	tok := _LitWord
 loop:
 	for p.newLit(r); r != utf8.RuneSelf; r = p.rune() {
@@ -732,18 +756,42 @@ loop:
 			if p.quote&allArithmExpr != 0 {
 				break loop
 			}
-		case ':', '=', '%', '?', '^', ',':
+			if p.quote == paramName && p.peekByte('(') {
+				tok = _Lit
+				break loop
+			}
+		case '?':
+			if p.quote == paramName && p.peekByte('(') {
+				tok = _Lit
+				break loop
+			}
+			fallthrough
+		case ':', '=', '%', '^', ',':
 			if p.quote&allArithmExpr != 0 || p.quote&allParamReg != 0 {
 				break loop
 			}
-		case '#', '[', '@':
+		case '@':
+			if p.quote == paramName && p.peekByte('(') {
+				tok = _Lit
+				break loop
+			}
+			fallthrough
+		case '#', '[':
 			if p.quote&allParamReg != 0 {
 				break loop
 			}
-		case '+', '-':
+			if r == '[' && p.lang != LangPOSIX && p.quote&allArithmExpr != 0 {
+				break loop
+			}
+		case '+':
+			if p.quote == paramName && p.peekByte('(') {
+				tok = _Lit
+				break loop
+			}
+			fallthrough
+		case '-':
 			switch p.quote {
-			case paramExpInd, paramExpLen, paramExpOff,
-				paramExpExp, paramExpRepl, sglQuotes:
+			case paramExpExp, paramExpRepl, sglQuotes:
 			default:
 				break loop
 			}
@@ -758,8 +806,8 @@ loop:
 	p.tok, p.val = tok, p.endLit()
 }
 
-func (p *parser) advanceLitNone(r rune) {
-	p.asPos = 0
+func (p *Parser) advanceLitNone(r rune) {
+	p.eqlOffs = 0
 	tok := _LitWord
 loop:
 	for p.newLit(r); r != utf8.RuneSelf; r = p.rune() {
@@ -767,8 +815,20 @@ loop:
 		case ' ', '\t', '\n', '\r', '&', '|', ';', '(', ')':
 			break loop
 		case '\\': // escaped byte follows
-			if r = p.rune(); r == '\n' {
+			r = p.rune()
+			switch r {
+			case '\n':
 				p.discardLit(2)
+			case '\\':
+				// TODO: also treat escaped ` and $
+				// differently in backquotes
+				if p.quote == subCmdBckquo {
+					p.discardLit(1)
+					if r = p.rune(); r == '\\' {
+						p.discardLit(1)
+						p.rune()
+					}
+				}
 			}
 		case '>', '<':
 			if p.peekByte('(') {
@@ -791,13 +851,18 @@ loop:
 				break loop
 			}
 		case '=':
-			p.asPos = len(p.litBs) - 1
+			p.eqlOffs = len(p.litBs) - 1
+		case '[':
+			if p.lang != LangPOSIX && len(p.litBs) > 1 && p.litBs[0] != '[' {
+				tok = _Lit
+				break loop
+			}
 		}
 	}
 	p.tok, p.val = tok, p.endLit()
 }
 
-func (p *parser) advanceLitDquote(r rune) {
+func (p *Parser) advanceLitDquote(r rune) {
 	tok := _LitWord
 loop:
 	for p.newLit(r); r != utf8.RuneSelf; r = p.rune() {
@@ -814,7 +879,7 @@ loop:
 	p.tok, p.val = tok, p.endLit()
 }
 
-func (p *parser) advanceLitHdoc(r rune) {
+func (p *Parser) advanceLitHdoc(r rune) {
 	p.tok = _Lit
 	p.newLit(r)
 	if p.quote == hdocBodyTabs {
@@ -822,70 +887,65 @@ func (p *parser) advanceLitHdoc(r rune) {
 			r = p.rune()
 		}
 	}
-	endOff := len(p.litBs) - 1
-loop:
-	for ; r != utf8.RuneSelf; r = p.rune() {
+	lStart := len(p.litBs) - 1
+	for ; ; r = p.rune() {
 		switch r {
 		case '`', '$':
-			break loop
+			p.val = p.endLit()
+			return
 		case '\\': // escaped byte follows
 			p.rune()
-		case '\n':
-			if bytes.Equal(p.litBs[endOff:len(p.litBs)-1], p.hdocStop) {
-				p.val = p.endLit()[:endOff]
+		case '\n', utf8.RuneSelf:
+			if bytes.HasPrefix(p.litBs[lStart:], p.hdocStop) {
+				p.val = p.endLit()[:lStart]
+				if p.val == "" {
+					p.tok = illegalTok
+				}
 				p.hdocStop = nil
 				return
 			}
-			r = p.rune()
+			if r == utf8.RuneSelf {
+				return
+			}
 			if p.quote == hdocBodyTabs {
-				for r == '\t' {
-					r = p.rune()
+				for p.peekByte('\t') {
+					p.rune()
 				}
 			}
-			endOff = len(p.litBs) - 1
+			lStart = len(p.litBs)
 		}
-	}
-	if bytes.Equal(p.litBs[endOff:], p.hdocStop) {
-		p.val = p.endLit()[:endOff]
-		p.hdocStop = nil
-	} else {
-		p.val = p.endLit()
 	}
 }
 
-func (p *parser) hdocLitWord() *Word {
+func (p *Parser) hdocLitWord() *Word {
 	r := p.r
 	p.newLit(r)
-	pos, val := p.getPos(), ""
-	for {
+	pos := p.getPos()
+	for ; ; r = p.rune() {
 		if r == utf8.RuneSelf {
-			val = p.endLit()
-			break
+			return nil
 		}
 		if p.quote == hdocBodyTabs {
 			for r == '\t' {
 				r = p.rune()
 			}
 		}
-		endOff := len(p.litBs) - 1
+		lStart := len(p.litBs) - 1
 		for r != utf8.RuneSelf && r != '\n' {
 			r = p.rune()
 		}
-		if r == utf8.RuneSelf && bytes.Equal(p.litBs[endOff:], p.hdocStop) {
-			val = p.endLit()[:endOff]
-			break
+		if bytes.HasPrefix(p.litBs[lStart:], p.hdocStop) {
+			p.hdocStop = nil
+			val := p.endLit()[:lStart]
+			if val == "" {
+				return nil
+			}
+			return p.word(p.wps(p.lit(pos, val)))
 		}
-		if bytes.Equal(p.litBs[endOff:len(p.litBs)-1], p.hdocStop) {
-			val = p.endLit()[:endOff]
-			break
-		}
-		r = p.rune()
 	}
-	l := p.lit(pos, val)
-	return p.word(p.singleWps(l))
 }
 
-func (p *parser) advanceLitRe(r rune) {
+func (p *Parser) advanceLitRe(r rune) {
 	lparens := 0
 loop:
 	for p.newLit(r); r != utf8.RuneSelf; r = p.rune() {
@@ -896,7 +956,7 @@ loop:
 			lparens++
 		case ')':
 			lparens--
-		case ' ', '\t', '\r', '\n':
+		case ' ', '\t', '\r', '\n', ';':
 			if lparens == 0 {
 				break loop
 			}
@@ -905,90 +965,90 @@ loop:
 	p.tok, p.val = _LitWord, p.endLit()
 }
 
-func testUnaryOp(val string) token {
+func testUnaryOp(val string) UnTestOperator {
 	switch val {
 	case "!":
-		return exclMark
+		return TsNot
 	case "-e", "-a":
-		return tsExists
+		return TsExists
 	case "-f":
-		return tsRegFile
+		return TsRegFile
 	case "-d":
-		return tsDirect
+		return TsDirect
 	case "-c":
-		return tsCharSp
+		return TsCharSp
 	case "-b":
-		return tsBlckSp
+		return TsBlckSp
 	case "-p":
-		return tsNmPipe
+		return TsNmPipe
 	case "-S":
-		return tsSocket
+		return TsSocket
 	case "-L", "-h":
-		return tsSmbLink
+		return TsSmbLink
 	case "-k":
-		return tsSticky
+		return TsSticky
 	case "-g":
-		return tsGIDSet
+		return TsGIDSet
 	case "-u":
-		return tsUIDSet
+		return TsUIDSet
 	case "-G":
-		return tsGrpOwn
+		return TsGrpOwn
 	case "-O":
-		return tsUsrOwn
+		return TsUsrOwn
 	case "-N":
-		return tsModif
+		return TsModif
 	case "-r":
-		return tsRead
+		return TsRead
 	case "-w":
-		return tsWrite
+		return TsWrite
 	case "-x":
-		return tsExec
+		return TsExec
 	case "-s":
-		return tsNoEmpty
+		return TsNoEmpty
 	case "-t":
-		return tsFdTerm
+		return TsFdTerm
 	case "-z":
-		return tsEmpStr
+		return TsEmpStr
 	case "-n":
-		return tsNempStr
+		return TsNempStr
 	case "-o":
-		return tsOptSet
+		return TsOptSet
 	case "-v":
-		return tsVarSet
+		return TsVarSet
 	case "-R":
-		return tsRefVar
+		return TsRefVar
 	default:
-		return illegalTok
+		return 0
 	}
 }
 
-func testBinaryOp(val string) token {
+func testBinaryOp(val string) BinTestOperator {
 	switch val {
 	case "==", "=":
-		return equal
+		return TsMatch
 	case "!=":
-		return nequal
+		return TsNoMatch
 	case "=~":
-		return tsReMatch
+		return TsReMatch
 	case "-nt":
-		return tsNewer
+		return TsNewer
 	case "-ot":
-		return tsOlder
+		return TsOlder
 	case "-ef":
-		return tsDevIno
+		return TsDevIno
 	case "-eq":
-		return tsEql
+		return TsEql
 	case "-ne":
-		return tsNeq
+		return TsNeq
 	case "-le":
-		return tsLeq
+		return TsLeq
 	case "-ge":
-		return tsGeq
+		return TsGeq
 	case "-lt":
-		return tsLss
+		return TsLss
 	case "-gt":
-		return tsGtr
+		return TsGtr
 	default:
-		return illegalTok
+		return 0
 	}
 }

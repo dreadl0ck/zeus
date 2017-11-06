@@ -5,8 +5,8 @@ package syntax
 
 import "fmt"
 
-func walkStmts(stmts []*Stmt, f func(Node) bool) {
-	for _, s := range stmts {
+func walkStmts(sl StmtList, f func(Node) bool) {
+	for _, s := range sl.Stmts {
 		Walk(s, f)
 	}
 }
@@ -28,13 +28,10 @@ func Walk(node Node, f func(Node) bool) {
 
 	switch x := node.(type) {
 	case *File:
-		walkStmts(x.Stmts, f)
+		walkStmts(x.StmtList, f)
 	case *Stmt:
 		if x.Cmd != nil {
 			Walk(x.Cmd, f)
-		}
-		for _, a := range x.Assigns {
-			Walk(a, f)
 		}
 		for _, r := range x.Redirs {
 			Walk(r, f)
@@ -46,6 +43,12 @@ func Walk(node Node, f func(Node) bool) {
 		if x.Value != nil {
 			Walk(x.Value, f)
 		}
+		if x.Index != nil {
+			Walk(x.Index, f)
+		}
+		if x.Array != nil {
+			Walk(x.Array, f)
+		}
 	case *Redirect:
 		if x.N != nil {
 			Walk(x.N, f)
@@ -55,31 +58,27 @@ func Walk(node Node, f func(Node) bool) {
 			Walk(x.Hdoc, f)
 		}
 	case *CallExpr:
+		for _, a := range x.Assigns {
+			Walk(a, f)
+		}
 		walkWords(x.Args, f)
 	case *Subshell:
-		walkStmts(x.Stmts, f)
+		walkStmts(x.StmtList, f)
 	case *Block:
-		walkStmts(x.Stmts, f)
+		walkStmts(x.StmtList, f)
 	case *IfClause:
-		walkStmts(x.CondStmts, f)
-		walkStmts(x.ThenStmts, f)
-		for _, elif := range x.Elifs {
-			walkStmts(elif.CondStmts, f)
-			walkStmts(elif.ThenStmts, f)
-		}
-		walkStmts(x.ElseStmts, f)
+		walkStmts(x.Cond, f)
+		walkStmts(x.Then, f)
+		walkStmts(x.Else, f)
 	case *WhileClause:
-		walkStmts(x.CondStmts, f)
-		walkStmts(x.DoStmts, f)
-	case *UntilClause:
-		walkStmts(x.CondStmts, f)
-		walkStmts(x.DoStmts, f)
+		walkStmts(x.Cond, f)
+		walkStmts(x.Do, f)
 	case *ForClause:
 		Walk(x.Loop, f)
-		walkStmts(x.DoStmts, f)
+		walkStmts(x.Do, f)
 	case *WordIter:
 		Walk(x.Name, f)
-		walkWords(x.List, f)
+		walkWords(x.Items, f)
 	case *CStyleLoop:
 		if x.Init != nil {
 			Walk(x.Init, f)
@@ -107,29 +106,27 @@ func Walk(node Node, f func(Node) bool) {
 			Walk(wp, f)
 		}
 	case *CmdSubst:
-		walkStmts(x.Stmts, f)
+		walkStmts(x.StmtList, f)
 	case *ParamExp:
-		if x.Param != nil {
-			Walk(x.Param, f)
-		}
-		if x.Ind != nil {
-			Walk(x.Ind.Expr, f)
+		Walk(x.Param, f)
+		if x.Index != nil {
+			Walk(x.Index, f)
 		}
 		if x.Repl != nil {
-			Walk(x.Repl.Orig, f)
-			Walk(x.Repl.With, f)
+			if x.Repl.Orig != nil {
+				Walk(x.Repl.Orig, f)
+			}
+			if x.Repl.With != nil {
+				Walk(x.Repl.With, f)
+			}
 		}
-		if x.Exp != nil {
+		if x.Exp != nil && x.Exp.Word != nil {
 			Walk(x.Exp.Word, f)
 		}
 	case *ArithmExp:
-		if x.X != nil {
-			Walk(x.X, f)
-		}
+		Walk(x.X, f)
 	case *ArithmCmd:
-		if x.X != nil {
-			Walk(x.X, f)
-		}
+		Walk(x.X, f)
 	case *BinaryArithm:
 		Walk(x.X, f)
 		Walk(x.Y, f)
@@ -146,10 +143,12 @@ func Walk(node Node, f func(Node) bool) {
 		Walk(x.X, f)
 	case *CaseClause:
 		Walk(x.Word, f)
-		for _, pl := range x.List {
-			walkWords(pl.Patterns, f)
-			walkStmts(pl.Stmts, f)
+		for _, ci := range x.Items {
+			Walk(ci, f)
 		}
+	case *CaseItem:
+		walkWords(x.Patterns, f)
+		walkStmts(x.StmtList, f)
 	case *TestClause:
 		Walk(x.X, f)
 	case *DeclClause:
@@ -158,12 +157,19 @@ func Walk(node Node, f func(Node) bool) {
 			Walk(a, f)
 		}
 	case *ArrayExpr:
-		walkWords(x.List, f)
+		for _, el := range x.Elems {
+			Walk(el, f)
+		}
+	case *ArrayElem:
+		if x.Index != nil {
+			Walk(x.Index, f)
+		}
+		Walk(x.Value, f)
 	case *ExtGlob:
 		Walk(x.Pattern, f)
 	case *ProcSubst:
-		walkStmts(x.Stmts, f)
-	case *EvalClause:
+		walkStmts(x.StmtList, f)
+	case *TimeClause:
 		if x.Stmt != nil {
 			Walk(x.Stmt, f)
 		}

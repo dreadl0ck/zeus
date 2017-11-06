@@ -23,7 +23,6 @@ package log
 
 import (
 	"github.com/sirupsen/logrus"
-	prefixed "github.com/x-cray/logrus-prefixed-formatter"
 )
 
 var (
@@ -33,6 +32,6 @@ var (
 
 func init() {
 	// Set the default log options.
-	L.Formatter = new(prefixed.TextFormatter)
+	L.Formatter = new(logrus.TextFormatter)
 	L.Level = logrus.DebugLevel
 }

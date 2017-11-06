@@ -14,10 +14,10 @@
 ## v0.8.2
 
 - add pitfalls to README (stopOnError in bash)
-- move to dep for vendoring
 - add typescript support
 - add install-completions command
 - add release version=xxx command
+- test brew install
 
 - fix argument completion
 - add edit data / source sub command

@@ -109,14 +109,9 @@ func Do(p PrefixCompleterInterface, line []rune, pos int) (newLine [][]rune, off
 }
 
 func doInternal(p PrefixCompleterInterface, line []rune, pos int, origLine []rune) (newLine [][]rune, offset int) {
-
-	var (
-		goNext        = false
-		lineCompleter PrefixCompleterInterface
-	)
-
 	line = runes.TrimSpaceLeft(line[:pos])
-
+	goNext := false
+	var lineCompleter PrefixCompleterInterface
 	for _, child := range p.GetChildren() {
 		childNames := make([][]rune, 1)
 
@@ -160,17 +155,6 @@ func doInternal(p PrefixCompleterInterface, line []rune, pos int, origLine []run
 		}
 
 		tmpLine = append(tmpLine, line[i:]...)
-
-		// check if its a path
-		if strings.HasSuffix(string(line), "/") {
-			return doInternal(lineCompleter, nil, 0, origLine)
-		}
-
-		// check if its a path
-		// if strings.Contains(string(line), "..") || strings.Contains(string(line), "/") {
-		// 	return doInternal(lineCompleter, nil, 0, origLine)
-		// }
-
 		return doInternal(lineCompleter, tmpLine, len(tmpLine), origLine)
 	}
 
