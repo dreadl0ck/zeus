@@ -13,17 +13,20 @@
 
 ## v0.8.2
 
+- research completer Dynamic flag usage ???
+
+- fix argument / chain / path completion
 - add pitfalls to README (stopOnError in bash)
 - add typescript support
 - add install-completions command
 - add release version=xxx command
-- test brew install
+- fix brew install
 
-- fix argument completion
+- make formatter modular: add it as a field to language, to allow using a specific formatter for each language
+
 - add edit data / source sub command
 - [BUG] write events corrupt with vim?
 - use gometalinter: add check command target
-- make formatter modular: add it as a field to language, to allow using a specific formatter for each language
 - create core package, make it importable + add godoc badge
 - add golang sloc as default and add clocPath to config
 - create commands for starting the js & scss watchers and add events, remove code from project

@@ -269,7 +269,12 @@ func extractLineNumFromError(errMsg, errLineNumberSymbol string) (int, error) {
 
 // count total length of the commands dependencies
 func countDependencies(deps []string) (int, error) {
-	count := 1
+
+	if len(deps) == 0 {
+		return 0, nil
+	}
+
+	count := 0
 	for _, dep := range deps {
 
 		fields := strings.Fields(dep)
@@ -301,7 +306,8 @@ func countDependencies(deps []string) (int, error) {
 }
 
 func getTotalDependencyCount(c *command) (int, error) {
-	return countDependencies(c.dependencies)
+	count, err := countDependencies(c.dependencies)
+	return count + 1, err
 }
 
 // print the prompt for the interactive shell

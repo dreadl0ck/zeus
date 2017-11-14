@@ -152,3 +152,4 @@ commands:
             if [[ $? == 0 ]]; then
                 go tool cover -html=coverage.out
             fi
+    

@@ -270,7 +270,7 @@ func newCompleter() *readline.PrefixCompleter {
 		),
 	)
 
-	c.Dynamic = true
+	//c.Dynamic = true
 	return c
 }
 
