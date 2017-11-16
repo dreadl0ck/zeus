@@ -35,7 +35,6 @@ globals:
 # exec                      # string         # supply the script directly without a file
 # language                  # string         # set the language for the script
 commands:
-    testComman:
 
     # Utils
     #
@@ -155,8 +154,3 @@ commands:
     
     release:
         description: release a new version
-        dependencies:
-            - clean
-        arguments:
-            - force:Bool
-            - v:String

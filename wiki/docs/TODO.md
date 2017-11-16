@@ -13,6 +13,7 @@
 
 ## v0.8.3
 
+- global should start with an uppercase letter
 - fix brew install
 - fix argument / chain / path completion
 - add pitfalls to README (stopOnError in bash)
