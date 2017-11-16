@@ -4,7 +4,7 @@
 #  /_____ \\___  >____//____  >  
 #        \/    \/           \/  
 #                    Build System
-#                          v0.8.1
+#                          v0.8.2
 #
 # default interpreter used for Zeusfile code is bash
 # that means all commands without the language field are treated as shell scripts
@@ -18,7 +18,7 @@ language: bash
 globals:
     binaryName: zeus
     buildDir: bin
-    version: 0.8.1
+    version: 0.8.2
 
 # all commands
 # available fields:
@@ -159,4 +159,4 @@ commands:
             - clean
         arguments:
             - force:Bool
-            - version:String
+            - v:String
