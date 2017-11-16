@@ -54,7 +54,7 @@ var (
 	completer = newAtomicCompleter()
 
 	// assets folder
-	assetBox = rice.MustFindBox("assets")
+	assetBox *rice.Box
 
 	// configuration
 	conf *config
@@ -95,7 +95,7 @@ func newAtomicLogger() *atomicLogger {
 	}
 }
 
-func init() {
+func initZeus() {
 
 	var (
 		err             error
@@ -110,6 +110,7 @@ func init() {
 		Log.Fatal("windows is not (yet) supported.")
 	}
 
+	assetBox = rice.MustFindBox("assets")
 	asciiArt, err = assetBox.String("ascii_art.txt")
 	if err != nil {
 		Log.WithError(err).Fatal("failed to get ascii_art.txt from rice box")
@@ -170,6 +171,8 @@ func init() {
 }
 
 func main() {
+
+	initZeus()
 
 	var (
 		cLog           = Log.WithField("prefix", "main")
