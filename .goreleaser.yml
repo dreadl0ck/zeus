@@ -7,7 +7,9 @@ builds:
       - linux
     goarch:
       - amd64
-
+  	hooks:
+  		pre: rice embed-go
+  	
 brew:
   # Reporitory to push the tap to.
   github:

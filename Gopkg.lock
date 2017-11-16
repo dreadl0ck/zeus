@@ -92,12 +92,6 @@
   revision = "9520e82c474b0a04dd04f8a40959027271bab992"
 
 [[projects]]
-  name = "github.com/mvdan/sh"
-  packages = ["fileutil","syntax"]
-  revision = "4f986fe247f8f7ef437fa8445291d7e034808f3d"
-  version = "v2.0.0"
-
-[[projects]]
   name = "github.com/russross/blackfriday"
   packages = ["."]
   revision = "cadec560ec52d93835bf2f15bd794700d3a2473b"
@@ -160,6 +154,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "164cf8d2e95063bb9723894ce6b71cc035b68359358b6f01e90f09f8c983a1d8"
+  inputs-digest = "24cf1125a049fbf6ded9d68aeafc97fc4937cbdd1fab94585036ca02a5a07ae8"
   solver-name = "gps-cdcl"
   solver-version = 1

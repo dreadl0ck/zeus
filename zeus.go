@@ -37,7 +37,7 @@ import (
 
 var (
 	// current zeus version
-	version = "0.8.1"
+	version = "_master"
 
 	// Log instance for internal logs
 	Log = newAtomicLogger()
