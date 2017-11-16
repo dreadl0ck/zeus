@@ -153,3 +153,10 @@ commands:
                 go tool cover -html=coverage.out
             fi
     
+    release:
+        description: release a new version
+        dependencies:
+            - clean
+        arguments:
+            - force:Bool
+            - version:String

@@ -11,16 +11,13 @@
     COMMIT:
 ------------------------------------------------------------------------------------
 
-## v0.8.2
+## v0.8.3
 
-- research completer Dynamic flag usage ???
-
+- fix brew install
 - fix argument / chain / path completion
 - add pitfalls to README (stopOnError in bash)
 - add typescript support
 - add install-completions command
-- add release version=xxx command
-- fix brew install
 
 - make formatter modular: add it as a field to language, to allow using a specific formatter for each language
 
