@@ -1123,7 +1123,7 @@ and has the name **commandName.[fileExtension]**
 
 ### Path
 
-The **path** field allows to specifiy a custom path for the script.
+The **path** field allows to specify a custom path for the script.
 
 If a command has a custom path set and an exec action specified an error is thrown upon command initialization.
 
