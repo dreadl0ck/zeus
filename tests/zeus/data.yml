@@ -4,7 +4,7 @@
 #  /_____ \\___  >____//____  >  
 #        \/    \/           \/  
 #                    Build System
-#                          v0.8.1
+#                          v_master
 #
 
 buildNumber: 3
@@ -12,17 +12,10 @@ deadline: ""
 milestones: []
 aliases: {}
 events:
-  7a1db1f7ed13f1c2:
+  9ae893178476ef79:
     name: config watcher
-    id: 7a1db1f7ed13f1c2
-    path: zeus/config.yml
-    op: 2
-    fileextension: .yml
-    command: internal
-  b1e744772bd02d20:
-    name: commandsFile watcher
-    id: b1e744772bd02d20
-    path: zeus/commands.yml
+    id: 9ae893178476ef79
+    path: tests/zeus/config.yml
     op: 2
     fileextension: .yml
     command: internal

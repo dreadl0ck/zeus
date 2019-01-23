@@ -63,10 +63,6 @@ func Cosh(x float64) float64 {
 	return math.Call("cosh", x).Float()
 }
 
-func Dim(x, y float64) float64 {
-	return dim(x, y)
-}
-
 func Erf(x float64) float64 {
 	return erf(x)
 }
@@ -123,16 +119,13 @@ func IsNaN(f float64) (is bool) {
 }
 
 func Ldexp(frac float64, exp int) float64 {
-	if frac == 0 {
-		return frac
+	if -1024 < exp && exp < 1024 { // Use Math.pow for small exp values where it's viable. For performance.
+		if frac == 0 {
+			return frac
+		}
+		return frac * math.Call("pow", 2, exp).Float()
 	}
-	if exp >= 1024 {
-		return frac * math.Call("pow", 2, 1023).Float() * math.Call("pow", 2, exp-1023).Float()
-	}
-	if exp <= -1024 {
-		return frac * math.Call("pow", 2, -1023).Float() * math.Call("pow", 2, exp+1023).Float()
-	}
-	return frac * math.Call("pow", 2, exp).Float()
+	return ldexp(frac, exp)
 }
 
 func Log(x float64) float64 {

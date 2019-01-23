@@ -12,12 +12,12 @@ import (
 	"strings"
 
 	"github.com/gopherjs/gopherjs/compiler/prelude"
-	"golang.org/x/tools/go/gcimporter15"
+	"golang.org/x/tools/go/gcexportdata"
 )
 
 var sizes32 = &types.StdSizes{WordSize: 4, MaxAlign: 8}
 var reservedKeywords = make(map[string]bool)
-var _ = ___GOPHERJS_REQUIRES_GO_VERSION_1_9___ // Compile error on other Go versions, because they're not supported.
+var _ = ___GOPHERJS_REQUIRES_GO_VERSION_1_11___ // Compile error on other Go versions, because they're not supported.
 
 func init() {
 	for _, keyword := range []string{"abstract", "arguments", "boolean", "break", "byte", "case", "catch", "char", "class", "const", "continue", "debugger", "default", "delete", "do", "double", "else", "enum", "eval", "export", "extends", "false", "final", "finally", "float", "for", "function", "goto", "if", "implements", "import", "in", "instanceof", "int", "interface", "let", "long", "native", "new", "null", "package", "private", "protected", "public", "return", "short", "static", "super", "switch", "synchronized", "this", "throw", "throws", "transient", "true", "try", "typeof", "undefined", "var", "void", "volatile", "while", "with", "yield"} {
@@ -154,7 +154,11 @@ func WriteProgramCode(pkgs []*Archive, w *SourceMapFilter) error {
 	if _, err := w.Write([]byte("\"use strict\";\n(function() {\n\n")); err != nil {
 		return err
 	}
-	if _, err := w.Write(removeWhitespace([]byte(prelude.Prelude), minify)); err != nil {
+	preludeJS := prelude.Prelude
+	if minify {
+		preludeJS = prelude.Minified
+	}
+	if _, err := io.WriteString(w, preludeJS); err != nil {
 		return err
 	}
 	if _, err := w.Write([]byte("\n")); err != nil {
@@ -239,7 +243,7 @@ func ReadArchive(filename, path string, r io.Reader, packages map[string]*types.
 	}
 
 	var err error
-	_, packages[path], err = gcimporter.BImportData(token.NewFileSet(), packages, a.ExportData, path)
+	packages[path], err = gcexportdata.Read(bytes.NewReader(a.ExportData), token.NewFileSet(), packages, path)
 	if err != nil {
 		return nil, err
 	}

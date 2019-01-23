@@ -17,9 +17,13 @@ type eface struct {
 	_type *_type
 }
 type _type struct {
+	str string
 }
 
 func (t *_type) string() string {
+	return t.str
+}
+func (t *_type) pkgpath() string {
 	return ""
 }
 
@@ -43,7 +47,9 @@ func GOROOT() string {
 	if goroot != js.Undefined {
 		return goroot.String()
 	}
-	return sys.DefaultGoroot
+	// sys.DefaultGoroot is now gone, can't use it as fallback anymore.
+	// TODO: See if a better solution is needed.
+	return "/usr/local/go"
 }
 
 func Breakpoint() {
@@ -218,3 +224,11 @@ func KeepAlive(interface{}) {}
 func throw(s string) {
 	panic(errorString(s))
 }
+
+// These are used by panicwrap. Not implemented for GOARCH=js.
+// TODO: Implement if possible.
+func getcallerpc() uintptr         { return 0 }
+func findfunc(pc uintptr) funcInfo { return funcInfo{} }
+func funcname(f funcInfo) string   { return "" }
+
+type funcInfo struct{}

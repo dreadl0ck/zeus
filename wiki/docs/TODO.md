@@ -11,10 +11,9 @@
     COMMIT:
 ------------------------------------------------------------------------------------
 
-## v0.8.3
+## v0.8.5
 
-- global should start with an uppercase letter
-- fix brew install
+- globals should start with an uppercase letter
 - fix argument / chain / path completion
 - add pitfalls to README (stopOnError in bash)
 - add typescript support

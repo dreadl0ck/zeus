@@ -21,8 +21,11 @@ import (
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/gopherjs/gopherjs/compiler"
+	"github.com/gopherjs/gopherjs/compiler/gopherjspkg"
 	"github.com/gopherjs/gopherjs/compiler/natives"
 	"github.com/neelance/sourcemap"
+	"github.com/shurcooL/httpfs/vfsutil"
+	"golang.org/x/tools/go/buildutil"
 )
 
 type ImportCError struct {
@@ -33,7 +36,13 @@ func (e *ImportCError) Error() string {
 	return e.pkgPath + `: importing "C" is not supported by GopherJS`
 }
 
+// NewBuildContext creates a build context for building Go packages
+// with GopherJS compiler.
+//
+// Core GopherJS packages (i.e., "github.com/gopherjs/gopherjs/js", "github.com/gopherjs/gopherjs/nosync")
+// are loaded from gopherjspkg.FS virtual filesystem rather than GOPATH.
 func NewBuildContext(installSuffix string, buildTags []string) *build.Context {
+	gopherjsRoot := filepath.Join(build.Default.GOROOT, "src", "github.com", "gopherjs", "gopherjs")
 	return &build.Context{
 		GOROOT:        build.Default.GOROOT,
 		GOPATH:        build.Default.GOPATH,
@@ -41,10 +50,56 @@ func NewBuildContext(installSuffix string, buildTags []string) *build.Context {
 		GOARCH:        "js",
 		InstallSuffix: installSuffix,
 		Compiler:      "gc",
-		BuildTags:     append(buildTags, "netgo"),
-		ReleaseTags:   build.Default.ReleaseTags,
-		CgoEnabled:    true, // detect `import "C"` to throw proper error
+		BuildTags: append(buildTags,
+			"netgo",  // See https://godoc.org/net#hdr-Name_Resolution.
+			"purego", // See https://golang.org/issues/23172.
+		),
+		ReleaseTags: build.Default.ReleaseTags,
+		CgoEnabled:  true, // detect `import "C"` to throw proper error
+
+		IsDir: func(path string) bool {
+			if strings.HasPrefix(path, gopherjsRoot+string(filepath.Separator)) {
+				path = filepath.ToSlash(path[len(gopherjsRoot):])
+				if fi, err := vfsutil.Stat(gopherjspkg.FS, path); err == nil {
+					return fi.IsDir()
+				}
+			}
+			fi, err := os.Stat(path)
+			return err == nil && fi.IsDir()
+		},
+		ReadDir: func(path string) ([]os.FileInfo, error) {
+			if strings.HasPrefix(path, gopherjsRoot+string(filepath.Separator)) {
+				path = filepath.ToSlash(path[len(gopherjsRoot):])
+				if fis, err := vfsutil.ReadDir(gopherjspkg.FS, path); err == nil {
+					return fis, nil
+				}
+			}
+			return ioutil.ReadDir(path)
+		},
+		OpenFile: func(path string) (io.ReadCloser, error) {
+			if strings.HasPrefix(path, gopherjsRoot+string(filepath.Separator)) {
+				path = filepath.ToSlash(path[len(gopherjsRoot):])
+				if f, err := gopherjspkg.FS.Open(path); err == nil {
+					return f, nil
+				}
+			}
+			return os.Open(path)
+		},
 	}
+}
+
+// statFile returns an os.FileInfo describing the named file.
+// For files in "$GOROOT/src/github.com/gopherjs/gopherjs" directory,
+// gopherjspkg.FS is consulted first.
+func statFile(path string) (os.FileInfo, error) {
+	gopherjsRoot := filepath.Join(build.Default.GOROOT, "src", "github.com", "gopherjs", "gopherjs")
+	if strings.HasPrefix(path, gopherjsRoot+string(filepath.Separator)) {
+		path = filepath.ToSlash(path[len(gopherjsRoot):])
+		if fi, err := vfsutil.Stat(gopherjspkg.FS, path); err == nil {
+			return fi, nil
+		}
+	}
+	return os.Stat(path)
 }
 
 // Import returns details about the Go package named by the import path. If the
@@ -69,11 +124,13 @@ func Import(path string, mode build.ImportMode, installSuffix string, buildTags 
 		// Import will not be able to resolve relative import paths.
 		wd = ""
 	}
-	return importWithSrcDir(path, wd, mode, installSuffix, buildTags)
+	bctx := NewBuildContext(installSuffix, buildTags)
+	return importWithSrcDir(*bctx, path, wd, mode, installSuffix)
 }
 
-func importWithSrcDir(path string, srcDir string, mode build.ImportMode, installSuffix string, buildTags []string) (*PackageData, error) {
-	bctx := NewBuildContext(installSuffix, buildTags)
+func importWithSrcDir(bctx build.Context, path string, srcDir string, mode build.ImportMode, installSuffix string) (*PackageData, error) {
+	// bctx is passed by value, so it can be modified here.
+	var isVirtual bool
 	switch path {
 	case "syscall":
 		// syscall needs to use a typical GOARCH like amd64 to pick up definitions for _Socklen, BpfInsn, IFNAMSIZ, Timeval, BpfStat, SYS_FCNTL, Flock_t, etc.
@@ -88,15 +145,15 @@ func importWithSrcDir(path string, srcDir string, mode build.ImportMode, install
 	case "crypto/x509", "os/user":
 		// These stdlib packages have cgo and non-cgo versions (via build tags); we want the latter.
 		bctx.CgoEnabled = false
+	case "github.com/gopherjs/gopherjs/js", "github.com/gopherjs/gopherjs/nosync":
+		// These packages are already embedded via gopherjspkg.FS virtual filesystem (which can be
+		// safely vendored). Don't try to use vendor directory to resolve them.
+		mode |= build.IgnoreVendor
+		isVirtual = true
 	}
 	pkg, err := bctx.Import(path, srcDir, mode)
 	if err != nil {
 		return nil, err
-	}
-
-	// TODO: Resolve issue #415 and remove this temporary workaround.
-	if strings.HasSuffix(pkg.ImportPath, "/vendor/github.com/gopherjs/gopherjs/js") {
-		return nil, fmt.Errorf("vendoring github.com/gopherjs/gopherjs/js package is not supported, see https://github.com/gopherjs/gopherjs/issues/415")
 	}
 
 	switch path {
@@ -112,6 +169,7 @@ func importWithSrcDir(path string, srcDir string, mode build.ImportMode, install
 		pkg.GoFiles = exclude(pkg.GoFiles, "fd_poll_runtime.go")
 	case "crypto/rand":
 		pkg.GoFiles = []string{"rand.go", "util.go"}
+		pkg.TestGoFiles = exclude(pkg.TestGoFiles, "rand_linux_test.go") // Don't want linux-specific tests (since linux-specific package files are excluded too).
 	}
 
 	if len(pkg.CgoFiles) > 0 {
@@ -131,12 +189,12 @@ func importWithSrcDir(path string, srcDir string, mode build.ImportMode, install
 		}
 	}
 
-	jsFiles, err := jsFilesFromDir(pkg.Dir)
+	jsFiles, err := jsFilesFromDir(&bctx, pkg.Dir)
 	if err != nil {
 		return nil, err
 	}
 
-	return &PackageData{Package: pkg, JSFiles: jsFiles}, nil
+	return &PackageData{Package: pkg, JSFiles: jsFiles, IsVirtual: isVirtual}, nil
 }
 
 // excludeExecutable excludes all executable implementation .go files.
@@ -170,12 +228,13 @@ Outer:
 // ImportDir is like Import but processes the Go package found in the named
 // directory.
 func ImportDir(dir string, mode build.ImportMode, installSuffix string, buildTags []string) (*PackageData, error) {
-	pkg, err := NewBuildContext(installSuffix, buildTags).ImportDir(dir, mode)
+	bctx := NewBuildContext(installSuffix, buildTags)
+	pkg, err := bctx.ImportDir(dir, mode)
 	if err != nil {
 		return nil, err
 	}
 
-	jsFiles, err := jsFilesFromDir(pkg.Dir)
+	jsFiles, err := jsFilesFromDir(bctx, pkg.Dir)
 	if err != nil {
 		return nil, err
 	}
@@ -194,7 +253,7 @@ func ImportDir(dir string, mode build.ImportMode, installSuffix string, buildTag
 // as an existing file from the standard library). For all identifiers that exist
 // in the original AND the overrides, the original identifier in the AST gets
 // replaced by `_`. New identifiers that don't exist in original package get added.
-func parseAndAugment(pkg *build.Package, isTest bool, fileSet *token.FileSet) ([]*ast.File, error) {
+func parseAndAugment(bctx *build.Context, pkg *build.Package, isTest bool, fileSet *token.FileSet) ([]*ast.File, error) {
 	var files []*ast.File
 	replacedDeclNames := make(map[string]bool)
 	funcName := func(d *ast.FuncDecl) string {
@@ -253,6 +312,14 @@ func parseAndAugment(pkg *build.Package, isTest bool, fileSet *token.FileSet) ([
 			return natives.FS.Open(name)
 		},
 	}
+
+	// reflect needs to tell Go 1.11 apart from Go 1.11.1 for https://github.com/gopherjs/gopherjs/issues/862,
+	// so provide it with the custom go1.11.1 build tag whenever we're on Go 1.11.1 or later.
+	// TODO: Remove this ad hoc special behavior in GopherJS 1.12.
+	if runtime.Version() != "go1.11" {
+		nativesContext.ReleaseTags = append(nativesContext.ReleaseTags, "go1.11.1")
+	}
+
 	if nativesPkg, err := nativesContext.Import(importPath, "", 0); err == nil {
 		names := nativesPkg.GoFiles
 		if isTest {
@@ -298,10 +365,10 @@ func parseAndAugment(pkg *build.Package, isTest bool, fileSet *token.FileSet) ([
 
 	var errList compiler.ErrorList
 	for _, name := range pkg.GoFiles {
-		if !filepath.IsAbs(name) {
+		if !filepath.IsAbs(name) { // name might be absolute if specified directly. E.g., `gopherjs build /abs/file.go`.
 			name = filepath.Join(pkg.Dir, name)
 		}
-		r, err := os.Open(name)
+		r, err := buildutil.OpenFile(bctx, name)
 		if err != nil {
 			return nil, err
 		}
@@ -402,10 +469,12 @@ type PackageData struct {
 	IsTest     bool // IsTest is true if the package is being built for running tests.
 	SrcModTime time.Time
 	UpToDate   bool
+	IsVirtual  bool // If true, the package does not have a corresponding physical directory on disk.
 }
 
 type Session struct {
 	options  *Options
+	bctx     *build.Context
 	Archives map[string]*compiler.Archive
 	Types    map[string]*types.Package
 	Watcher  *fsnotify.Watcher
@@ -424,6 +493,7 @@ func NewSession(options *Options) *Session {
 		options:  options,
 		Archives: make(map[string]*compiler.Archive),
 	}
+	s.bctx = NewBuildContext(s.InstallSuffix(), s.options.BuildTags)
 	s.Types = make(map[string]*types.Package)
 	if options.Watch {
 		if out, err := exec.Command("ulimit", "-n").Output(); err == nil {
@@ -441,6 +511,9 @@ func NewSession(options *Options) *Session {
 	return s
 }
 
+// BuildContext returns the session's build context.
+func (s *Session) BuildContext() *build.Context { return s.bctx }
+
 func (s *Session) InstallSuffix() string {
 	if s.options.Minify {
 		return "min"
@@ -452,12 +525,12 @@ func (s *Session) BuildDir(packagePath string, importPath string, pkgObj string)
 	if s.Watcher != nil {
 		s.Watcher.Add(packagePath)
 	}
-	buildPkg, err := NewBuildContext(s.InstallSuffix(), s.options.BuildTags).ImportDir(packagePath, 0)
+	buildPkg, err := s.bctx.ImportDir(packagePath, 0)
 	if err != nil {
 		return err
 	}
 	pkg := &PackageData{Package: buildPkg}
-	jsFiles, err := jsFilesFromDir(pkg.Dir)
+	jsFiles, err := jsFilesFromDir(s.bctx, pkg.Dir)
 	if err != nil {
 		return err
 	}
@@ -510,7 +583,7 @@ func (s *Session) BuildImportPath(path string) (*compiler.Archive, error) {
 }
 
 func (s *Session) buildImportPathWithSrcDir(path string, srcDir string) (*PackageData, *compiler.Archive, error) {
-	pkg, err := importWithSrcDir(path, srcDir, 0, s.InstallSuffix(), s.options.BuildTags)
+	pkg, err := importWithSrcDir(*s.bctx, path, srcDir, 0, s.InstallSuffix())
 	if s.Watcher != nil && pkg != nil { // add watch even on error
 		s.Watcher.Add(pkg.Dir)
 	}
@@ -576,7 +649,7 @@ func (s *Session) BuildPackage(pkg *PackageData) (*compiler.Archive, error) {
 		}
 
 		for _, name := range append(pkg.GoFiles, pkg.JSFiles...) {
-			fileInfo, err := os.Stat(filepath.Join(pkg.Dir, name))
+			fileInfo, err := statFile(filepath.Join(pkg.Dir, name))
 			if err != nil {
 				return nil, err
 			}
@@ -610,7 +683,7 @@ func (s *Session) BuildPackage(pkg *PackageData) (*compiler.Archive, error) {
 	}
 
 	fileSet := token.NewFileSet()
-	files, err := parseAndAugment(pkg.Package, pkg.IsTest, fileSet)
+	files, err := parseAndAugment(s.bctx, pkg.Package, pkg.IsTest, fileSet)
 	if err != nil {
 		return nil, err
 	}
@@ -748,8 +821,8 @@ func NewMappingCallback(m *sourcemap.Map, goroot, gopath string, localMap bool) 
 	}
 }
 
-func jsFilesFromDir(dir string) ([]string, error) {
-	files, err := ioutil.ReadDir(dir)
+func jsFilesFromDir(bctx *build.Context, dir string) ([]string, error) {
+	files, err := buildutil.ReadDir(bctx, dir)
 	if err != nil {
 		return nil, err
 	}

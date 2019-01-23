@@ -1,12 +1,13 @@
 package main
 
 import (
+	"bufio"
 	"bytes"
+	"errors"
 	"fmt"
 	"go/build"
 	"go/format"
 	"io"
-	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
@@ -15,13 +16,15 @@ import (
 
 const boxFilename = "rice-box.go"
 
+// errEmptyBox is returned by writeBoxesGo when no calls to rice.FindBox
+// are found in the package.
+var errEmptyBox = errors.New("no calls to rice.FindBox() found")
+
 func writeBoxesGo(pkg *build.Package, out io.Writer) error {
 	boxMap := findBoxes(pkg)
 
-	// notify user when no calls to rice.FindBox are made (is this an error and therefore os.Exit(1) ?
 	if len(boxMap) == 0 {
-		fmt.Println("no calls to rice.FindBox() found")
-		return nil
+		return errEmptyBox
 	}
 
 	verbosef("\n")
@@ -47,7 +50,7 @@ func writeBoxesGo(pkg *build.Package, out io.Writer) error {
 		// read box metadata
 		boxInfo, ierr := os.Stat(boxPath)
 		if ierr != nil {
-			return fmt.Errorf("Error: unable to access box at %s\n", boxPath)
+			return fmt.Errorf("unable to access box at %s", boxPath)
 		}
 
 		// create box datastructure (used by template)
@@ -59,14 +62,14 @@ func writeBoxesGo(pkg *build.Package, out io.Writer) error {
 		}
 
 		if !boxInfo.IsDir() {
-			return fmt.Errorf("Error: Box %s must point to a directory but points to %s instead\n",
+			return fmt.Errorf("box %s must point to a directory but points to %s instead",
 				boxname, boxPath)
 		}
 
 		// fill box datastructure with file data
 		err := filepath.Walk(boxPath, func(path string, info os.FileInfo, err error) error {
 			if err != nil {
-				return fmt.Errorf("error walking box: %s\n", err)
+				return fmt.Errorf("error walking box: %s", err)
 			}
 
 			filename := strings.TrimPrefix(path, boxPath)
@@ -96,24 +99,25 @@ func writeBoxesGo(pkg *build.Package, out io.Writer) error {
 					ModTime:    info.ModTime().Unix(),
 				}
 				verbosef("\tincludes file: '%s'\n", fileData.FileName)
-				fileData.Content, err = ioutil.ReadFile(path)
-				if err != nil {
-					return fmt.Errorf("error reading file content while walking box: %s\n", err)
-				}
+
+				// Instead of injecting content, inject placeholder for fasttemplate.
+				// This allows us to stream the content into the final file,
+				// and it also avoids running gofmt on a very large source code.
+				fileData.Path = path
 				box.Files = append(box.Files, fileData)
 
 				// add tree entry
 				pathParts := strings.Split(fileData.FileName, "/")
 				parentDir := box.Dirs[strings.Join(pathParts[:len(pathParts)-1], "/")]
 				if parentDir == nil {
-					return fmt.Errorf("Error: parent of %s is not within the box\n", path)
+					return fmt.Errorf("parent of %s is not within the box", path)
 				}
 				parentDir.ChildFiles = append(parentDir.ChildFiles, fileData)
 			}
 			return nil
 		})
 		if err != nil {
-			return err
+			return fmt.Errorf("failed in filepath walk: %v", err)
 		}
 		boxes = append(boxes, box)
 
@@ -127,19 +131,24 @@ func writeBoxesGo(pkg *build.Package, out io.Writer) error {
 		embedFileDataType{pkg.Name, boxes},
 	)
 	if err != nil {
-		return fmt.Errorf("error writing embedded box to file (template execute): %s\n", err)
+		return fmt.Errorf("error writing embedded box to file (template execute): %s", err)
 	}
 
 	// format the source code
 	embedSource, err := format.Source(embedSourceUnformated.Bytes())
 	if err != nil {
-		return fmt.Errorf("error formatting embedSource: %s\n", err)
+		return fmt.Errorf("error formatting embedSource: %s", err)
 	}
 
 	// write source to file
-	_, err = io.Copy(out, bytes.NewBuffer(embedSource))
+	bufWriter := bufio.NewWriterSize(out, 100*1024)
+	err = embeddedBoxFasttemplate(bufWriter, string(embedSource))
 	if err != nil {
 		return fmt.Errorf("error writing embedSource to file: %s\n", err)
+	}
+	err = bufWriter.Flush()
+	if err != nil {
+		return fmt.Errorf("error writing embedSource to file: %s", err)
 	}
 	return nil
 }
@@ -151,11 +160,22 @@ func operationEmbedGo(pkg *build.Package) {
 		log.Printf("error creating embedded box file: %s\n", err)
 		os.Exit(1)
 	}
-	defer boxFile.Close()
 
 	err = writeBoxesGo(pkg, boxFile)
+	boxFile.Close()
 	if err != nil {
-		log.Printf("error creating embedded box file: %s\n", err)
-		os.Exit(1)
+		// don't leave an invalid go file in the package directory.
+		if errRemove := os.Remove(boxFile.Name()); errRemove != nil {
+			log.Printf("error while removing file: %s\n", errRemove)
+		}
+		if err != errEmptyBox {
+			log.Printf("error creating embedded box file: %s\n", err)
+			os.Exit(1)
+		} else {
+			// notify user when no calls to rice.FindBox are made,
+			// but don't fail, since it's useful to be able to run
+			// go.rice unconditionally.
+			log.Println(errEmptyBox)
+		}
 	}
 }

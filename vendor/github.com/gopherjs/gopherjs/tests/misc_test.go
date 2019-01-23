@@ -597,6 +597,18 @@ func TestSliceOfString(t *testing.T) {
 	print(str[0:10])
 }
 
+func TestSliceOutOfRange(t *testing.T) {
+	defer func() {
+		if err := recover(); err == nil || !strings.Contains(err.(error).Error(), "slice bounds out of range") {
+			t.Fail()
+		}
+	}()
+
+	a := make([]byte, 4)
+	b := a[8:]
+	_ = b
+}
+
 type R struct{ v int }
 
 func (r R) Val() int {
@@ -622,4 +634,64 @@ func TestTypeConversion(t *testing.T) {
 	if (f1-f2)/f3 != float64(f1-f2)/float64(f3) {
 		t.Fail()
 	}
+}
+
+// See https://github.com/gopherjs/gopherjs/issues/851.
+func TestSlicingNilSlice(t *testing.T) {
+	t.Run("StaysNil", func(t *testing.T) {
+		var s []int
+		s = s[:]
+		if s != nil {
+			t.Errorf("nil slice became non-nil after slicing with s[:]: %#v, want []int(nil)", s)
+		}
+		s = nil
+		s = s[0:0]
+		if s != nil {
+			t.Errorf("nil slice became non-nil after slicing with s[0:0]: %#v, want []int(nil)", s)
+		}
+		s = nil
+		s = s[0:0:0]
+		if s != nil {
+			t.Errorf("nil slice became non-nil after slicing with s[0:0:0]: %#v, want []int(nil)", s)
+		}
+	})
+	t.Run("Panics", func(t *testing.T) {
+		defer func() {
+			if err := recover(); err == nil || !strings.Contains(err.(error).Error(), "slice bounds out of range") {
+				t.Error("slicing nil slice out of range didn't panic, want panic")
+			}
+		}()
+		var s []int
+		s = s[5:10]
+	})
+	t.Run("DoesNotBecomeNil", func(t *testing.T) {
+		var s = []int{}
+		s = s[:]
+		if s == nil {
+			t.Errorf("non-nil slice became nil after slicing: %#v, want []int{}", s)
+		}
+	})
+}
+
+// Ensure that doing an interface conversion that fails
+// produces an expected error type with the right error text.
+func TestInterfaceConversionRuntimeError(t *testing.T) {
+	defer func() {
+		r := recover()
+		if r == nil {
+			t.Fatal("got no panic, want panic")
+		}
+		re, ok := r.(runtime.Error)
+		if !ok {
+			t.Fatalf("got %T, want runtime.Error", r)
+		}
+		if got, want := re.Error(), "interface conversion: int is not tests.I: missing method Get"; got != want {
+			t.Fatalf("got %q, want %q", got, want)
+		}
+	}()
+	type I interface {
+		Get() int
+	}
+	e := (interface{})(0)
+	_ = e.(I)
 }
