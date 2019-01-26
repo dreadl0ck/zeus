@@ -4,7 +4,7 @@
 #  /_____ \\___  >____//____  >  
 #        \/    \/           \/  
 #                    Build System
-#                          v0.8.1
+#                          v0.8.5
 #
 
 autoFormat: false
@@ -26,6 +26,7 @@ printBuiltins: false
 makefileOverview: false
 stopOnError: true
 dumpScriptOnError: true
+quiet: true
 colorProfile: dark
 dateFormat: 02-01-2006
 todoFilePath: wiki/docs/TODO.md
@@ -34,7 +35,7 @@ colorProfiles:
   dark:
     Text: cyan
     Prompt: blue
-    CmdOutput: light+h
+    CmdOutput: white
     CmdName: blue
     CmdFields: yellow
     CmdArgs: white+h

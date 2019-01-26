@@ -87,6 +87,7 @@ func configItems() []readline.PrefixCompleterInterface {
 		readline.PcItem("todoFilePath"),
 		readline.PcItem("editor"),
 		readline.PcItem("codeSnippetScope"),
+		readline.PcItem("quiet", readline.PcItem("true"), readline.PcItem("false")),
 	}
 }
 

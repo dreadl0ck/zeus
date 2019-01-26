@@ -32,7 +32,7 @@ import (
 
 	"github.com/fsnotify/fsnotify"
 	prefixed "github.com/x-cray/logrus-prefixed-formatter"
-	"gopkg.in/yaml.v2"
+	yaml "gopkg.in/yaml.v2"
 )
 
 var (
@@ -81,6 +81,7 @@ type configFields struct {
 	MakefileOverview    bool                     `yaml:"makefileOverview"`
 	StopOnError         bool                     `yaml:"stopOnError"`
 	DumpScriptOnError   bool                     `yaml:"dumpScriptOnError"`
+	Quiet               bool                     `yaml:"quiet"`
 	ColorProfile        string                   `yaml:"colorProfile"`
 	DateFormat          string                   `yaml:"dateFormat"`
 	TodoFilePath        string                   `yaml:"todoFilePath"`
@@ -111,6 +112,7 @@ func newConfig() *config {
 			PrintBuiltins:       false,
 			StopOnError:         true,
 			DumpScriptOnError:   true,
+			Quiet:               false,
 			// default: german date format DD-MM-YYYY
 			DateFormat:   "02-01-2006",
 			TodoFilePath: "TODO.md",

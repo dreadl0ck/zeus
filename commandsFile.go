@@ -28,7 +28,7 @@ import (
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/mgutz/ansi"
-	"gopkg.in/yaml.v2"
+	yaml "gopkg.in/yaml.v2"
 )
 
 var (
@@ -127,7 +127,9 @@ func parseCommandsFile(path string) error {
 
 	// only print info when using the interactive shell
 	if len(os.Args) == 1 {
-		l.Println(cp.Text+"initialized "+cp.Prompt, len(cmdMap.items), cp.Text+" commands from CommandsFile in: "+cp.Prompt, time.Now().Sub(start), cp.Reset+"\n")
+		if !conf.fields.Quiet {
+			l.Println(cp.Text+"initialized "+cp.Prompt, len(cmdMap.items), cp.Text+" commands from CommandsFile in: "+cp.Prompt, time.Now().Sub(start), cp.Reset+"\n")
+		}
 	}
 
 	return nil

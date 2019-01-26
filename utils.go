@@ -39,7 +39,7 @@ import (
 
 	yaml "gopkg.in/yaml.v2"
 
-	gosxnotifier "github.com/deckarep/gosx-notifier"
+	"github.com/gen2brain/beeep"
 	"github.com/mgutz/ansi"
 )
 
@@ -452,27 +452,7 @@ func validArgType(in string, k reflect.Kind) error {
 
 // display an OS notification
 func showNote(text, subtitle string) {
-
-	note := gosxnotifier.NewNotification(text)
-	note.Title = "ZEUS"
-	note.Subtitle = subtitle
-
-	// optionally, set a group which ensures only one notification is ever shown replacing previous notification of same group id
-	note.Group = "com.zeus"
-
-	// optionally, set a sender icon
-	note.Sender = "com.apple.Terminal"
-
-	// optionally, specify a url or bundleid to open should the notification be clicked
-	note.Link = "http://" + hostName + ":" + strconv.Itoa(conf.fields.PortWebPanel)
-
-	// optionally, an app icon
-	// note.AppIcon = "gopher.png"
-
-	// optionally, a content image
-	// note.ContentImage = "gopher.png"
-
-	err := note.Push()
+	err := beeep.Notify("ZEUS", text+":"+subtitle, "")
 	if err != nil {
 		Log.WithError(err).Error("error pushing notification")
 	}

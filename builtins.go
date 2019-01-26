@@ -185,39 +185,56 @@ func printSortedCommandKeys(sortedCommandKeys []string) {
 			cmd      = cmdMap.items[key]
 		)
 
-		if lastElem {
-			l.Print(cp.Text + "└─── " + cp.CmdName + cmd.name + " " + getArgumentString(cmd.args) + cp.Text)
+		if conf.fields.Quiet {
+			var (
+				deps string
+			)
+			if len(cmd.dependencies) > 0 {
+				deps = cp.CmdFields + " [" + formatDependencies(cmd.dependencies) + "]"
+			}
+			if lastElem {
+				l.Print(cp.Text + "└─── " + cp.CmdName + cmd.name + " " + getArgumentString(cmd.args) + deps)
+			} else {
+				l.Print(cp.Text + "├─── " + cp.CmdName + cmd.name + " " + getArgumentString(cmd.args) + deps)
+			}
+
 		} else {
-			l.Print(cp.Text + "├─── " + cp.CmdName + cmd.name + " " + getArgumentString(cmd.args) + cp.Text)
+
+			if lastElem {
+				l.Print(cp.Text + "└─── " + cp.CmdName + cmd.name + " " + getArgumentString(cmd.args) + cp.Text)
+			} else {
+				l.Print(cp.Text + "├─── " + cp.CmdName + cmd.name + " " + getArgumentString(cmd.args) + cp.Text)
+			}
+
+			if cmd.path != "" {
+				printLine(pad("path", maxLen)+cp.CmdFields+cmd.path, lastElem, !(len(cmd.dependencies) > 0) && !(len(cmd.outputs) > 0) && !cmd.async && !cmd.buildNumber && !(len(cmd.description) > 0))
+			}
+
+			if len(cmd.dependencies) > 0 {
+				printLine(pad("dependencies", maxLen)+cp.CmdFields+formatDependencies(cmd.dependencies), lastElem, !(len(cmd.outputs) > 0) && !cmd.async && !cmd.buildNumber && !(len(cmd.description) > 0))
+			}
+
+			if len(cmd.outputs) > 0 {
+				printLine(pad("outputs", maxLen)+cp.CmdFields+strings.Join(cmd.outputs, ", "), lastElem, !cmd.async && !cmd.buildNumber && !(len(cmd.description) > 0))
+			}
+
+			if cmd.async {
+				printLine(cp.CmdFields+"async", lastElem, !cmd.buildNumber && !(len(cmd.description) > 0))
+			}
+
+			if cmd.buildNumber {
+				printLine(cp.CmdFields+"buildNumber", lastElem, !(len(cmd.description) > 0))
+			}
+
+			if len(cmd.description) > 0 {
+				printLine(pad("description", maxLen)+cp.CmdFields+cmd.description, lastElem, true)
+			}
+
+			if !lastElem {
+				l.Println("|")
+			}
 		}
 
-		if cmd.path != "" {
-			printLine(pad("path", maxLen)+cp.CmdFields+cmd.path, lastElem, !(len(cmd.dependencies) > 0) && !(len(cmd.outputs) > 0) && !cmd.async && !cmd.buildNumber && !(len(cmd.description) > 0))
-		}
-
-		if len(cmd.dependencies) > 0 {
-			printLine(pad("dependencies", maxLen)+cp.CmdFields+formatDependencies(cmd.dependencies), lastElem, !(len(cmd.outputs) > 0) && !cmd.async && !cmd.buildNumber && !(len(cmd.description) > 0))
-		}
-
-		if len(cmd.outputs) > 0 {
-			printLine(pad("outputs", maxLen)+cp.CmdFields+strings.Join(cmd.outputs, ", "), lastElem, !cmd.async && !cmd.buildNumber && !(len(cmd.description) > 0))
-		}
-
-		if cmd.async {
-			printLine(cp.CmdFields+"async", lastElem, !cmd.buildNumber && !(len(cmd.description) > 0))
-		}
-
-		if cmd.buildNumber {
-			printLine(cp.CmdFields+"buildNumber", lastElem, !(len(cmd.description) > 0))
-		}
-
-		if len(cmd.description) > 0 {
-			printLine(pad("description", maxLen)+cp.CmdFields+cmd.description, lastElem, true)
-		}
-
-		if !lastElem {
-			l.Println("|")
-		}
 	}
 }
 
@@ -348,7 +365,9 @@ func printTodoCount() {
 
 	contents, err := ioutil.ReadFile(conf.fields.TodoFilePath)
 	if err != nil {
-		l.Println(err)
+		if !conf.fields.Quiet {
+			l.Println(err)
+		}
 		return
 	}
 
