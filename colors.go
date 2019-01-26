@@ -83,7 +83,7 @@ func darkProfile() *ColorProfile {
 	return &ColorProfile{
 		Text:       "cyan",
 		Prompt:     "blue",
-		CmdOutput:  "light+h",
+		CmdOutput:  "white",
 		CmdName:    "blue",
 		CmdFields:  "yellow",
 		CmdArgs:    "white+h",
