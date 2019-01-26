@@ -36,8 +36,6 @@ import (
 )
 
 var (
-	// current zeus version
-	version = "_master"
 
 	// Log instance for internal logs
 	Log = newAtomicLogger()
@@ -368,8 +366,10 @@ func printProjectHeader() {
 	clearScreen()
 	l.Println(cp.Text + asciiArt + "v" + version)
 
-	l.Println(cp.Text + pad("Project Name", 14) + cp.Prompt + filepath.Base(workingDir) + cp.Text + "\n")
-	printAuthor()
+	if !conf.fields.Quiet {
+		l.Println(cp.Text + pad("Project Name", 14) + cp.Prompt + filepath.Base(workingDir) + cp.Text + "\n")
+		printAuthor()
+	}
 
 	printTodoCount()
 	if projectData.fields.BuildNumber > 0 {
@@ -379,7 +379,9 @@ func printProjectHeader() {
 		l.Println(pad("Deadline", 14) + cp.Prompt + projectData.fields.Deadline + cp.Text)
 	}
 
-	l.Println()
+	if !conf.fields.Quiet {
+		l.Println()
+	}
 
 	// project infos
 	listMilestones()

@@ -17,7 +17,7 @@ language: bash
 globals:
     binaryName: zeus
     buildDir: bin
-    version: 0.8.4
+    version: 0.8.5
 
 # all commands
 # available fields:
@@ -153,3 +153,7 @@ commands:
     
     release:
         description: release a new version
+
+    gen-version:
+        description: generate version file
+        exec: head -n 21 version.go > version_temp.go && echo -e "// generated with the gen-version command\nvar version = \"${version}\"" >> version_temp.go && mv version_temp.go version.go
