@@ -1,10 +1,9 @@
 <p align="center">
     <a href="https://github.com/dreadl0ck/zeus">
-    <img src="graphics/logo.png" width="50%" height="50%">
+    <img src="graphics/logo.png" width="40%" height="40%">
     </a>
 </p>
 
-<br>
 <br>
 <br>
 
