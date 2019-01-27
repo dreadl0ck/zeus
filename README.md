@@ -5,7 +5,6 @@
 </p>
 
 <br>
-<br>
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/dreadl0ck/zeus)](https://goreportcard.com/report/github.com/dreadl0ck/zeus)
 [![License](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://raw.githubusercontent.com/dreadl0ck/zeus/master/docs/LICENSE)
