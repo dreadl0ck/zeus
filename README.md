@@ -1,6 +1,8 @@
-<a href="https://github.com/dreadl0ck/zeus">
-  <img src="graphics/logo.png" width="100%" height="100%">
-</a>
+<p align="center">
+    <a href="https://github.com/dreadl0ck/zeus">
+    <img src="graphics/logo.png" width="50%" height="50%">
+    </a>
+</p>
 
 <br>
 <br>
