@@ -1,11 +1,10 @@
-# ZEUS
+<a href="https://github.com/dreadl0ck/zeus">
+  <img src="graphics/logo.svg" width="100%" height="300">
+</a>
 
-    ________ ____  __ __  ______  __  ___
-    \___   // __ \|  |  \/  ___/  \\/^//^\
-     /    /\  ___/|  |  /\___ \   //  \\ /
-    /_____ \\___  >____//____  >  \\  /^\\
-          \/    \/           \/   /\\/\ //\
-                An Electrifying Build System
+<br>
+<br>
+<br>
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/dreadl0ck/zeus)](https://goreportcard.com/report/github.com/dreadl0ck/zeus)
 [![License](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://raw.githubusercontent.com/dreadl0ck/zeus/master/docs/LICENSE)
