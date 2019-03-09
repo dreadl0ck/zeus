@@ -94,32 +94,34 @@ func (d *commandData) init(commandsFile *CommandsFile, name string) error {
 		return errors.New("command " + name + " has custom path set, but specifies an exec action")
 	}
 
-	// check deps
+	// check if the current command is a dependency and abort if true
 	for index, dep := range d.Dependencies {
-		if strings.HasPrefix(dep, name) {
-
-			c, err := ioutil.ReadFile(commandsFilePath)
-			if err != nil {
-				return err
-			}
-			var (
-				highlightLine  int
-				commandStarted bool
-			)
-			for index, line := range strings.Split(string(c), "\n") {
-				if strings.Contains(line, name+":") {
-					commandStarted = true
+		fields := strings.Fields(dep)
+		if len(fields) >= 1 {
+			if fields[0] == name {
+				c, err := ioutil.ReadFile(commandsFilePath)
+				if err != nil {
+					return err
 				}
-				if commandStarted {
-					if strings.Contains(line, "- "+name) {
-						highlightLine = index
-						break
+				var (
+					highlightLine  int
+					commandStarted bool
+				)
+				for index, line := range strings.Split(string(c), "\n") {
+					if strings.Contains(line, name+":") {
+						commandStarted = true
+					}
+					if commandStarted {
+						if strings.Contains(line, "- "+name) {
+							highlightLine = index
+							break
+						}
 					}
 				}
-			}
 
-			printCodeSnippet(string(c), commandsFilePath, highlightLine)
-			return errors.New("command " + name + " has itself as dependency at index: " + strconv.Itoa(index) + " This will result in a loop")
+				printCodeSnippet(string(c), commandsFilePath, highlightLine)
+				return errors.New("command " + name + " has itself as dependency at index: " + strconv.Itoa(index) + " This will result in a loop")
+			}
 		}
 	}
 
