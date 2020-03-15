@@ -24,7 +24,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/russross/blackfriday"
+	"gopkg.in/russross/blackfriday.v2"
 )
 
 // serve wiki index page
