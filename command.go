@@ -32,9 +32,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/sirupsen/logrus"
 	"github.com/dreadl0ck/readline"
 	"github.com/mgutz/ansi"
+	"github.com/sirupsen/logrus"
 )
 
 var (
@@ -174,6 +174,9 @@ func (c *command) Run(args []string, async bool) error {
 
 	// set host shell environment
 	cmd.Env = os.Environ()
+	for name, value := range g.Vars {
+		cmd.Env = append(cmd.Env, "zeus."+name+"="+value)
+	}
 
 	// don't wire terminalIO for async jobs
 	// they can be attached by using the procs builtin
@@ -416,8 +419,9 @@ func (c *command) createCommand(argBuffer string) (cmd *exec.Cmd, script string,
 	shellCommand = append(shellCommand, lang.Interpreter)
 
 	if stopOnErr && lang.FlagStopOnError != "" {
-		shellCommand = append(shellCommand, []string{lang.FlagStopOnError, lang.FlagEvaluateScript}...)
-	} else if lang.FlagEvaluateScript != "" {
+		shellCommand = append(shellCommand, lang.FlagStopOnError)
+	}
+	if c.path == "" && lang.FlagEvaluateScript != "" {
 		shellCommand = append(shellCommand, lang.FlagEvaluateScript)
 	}
 
@@ -432,6 +436,34 @@ func (c *command) createCommand(argBuffer string) (cmd *exec.Cmd, script string,
 	// check if loaded via CommandsFile
 	if c.exec != "" {
 		script = lang.Bang + "\n" + globalVars + "\n" + globalFuncs + "\n" + argBuffer + "\n" + c.exec
+		if lang.UseTempFile {
+			// make sure the .tmp dir exists
+			os.MkdirAll(scriptDir+"/.tmp", 0700)
+			filename := scriptDir + "/.tmp/" + c.name + "_" + randomString() + lang.FileExtension
+			f, err := os.Create(filename)
+			if err != nil {
+				Log.WithError(err).Error("failed to create tmp dir")
+				return nil, "", nil, err
+			}
+			defer f.Close()
+			f.WriteString(script)
+
+			// make temp script executable
+			err = os.Chmod(filename, 0700)
+			if err != nil {
+				Log.Error("failed to make script executable")
+				return nil, "", nil, err
+			}
+
+			shellCommand = append(shellCommand, filename)
+
+			// remove the generated tempfile
+			cleanupFunc = func() {
+				os.Remove(filename)
+			}
+		} else {
+			shellCommand = append(shellCommand, script)
+		}
 	} else {
 
 		// make sure script is executable
@@ -442,48 +474,7 @@ func (c *command) createCommand(argBuffer string) (cmd *exec.Cmd, script string,
 			return nil, "", nil, err
 		}
 
-		// read the contents of this commands script
-		target, err := ioutil.ReadFile(c.path)
-		if err != nil {
-			l.Fatal(err)
-		}
-
-		script = lang.Bang + "\n" + globalVars + "\n" + globalFuncs + "\n" + argBuffer + "\n" + string(target)
-	}
-
-	// if desired write generated script into a temporary file in the scripts/.tmp directory
-	// this is needed because some interpreters do not support passing multi line scripts on the commandline
-	if lang.UseTempFile {
-
-		// make sure the .tmp dir exists
-		os.MkdirAll(scriptDir+"/.tmp", 0700)
-
-		filename := scriptDir + "/.tmp/" + c.name + "_" + randomString() + lang.FileExtension
-
-		f, err := os.Create(filename)
-		if err != nil {
-			Log.WithError(err).Error("failed to create tmp dir")
-			return nil, "", nil, err
-		}
-		defer f.Close()
-
-		f.WriteString(script)
-
-		// make temp script executable
-		err = os.Chmod(filename, 0700)
-		if err != nil {
-			Log.Error("failed to make script executable")
-			return nil, "", nil, err
-		}
-
-		shellCommand = append(shellCommand, filename)
-
-		// remove the generated tempfile
-		cleanupFunc = func() {
-			os.Remove(filename)
-		}
-	} else {
-		shellCommand = append(shellCommand, script)
+		shellCommand = append(shellCommand, c.path)
 	}
 
 	// Log.Debug("shellCommand: ", shellCommand)
