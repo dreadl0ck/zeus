@@ -36,4 +36,5 @@ require (
 	gopkg.in/toast.v1 v1.0.0-20180812000517-0a84660828b2 // indirect
 	gopkg.in/yaml.v1 v1.0.0-20140924161607-9f9df34309c0
 	gopkg.in/yaml.v2 v2.2.4
+	github.com/elliotchance/orderedmap v1.2.1
 )
