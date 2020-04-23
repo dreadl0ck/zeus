@@ -74,12 +74,12 @@ func generateGlobals(lang *Language) (out string) {
 		var valString = true
 		// check if its a boolean
 		if _, err := strconv.ParseBool(value); err == nil {
-			// value goot as it is
+			// value good as it is
 			valString = false
 		}
 		// check if its an integer
 		if _, err := strconv.ParseInt(value, 10, 0); err == nil {
-			// value goot as it is
+			// value good as it is
 			valString = false
 		}
 		// check if its a string

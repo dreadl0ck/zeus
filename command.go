@@ -136,7 +136,7 @@ func (c *command) Run(args []string, async bool) error {
 
 			_, err := os.Stat(output)
 			if err != nil {
-				Log.Debug("["+ansi.Red+c.name+cp.Reset+"] output missing: ", output)
+				cLog.Debug("["+ansi.Red+c.name+cp.Reset+"] output missing: ", output)
 				outputMissing = true
 			}
 
@@ -161,21 +161,26 @@ func (c *command) Run(args []string, async bool) error {
 	s.Unlock()
 
 	// handle args
-	argBuffer, err := c.parseArguments(args)
+	arguments, err := c.parseArgumentsEnv(args)
 	if err != nil {
 		return err
 	}
 
 	// init command
-	cmd, script, cleanupFunc, err := c.createCommand(argBuffer)
+	cmd, script, cleanupFunc, err := c.createCommand()
 	if err != nil {
 		return err
 	}
 
 	// set host shell environment
 	cmd.Env = os.Environ()
+	for _, value := range arguments {
+		cmd.Env = append(cmd.Env, value)
+		cLog.Debug("adding argument as env variable: ", value)
+	}
 	for name, value := range g.Vars {
-		cmd.Env = append(cmd.Env, "zeus."+name+"="+value)
+		cmd.Env = append(cmd.Env, "ZEUS_"+strings.ToUpper(name)+"="+value)
+		cLog.Debug("adding global environment variable: ", "ZEUS_"+strings.ToUpper(name)+"="+value)
 	}
 
 	// don't wire terminalIO for async jobs
@@ -186,7 +191,7 @@ func (c *command) Run(args []string, async bool) error {
 		cmd.Stdin = os.Stdin
 	}
 
-	// incease build number if set
+	// increase build number if set
 	if c.buildNumber {
 		projectData.Lock()
 		projectData.fields.BuildNumber++
@@ -393,11 +398,10 @@ func (c *command) getLanguage() (*Language, error) {
 
 // create an exec.Cmd instance ready for execution
 // for the given argument buffer
-func (c *command) createCommand(argBuffer string) (cmd *exec.Cmd, script string, cleanupFunc func(), err error) {
+func (c *command) createCommand() (cmd *exec.Cmd, script string, cleanupFunc func(), err error) {
 
 	var (
 		shellCommand []string
-		globalVars   string
 		globalFuncs  string
 	)
 
@@ -425,8 +429,6 @@ func (c *command) createCommand(argBuffer string) (cmd *exec.Cmd, script string,
 		shellCommand = append(shellCommand, lang.FlagEvaluateScript)
 	}
 
-	globalVars = generateGlobals(lang)
-
 	// add language specific global code
 	code, err := ioutil.ReadFile(zeusDir + "/globals/globals" + lang.FileExtension)
 	if err == nil {
@@ -435,7 +437,7 @@ func (c *command) createCommand(argBuffer string) (cmd *exec.Cmd, script string,
 
 	// check if loaded via CommandsFile
 	if c.exec != "" {
-		script = lang.Bang + "\n" + globalVars + "\n" + globalFuncs + "\n" + argBuffer + "\n" + c.exec
+		script = lang.Bang + "\n" + globalFuncs + "\n" + c.exec
 		if lang.UseTempFile {
 			// make sure the .tmp dir exists
 			os.MkdirAll(scriptDir+"/.tmp", 0700)

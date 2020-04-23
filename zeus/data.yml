@@ -7,10 +7,11 @@
 #                          v0.8.5
 #
 
-buildNumber: 208
+buildNumber: 221
 deadline: ""
 milestones: []
-aliases: {}
+aliases:
+  helloCompile: clean -> build
 events:
   3a2b68ffa5f00cd0:
     name: commandsFile watcher

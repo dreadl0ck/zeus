@@ -11,14 +11,36 @@
     COMMIT:
 ------------------------------------------------------------------------------------
 
-## v0.8.5
+## v0.9
 
-- globals should start with an uppercase letter
+- both globals and arg values must be inserted into the code to make it runnable standalone (generate cmd)
+    - code generation needs to be updated to generate setting the env vars at the beginning of the scripts
+    - in bash accessed via $XXX, in python os.getenv("XXX") etc
+    - before: global var access like any other variable; code generation unified  
+
+### questions
+
+- pass args AND globals via env?
+- allow overwriting env vars via globals? 
+- globals should start with an uppercase letter? or all uppercase?
+
+### cleanup
+
+- fix generate chains
+- fix generateScript
+- verify unit tests work
+- update documentation
+
+## General
+
+- add install-completions command
+- use filepath.Join instead of assembling paths with +
+- add command to invoke golangci-lint
+    - incorporate feedback from golangci-lint
+
 - fix argument / chain / path completion
 - add pitfalls to README (stopOnError in bash)
 - add typescript support
-- add install-completions command
-
 - make formatter modular: add it as a field to language, to allow using a specific formatter for each language
 
 - add edit data / source sub command

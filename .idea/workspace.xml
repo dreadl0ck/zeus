@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ChangeListManager">
+    <list default="true" id="0d2a39b5-befe-4464-83cf-31e0db5d901c" name="Default Changelist" comment="">
+      <change beforePath="$PROJECT_DIR$/arguments.go" beforeDir="false" afterPath="$PROJECT_DIR$/arguments.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/command.go" beforeDir="false" afterPath="$PROJECT_DIR$/command.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/globals.go" beforeDir="false" afterPath="$PROJECT_DIR$/globals.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/rice-box.go" beforeDir="false" afterPath="$PROJECT_DIR$/rice-box.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/zeus/commands.yml" beforeDir="false" afterPath="$PROJECT_DIR$/tests/zeus/commands.yml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/zeus/data.yml" beforeDir="false" afterPath="$PROJECT_DIR$/tests/zeus/data.yml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/wiki/docs/TODO.md" beforeDir="false" afterPath="$PROJECT_DIR$/wiki/docs/TODO.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/zeus/commands.yml" beforeDir="false" afterPath="$PROJECT_DIR$/zeus/commands.yml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/zeus/data.yml" beforeDir="false" afterPath="$PROJECT_DIR$/zeus/data.yml" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="GOROOT" path="/usr/local/Cellar/go/1.14.2_1/libexec" />
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="GoLibraries">
+    <option name="indexEntireGoPath" value="false" />
+  </component>
+  <component name="ProjectId" id="1aUNkvtiE0efqtRR8Dmlt85hzrS" />
+  <component name="ProjectViewState">
+    <option name="autoscrollFromSource" value="true" />
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent">
+    <property name="RunOnceActivity.OpenProjectViewOnStart" value="true" />
+    <property name="RunOnceActivity.ShowReadmeOnStart" value="true" />
+    <property name="WebServerToolWindowFactoryState" value="false" />
+    <property name="go.import.settings.migrated" value="true" />
+    <property name="go.sdk.automatically.set" value="true" />
+    <property name="go.tried.to.enable.integration.dep.integrator" value="true" />
+    <property name="go.tried.to.enable.integration.vgo.integrator" value="true" />
+    <property name="go.vendoring.notification.had.been.shown" value="true" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$" />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="2" />
+  </component>
+  <component name="VgoProject">
+    <integration-enabled>true</integration-enabled>
+  </component>
+  <component name="WindowStateProjectService">
+    <state x="1218" y="372" width="763" height="612" key="find.popup" timestamp="1586901893765">
+      <screen x="0" y="23" width="3200" height="1310" />
+    </state>
+    <state x="1218" y="372" width="763" height="612" key="find.popup/0.23.3200.1310@0.23.3200.1310" timestamp="1586901893765" />
+    <state x="1179" y="298" width="840" height="1034" key="search.everywhere.popup" timestamp="1586899268912">
+      <screen x="0" y="23" width="3200" height="1310" />
+    </state>
+    <state x="1179" y="298" width="840" height="1034" key="search.everywhere.popup/0.23.3200.1310@0.23.3200.1310" timestamp="1586899268912" />
+  </component>
+</project>

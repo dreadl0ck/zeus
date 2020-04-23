@@ -232,3 +232,80 @@ func (c *command) parseArguments(args []string) (string, error) {
 
 	return argBuf.String(), nil
 }
+
+// parse arguments array in the label=value format
+// and return a code snippet that declares them in the language of the command
+func (c *command) parseArgumentsEnv(args []string) ([]string, error) {
+
+	var (
+		arguments     []string
+		ocurrences = make(map[string]int, 0)
+	)
+
+	// parse args
+	for _, val := range args {
+
+		// handle argument labels
+		if strings.Contains(val, "=") {
+
+			var (
+				cmdArg *commandArg
+				ok     bool
+			)
+
+			argSlice := strings.Split(val, "=")
+			if len(argSlice) != 2 {
+				return arguments, errors.New("invalid argument: " + val)
+			}
+
+			if cmdArg, ok = c.args[argSlice[0]]; !ok {
+				return arguments, errors.New(ErrInvalidArgumentLabel.Error() + ": " + ansi.Red + argSlice[0] + cp.Reset)
+			}
+
+			if _, ok := ocurrences[argSlice[0]]; ok {
+				ocurrences[argSlice[0]]++
+			} else {
+				ocurrences[argSlice[0]] = 1
+			}
+
+			if ocurrences[argSlice[0]] > 1 {
+				return arguments, errors.New("argument label appeared more than once: " + cmdArg.name)
+			}
+
+			if err := validArgType(argSlice[1], cmdArg.argType); err != nil {
+				return arguments, errors.New(ErrInvalidArgumentType.Error() + ": " + err.Error() + ", label=" + cmdArg.name + ", value=" + argSlice[1])
+			}
+
+			c.args[argSlice[0]].value = argSlice[1]
+		} else {
+			return arguments, errors.New("invalid argument: " + val)
+		}
+	}
+
+	for _, arg := range c.args {
+		if arg.value == "" {
+			if arg.optional {
+				if arg.defaultValue != "" {
+					// default value has been set
+					arguments = append(arguments, arg.name + "=" + strings.TrimSpace(arg.defaultValue))
+				} else {
+					// init empty optionals with default value for their type
+					arguments = append(arguments, arg.name + "=" + getDefaultValue(arg))
+				}
+			} else {
+				// empty value and not optional - error
+				return arguments, errors.New("missing argument: " + ansi.Red + arg.name + ":" + strings.Title(arg.argType.String()) + cp.Reset)
+			}
+		} else {
+			// value is set
+			arguments = append(arguments, arg.name + "=" + arg.value)
+		}
+	}
+
+	// flush arg values
+	for _, arg := range c.args {
+		arg.value = ""
+	}
+
+	return arguments, nil
+}

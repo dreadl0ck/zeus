@@ -37,6 +37,14 @@ commands:
 
     # Utils
     #
+    test-args:
+        description: simple argument test
+        arguments:
+            - say:String
+            - name:String
+        exec: |
+            echo "$say $name"
+        
     clean: 
         description: clean up to prepare for build
         help: clears bin/ directory and deletes generated config & data in tests
