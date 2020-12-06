@@ -65,7 +65,15 @@ commands:
         dependencies:
             - clean
         exec: rm -f rice-box.go
-    
+
+    delete-tag:
+        description: delete tag locally and remotely
+        arguments:
+            - tag:String
+        exec: |
+            git tag -d $tag
+            git push --delete origin $tag
+
     # Build
     #
     build:
