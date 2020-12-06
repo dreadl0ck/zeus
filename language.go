@@ -35,6 +35,7 @@ var (
 			"ruby":       rubyLanguage(),
 			"lua":        luaLanguage(),
 			"sh":         shellLanguage(),
+			"zsh":        zshellLanguage(),
 		},
 	}
 
@@ -127,6 +128,21 @@ func shellLanguage() *Language {
 		FileExtension:        ".sh",
 		CorrectErrLineNumber: false,
 		ErrLineNumberSymbol:  "line",
+	}
+}
+
+func zshellLanguage() *Language {
+	return &Language{
+		Name:                 "zsh",
+		Interpreter:          "/bin/zsh",
+		Bang:                 "#!/bin/zsh",
+		Comment:              "#",
+		AssignmentOperator:   "=",
+		FlagStopOnError:      "-e",
+		FlagEvaluateScript:   "-c",
+		FileExtension:        ".zsh",
+		CorrectErrLineNumber: false,
+		ErrLineNumberSymbol:  "", // TODO: no symbol for that, allow to use a regex for this task
 	}
 }
 

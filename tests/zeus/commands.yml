@@ -80,6 +80,10 @@ commands:
             console.log("[ZEUS v" + version + "] Hello World!");
             console.log("source=" + src);
             console.log("destination=" + dst);
+    zsh:
+        description: a zsh script
+        exec: |
+            echo hello from zsh!
 
     # examples
     #
