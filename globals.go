@@ -71,22 +71,24 @@ func generateGlobals(lang *Language) (out string) {
 	// initialize global variables
 	for name, value := range g.Vars {
 
+		var valString = true
 		// check if its a boolean
-		_, err := strconv.ParseBool(value)
-		if err != nil {
-
-			// check if its an integer
-			_, err := strconv.ParseInt(value, 10, 0)
-			if err != nil {
-
-				// its a string
-				out += lang.VariableKeyword + name + lang.AssignmentOperator + "\"" + value + "\"\n"
-			} else {
-				out += lang.VariableKeyword + name + lang.AssignmentOperator + value + "\n"
-			}
-		} else {
-			out += lang.VariableKeyword + name + lang.AssignmentOperator + value + "\n"
+		if _, err := strconv.ParseBool(value); err == nil {
+			// value goot as it is
+			valString = false
 		}
+		// check if its an integer
+		if _, err := strconv.ParseInt(value, 10, 0); err == nil {
+			// value goot as it is
+			valString = false
+		}
+		// check if its a string
+		if valString {
+			value = "\"" + value + "\""
+		}
+
+		out += lang.VariableKeyword + name + lang.AssignmentOperator + value + "\n"
 	}
+
 	return
 }
