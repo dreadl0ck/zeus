@@ -20,8 +20,10 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log"
 	"os"
+	"os/user"
 	"path/filepath"
 	"runtime"
 	"strconv"
@@ -98,6 +100,7 @@ func initZeus() {
 	var (
 		err             error
 		flagCompletions = flag.String("completions", "", "get available command completions")
+		flagWorkDir = flag.String("C", "", "set work directory to start from")
 		flagHelp        = flag.Bool("h", false, "print zeus help and exit")
 	)
 
@@ -138,6 +141,31 @@ func initZeus() {
 	}
 
 	flag.Parse()
+
+	if *flagWorkDir != "" {
+		if strings.HasPrefix(*flagWorkDir, "~") {
+			usr, err := user.Current()
+			if err != nil {
+				log.Fatal("unable to get current user for expanding the ~ character: ", err)
+			}
+			*flagWorkDir = filepath.Join(usr.HomeDir, strings.TrimPrefix(*flagWorkDir, "~"))
+			fmt.Println("expanded ~:", *flagWorkDir)
+		}
+		if strings.HasPrefix(*flagWorkDir, "$HOME") {
+			usr, err := user.Current()
+			if err != nil {
+				log.Fatal("unable to get current user for expanding $HOME: ", err)
+			}
+			*flagWorkDir = filepath.Join(usr.HomeDir, strings.TrimPrefix(*flagWorkDir, "$HOME"))
+			fmt.Println("expanded $HOME:", *flagWorkDir)
+		}
+		err := os.Chdir(*flagWorkDir)
+		if err != nil {
+			log.Fatal("failed to change dir: ", err)
+		}
+		commandsFilePath = filepath.Join(*flagWorkDir, commandsFilePath)
+		fmt.Println("commandsFilePath", commandsFilePath)
+	}
 
 	if *flagCompletions != "" {
 		printCompletions(*flagCompletions)
@@ -389,6 +417,20 @@ func printProjectHeader() {
 
 // handle commandline arguments
 func handleArgs() {
+
+	// strip commandline flags
+	for i, elem := range os.Args {
+		if strings.HasPrefix(elem, "-C=") {
+			// delete i
+			os.Args = append(os.Args[:i], os.Args[i+1:]...)
+			break	
+		}
+		if elem == "-C" {
+			// delete i and i+1
+			os.Args = append(os.Args[:i], os.Args[i+2:]...)
+			break
+		}
+	}
 
 	var cLog = Log.WithField("prefix", "handleArgs")
 
