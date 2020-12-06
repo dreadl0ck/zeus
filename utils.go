@@ -39,6 +39,7 @@ import (
 
 	yaml "gopkg.in/yaml.v2"
 
+	"github.com/elliotchance/orderedmap"
 	"github.com/gen2brain/beeep"
 	"github.com/mgutz/ansi"
 )
@@ -624,4 +625,16 @@ func dumpYAML(i interface{}) {
 	}
 
 	fmt.Println(string(out))
+}
+
+// remove duplicates element keeping the left-most ones
+func stripArrayRight(array []string) (strip []string) {
+	var stripMap = orderedmap.NewOrderedMap()
+	for _, element := range array {
+		if _, ok := stripMap.Get(element); !ok {
+			stripMap.Set(element, nil)
+			strip = append(strip, element)
+		}
+	}
+	return
 }

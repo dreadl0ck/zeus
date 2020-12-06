@@ -10,18 +10,15 @@ require (
 	github.com/daaku/go.zipexe v1.0.1 // indirect
 	github.com/desertbit/glue v0.0.0-20190619185959-06de07e1e404
 	github.com/dreadl0ck/readline v0.0.0-20170525151952-86c82ab4c663
+	github.com/elliotchance/orderedmap v1.2.1
 	github.com/fsnotify/fsnotify v1.4.9
 	github.com/gen2brain/beeep v0.0.0-20200526185328-e9c15c258e28
-	github.com/godbus/dbus v4.1.0+incompatible // indirect
 	github.com/gopherjs/gopherjs v0.0.0-20200217142428-fce0ec30dd00 // indirect
-	github.com/gopherjs/gopherwasm v1.1.0 // indirect
 	github.com/gorilla/websocket v1.4.2 // indirect
 	github.com/jtolds/gls v4.20.0+incompatible // indirect
 	github.com/julienschmidt/httprouter v1.3.0
-	github.com/konsorten/go-windows-terminal-sequences v1.0.3 // indirect
 	github.com/mattn/go-colorable v0.1.8 // indirect
 	github.com/mgutz/ansi v0.0.0-20200706080929-d51e80ef957d
-	github.com/nu7hatch/gouuid v0.0.0-20131221200532-179d4d0c4d8d // indirect
 	github.com/onsi/ginkgo v1.11.0 // indirect
 	github.com/onsi/gomega v1.8.1 // indirect
 	github.com/russross/blackfriday v2.0.0+incompatible
@@ -29,13 +26,10 @@ require (
 	github.com/sirupsen/logrus v1.7.0
 	github.com/smartystreets/assertions v1.0.1 // indirect
 	github.com/smartystreets/goconvey v1.6.3
-	github.com/stretchr/objx v0.1.1 // indirect
-	github.com/tadvi/systray v0.0.0-20190226123456-11a2b8fa57af // indirect
 	github.com/x-cray/logrus-prefixed-formatter v0.5.2
 	golang.org/x/crypto v0.0.0-20201203163018-be400aefbc4c // indirect
 	golang.org/x/sys v0.0.0-20201204225414-ed752295db88 // indirect
 	golang.org/x/term v0.0.0-20201126162022-7de9c90e9dd1 // indirect
-	gopkg.in/toast.v1 v1.0.0-20180812000517-0a84660828b2 // indirect
 	gopkg.in/yaml.v1 v1.0.0-20140924161607-9f9df34309c0
 	gopkg.in/yaml.v2 v2.4.0
 )

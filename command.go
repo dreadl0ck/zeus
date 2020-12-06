@@ -98,20 +98,41 @@ type command struct {
 	exec string
 }
 
+func (c *command) AsyncRun(args []string) error {
+	go func() {
+		err := c.Run(args, false)
+		if err != nil {
+			Log.WithError(err).Error("failed to run command: " + c.name)
+		}
+	}()
+
+	time.Sleep(50 * time.Millisecond)
+	return nil
+
+}
+
 // Run executes the command
 func (c *command) Run(args []string, async bool) error {
 
 	// spawn async commands in a new goroutine
 	if async {
-		go func() {
-			err := c.Run(args, false)
-			if err != nil {
-				Log.WithError(err).Error("failed to run command: " + c.name)
-			}
-		}()
+		return c.AsyncRun(args)
+	}
 
-		time.Sleep(50 * time.Millisecond)
-		return nil
+	// handle dependencies
+	err := c.execDependencies()
+	if err != nil {
+		return errors.New("dependency error: " + err.Error())
+	}
+
+	return c.AtomicRun(args, false)
+}
+
+func (c *command) AtomicRun(args []string, async bool) error {
+
+	// spawn async commands in a new goroutine
+	if async {
+		return c.AsyncRun(args)
 	}
 
 	var (
@@ -119,12 +140,6 @@ func (c *command) Run(args []string, async bool) error {
 		start        = time.Now()
 		stdErrBuffer = &bytes.Buffer{}
 	)
-
-	// handle dependencies
-	err := c.execDependencies()
-	if err != nil {
-		return errors.New("dependency error: " + err.Error())
-	}
 
 	// check outputs
 	if len(c.outputs) > 0 {
@@ -321,57 +336,77 @@ func (c *command) waitForProcess(cmd *exec.Cmd, cleanupFunc func(), script strin
 	return nil
 }
 
+// collect dependencies for the current command
+// iterating recursively on all the subdependencies
+func (c *command) getDeepDependencies() (deps []string) {
+
+	for _, dep := range c.dependencies {
+		// fields
+		depFields := strings.Fields(dep)
+		if len(depFields) == 0 {
+			continue
+		}
+
+		// lookup
+		depCmd, err := cmdMap.getCommand(depFields[0])
+		if err == nil {
+			deps = append(deps, depCmd.getDeepDependencies()...)
+		}
+
+		deps = append(deps, dep)
+	}
+
+	return stripArrayRight(deps)
+}
+
 // execute dependencies for the current command
 // if their named outputs do not exist
 func (c *command) execDependencies() error {
 
-	if len(c.dependencies) > 0 {
+	for _, depCommand := range c.getDeepDependencies() {
 
-		for _, depCommand := range c.dependencies {
+		fields := strings.Fields(depCommand)
+		if len(fields) == 0 {
+			return ErrEmptyDependency
+		}
 
-			fields := strings.Fields(depCommand)
-			if len(fields) == 0 {
-				return ErrEmptyDependency
-			}
+		// lookup
+		dep, err := cmdMap.getCommand(fields[0])
+		if err != nil {
+			return errors.New("invalid dependency: " + err.Error())
+		}
 
-			// lookup
-			dep, err := cmdMap.getCommand(fields[0])
-			if err != nil {
-				return errors.New("invalid dependency: " + err.Error())
-			}
+		// check if dependency has outputs defined
+		if len(dep.outputs) > 0 {
 
-			// check if dependency has outputs defined
-			if len(dep.outputs) > 0 {
+			var outputMissing bool
 
-				var outputMissing bool
-
-				// check if all named outputs exist
-				for _, output := range dep.outputs {
-					_, err := os.Stat(output)
-					if err != nil {
-						outputMissing = true
-					}
-				}
-
-				// no outputs missing
-				// next iteration
-				if !outputMissing {
-
-					s.Lock()
-					s.currentCommand++
-					l.Println(printPrompt() + "[" + strconv.Itoa(s.currentCommand) + "/" + strconv.Itoa(s.numCommands) + "] skipping " + cp.Prompt + dep.name + cp.Reset)
-					s.Unlock()
-
-					continue
+			// check if all named outputs exist
+			for _, output := range dep.outputs {
+				_, err := os.Stat(output)
+				if err != nil {
+					outputMissing = true
 				}
 			}
 
-			// execute dependency and pass args
-			err = dep.Run(fields[1:], dep.async)
-			if err != nil {
-				Log.WithError(err).Error("failed to execute " + dep.name)
-				return err
+			// no outputs missing
+			// next iteration
+			if !outputMissing {
+
+				s.Lock()
+				s.currentCommand++
+				l.Println(printPrompt() + "[" + strconv.Itoa(s.currentCommand) + "/" + strconv.Itoa(s.numCommands) + "] skipping " + cp.Prompt + dep.name + cp.Reset)
+				s.Unlock()
+
+				continue
 			}
+		}
+
+		// execute dependency and pass args
+		err = dep.AtomicRun(fields[1:], c.async)
+		if err != nil {
+			Log.WithError(err).Error("failed to execute " + dep.name)
+			return err
 		}
 	}
 
