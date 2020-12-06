@@ -1,5 +1,6 @@
 # .goreleaser.yml
 # Build customization
+
 builds:
   - binary: zeus
     goos:
@@ -10,20 +11,21 @@ builds:
     hooks:
       pre: rice embed-go
 
-brew:
-  # Reporitory to push the tap to.
-  github:
-    owner: dreadl0ck
-    name: homebrew-formulas
+brews:
+  -
+    # Repository to push the tap to.
+    github:
+      owner: dreadl0ck
+      name: homebrew-formulas
 
-  # Folder inside the repository to put the formula.
-  # Default is the root folder.
-  #folder: Formulas
+    # Folder inside the repository to put the formula.
+    # Default is the root folder.
+    #folder: Formulas
 
-  # Your app's homepage
-  # Default is empty
-  homepage: "https://github.com/dreadl0ck/zeus"
+    # Your app's homepage
+    # Default is empty
+    homepage: "https://github.com/dreadl0ck/zeus"
 
-  # Your app's description
-  # Default is empty
-  description: "An Electrifying Build System"
+    # Your app's description
+    # Default is empty
+    description: "An Electrifying Build System"
