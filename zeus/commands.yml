@@ -17,7 +17,7 @@ language: bash
 globals:
     binaryName: zeus
     buildDir: bin
-    version: 0.8.5
+    version: 0.8.6
 
 # all commands
 # available fields:
@@ -77,9 +77,10 @@ commands:
         outputs:
             - bin/zeus
         exec: |
-            echo "[ZEUS v${version}] building ${buildDir}/${binaryName} for current OS"
+            echo "[ZEUS v${version}] building ${buildDir}/${binaryName} for current OS $(uname -s)"
             rice embed-go
             go build -o ${buildDir}/${binaryName}
+
     build-linux:
         description: build project for linux amd64
         help: compile binary for linux amd64 into buildDir

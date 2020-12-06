@@ -79,7 +79,7 @@ func generateGlobals(lang *Language) (out string) {
 		}
 		// check if its an integer
 		if _, err := strconv.ParseInt(value, 10, 0); err == nil {
-			// value goot as it is
+			// value good as it is
 			valString = false
 		}
 		// check if its a string

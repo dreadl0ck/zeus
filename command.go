@@ -187,10 +187,14 @@ func (c *command) AtomicRun(args []string, async bool) error {
 		return err
 	}
 
+	// TODO: make injecting the globals via env with a prefix configurable
+	//prefix := "zeus_"
+	prefix := ""
+
 	// set host shell environment
 	cmd.Env = os.Environ()
 	for name, value := range g.Vars {
-		cmd.Env = append(cmd.Env, "zeus."+name+"="+value)
+		cmd.Env = append(cmd.Env, prefix+name+"="+value)
 	}
 
 	// don't wire terminalIO for async jobs
