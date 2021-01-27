@@ -1,8 +1,8 @@
-# ________ ____  __ __  ______     
-#  \___   // __ \|  |  \/  ___/    
-#   /    /\  ___/|  |  /\___ \    
-#  /_____ \\___  >____//____  >  
-#        \/    \/           \/  
+# ________ ____  __ __  ______
+#  \___   // __ \|  |  \/  ___/
+#   /    /\  ___/|  |  /\___ \
+#  /_____ \\___  >____//____  >
+#        \/    \/           \/
 #                    Build System
 #
 # default interpreter used for Zeusfile code is bash
@@ -15,9 +15,9 @@ language: bash
 # they can contain variables
 # for language specific code create a globals.[scriptExtension] file in the zeus directory
 globals:
-    binaryName: zeus
-    buildDir: bin
-    version: 0.8.7
+  binaryName: zeus
+  buildDir: bin
+  version: 0.8.7
 
 # all commands
 # available fields:
@@ -34,135 +34,135 @@ globals:
 # exec                      # string         # supply the script directly without a file
 # language                  # string         # set the language for the script
 commands:
+  # Utils
+  #
+  clean:
+    description: clean up to prepare for build
+    help: clears bin/ directory and deletes generated config & data in tests
+    exec: |
+      echo "[ZEUS v${version}] cleaning up"
+      rm -rf bin/*
+      rm -rf tests/config.yml
+      rm -rf tests/data.yml
 
-    # Utils
-    #
-    clean: 
-        description: clean up to prepare for build
-        help: clears bin/ directory and deletes generated config & data in tests
-        exec: |
-             echo "[ZEUS v${version}] cleaning up"
-             rm -rf bin/*
-             rm -rf tests/config.yml
-             rm -rf tests/data.yml
+  configure:
+    description: prepare JS and CSS and move assets into wiki/docs
+    help: Generate Javascript and CSS
+    exec: |
+      echo "[ZEUS v${version}] copying LICENSE and README.md"
 
-    configure:
-        description: prepare JS and CSS and move assets into wiki/docs
-        help: Generate Javascript and CSS
-        exec: |
-            echo "[ZEUS v${version}] copying LICENSE and README.md"
+      cp -f LICENSE wiki/docs
+      cp -f README.md wiki/docs
 
-            cp -f LICENSE wiki/docs
-            cp -f README.md wiki/docs
+      # @todo: release the tools...
+      #echo "[ZEUS v${version}] minifying javscript and css"
+      #jsobfus -d frontend/src/js/:frontend/dist/js
+      #sasscompile -d frontend/src/sass:frontend/dist/css
 
-            # @todo: release the tools...
-            #echo "[ZEUS v${version}] minifying javscript and css"
-            #jsobfus -d frontend/src/js/:frontend/dist/js
-            #sasscompile -d frontend/src/sass:frontend/dist/css
+  reset:
+    description: reset and delete all generated files
+    dependencies:
+      - clean
+    exec: rm -f rice-box.go
 
-    reset:
-        description: reset and delete all generated files
-        dependencies:
-            - clean
-        exec: rm -f rice-box.go
+  delete-tag:
+    description: delete tag locally and remotely
+    arguments:
+      - tag:String
+    exec: |
+      git tag -d $tag
+      git push --delete origin $tag
 
-    delete-tag:
-        description: delete tag locally and remotely
-        arguments:
-            - tag:String
-        exec: |
-            git tag -d $tag
-            git push --delete origin $tag
+  # Build
+  #
+  build:
+    description: build project for current OS
+    help: compile binary for current OS into buildDir
+    dependencies:
+      - configure
+    buildNumber: true
+    outputs:
+      - bin/zeus
+    exec: |
+      echo "[ZEUS v${version}] building ${buildDir}/${binaryName} for current OS $(uname -s)"
+      rice embed-go
+      go build -o ${buildDir}/${binaryName}
 
-    # Build
-    #
-    build:
-        description: build project for current OS
-        help: compile binary for current OS into buildDir
-        dependencies:
-            - configure
-        buildNumber: true
-        outputs:
-            - bin/zeus
-        exec: |
-            echo "[ZEUS v${version}] building ${buildDir}/${binaryName} for current OS $(uname -s)"
-            rice embed-go
-            go build -o ${buildDir}/${binaryName}
+  build-linux:
+    description: build project for linux amd64
+    help: compile binary for linux amd64 into buildDir
+    dependencies:
+      - configure
+    buildNumber: true
+    outputs:
+      - bin/zeus-linux
+    exec: |
+      echo "[ZEUS v${version}] building for linux amd64"
+      rice embed-go
+      GOOS=linux GOARCH=amd64 go build -o ${buildDir}/zeus-linux
+  build-race:
+    buildNumber: true
+    dependencies:
+      - clean
+    description: build race detection enabled binary
+    help: |
+      zeus build-race script
+      this script produces the zeus binary with race detection enabled
+    exec: |
+      echo "[ZEUS v${version}] creating a race detection enabled build to ${buildDir}/${binaryName}"
+      go build -race -o=${buildDir}/${binaryName}
+  dev:
+    buildNumber: true
+    description: start the dev mode
+    help: |
+      zeus development mode script
+      clears bindata & installs to $GOPATH
+    dependencies:
+      - clean
+      - configure
+    exec: |
+      echo "[ZEUS v${version}] development mode. Removing assets and installing to $GOBIN"
+      rm -f rice-box.go
+      go install && zeus
+  install:
+    buildNumber: true
+    description: install to $PATH
+    help: Install the application to the default system location
+    dependencies:
+      - clean
+      - configure
+      - gen-version
+    exec: |
+      echo "[ZEUS v${version}] installing zeus"
+      rice embed-go
+      go install
 
-    build-linux:
-        description: build project for linux amd64
-        help: compile binary for linux amd64 into buildDir
-        dependencies:
-            - configure
-        buildNumber: true
-        outputs:
-            - bin/zeus-linux
-        exec: |
-            echo "[ZEUS v${version}] building for linux amd64"
-            rice embed-go
-            GOOS=linux GOARCH=amd64 go build -o ${buildDir}/zeus-linux
-    build-race:
-        buildNumber: true
-        dependencies:
-            - clean
-        description: build race detection enabled binary
-        help: |
-            zeus build-race script
-            this script produces the zeus binary with race detection enabled
-        exec: |
-            echo "[ZEUS v${version}] creating a race detection enabled build to ${buildDir}/${binaryName}"
-            go build -race -o=${buildDir}/${binaryName}
-    dev:
-        buildNumber: true
-        description: start the dev mode
-        help: |
-            zeus development mode script
-            clears bindata & installs to $GOPATH
-        dependencies:
-            - clean 
-            - configure
-        exec: |
-            echo "[ZEUS v${version}] development mode. Removing assets and installing to $GOBIN"
-            rm -f rice-box.go
-            go install && zeus
-    install:
-        buildNumber: true
-        description: install to $PATH
-        help: Install the application to the default system location
-        dependencies:
-            - clean
-            - configure
-        exec: |
-            echo "[ZEUS v${version}] installing zeus to $GOBIN"
-            rice embed-go
-            go install
-    
-    # run the test with race detection enabled
-    test-race:
-        description: start data race detection tests
-        dependencies:
-            - clean
-        exec: |
-            echo "[ZEUS v${version}] starting race detection enabled tests"
-            GORACE="history_size=2 halt_on_error=1" go test -v -race
+  # run the test with race detection enabled
+  test-race:
+    description: start data race detection tests
+    dependencies:
+      - clean
+    exec: |
+      echo "[ZEUS v${version}] starting race detection enabled tests"
+      GORACE="history_size=2 halt_on_error=1" go test -v -race
 
-    # run the tests
-    test:
-        description: run automated tests
-        dependencies:
-            - clean
-        exec: |
-            echo "[ZEUS v${version}] starting tests"
+  # run the tests
+  test:
+    description: run automated tests
+    dependencies:
+      - clean
+    exec: |
+      echo "[ZEUS v${version}] starting tests"
 
-            go test -v -coverprofile coverage.out -cover
+      go test -v -coverprofile coverage.out -cover
 
-            if [[ $? == 0 ]]; then
-                go tool cover -html=coverage.out
-            fi
-    
-    release:
-        description: release a new version
+      if [[ $? == 0 ]]; then
+          go tool cover -html=coverage.out
+      fi
 
-    gen-version:
-        description: generate version file
-        exec: head -n 21 version.go > version_temp.go && echo -e "// generated with the gen-version command\nvar version = \"${version}\"" >> version_temp.go && mv version_temp.go version.go
+  release:
+    description: release a new version
+
+  gen-version:
+    description: generate version file
+    exec: head -n 21 version.go > version_temp.go && echo -e "// generated with the gen-version command\nvar version = \"${version}\"" >> version_temp.go && mv version_temp.go version.go
