@@ -220,8 +220,8 @@ func luaLanguage() *Language {
 func perlLanguage() *Language {
 	return &Language{
 		Name:                 "perl",
-		Interpreter:          "/usr/local/bin/perl",
-		Bang:                 "#!/usr/local/bin/perl",
+		Interpreter:          "/usr/bin/perl",
+		Bang:                 "#!/usr/bin/perl",
 		Comment:              "#",
 		AssignmentOperator:   " = ",
 		LineDelimiter:        ";",
