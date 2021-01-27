@@ -87,7 +87,7 @@ func generateGlobals(lang *Language) (out string) {
 			value = "\"" + value + "\""
 		}
 
-		out += lang.VariableKeyword + name + lang.AssignmentOperator + value + "\n"
+		out += lang.VariableKeyword + name + lang.AssignmentOperator + value + lang.LineDelimiter + "\n"
 	}
 
 	return

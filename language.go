@@ -36,6 +36,7 @@ var (
 			"lua":        luaLanguage(),
 			"sh":         shellLanguage(),
 			"zsh":        zshellLanguage(),
+			"perl":       perlLanguage(),
 		},
 	}
 
@@ -80,6 +81,9 @@ type Language struct {
 
 	// assigment operator i.e. '='
 	AssignmentOperator string `yaml:"assignmentOperator"`
+
+	// line delimiter i.e. ';'
+	LineDelimiter string `yaml:"lineDelimiter"`
 
 	// flag for stopping execution after an error
 	FlagStopOnError string `yaml:"flagStopOnError"`
@@ -207,6 +211,24 @@ func luaLanguage() *Language {
 		FlagEvaluateScript:   "-e",
 		FileExtension:        ".lua",
 		ExecOpPrefix:         "os.execute(\"",
+		ExecOpSuffix:         "\")",
+		CorrectErrLineNumber: true,
+		ErrLineNumberSymbol:  "line",
+	}
+}
+
+func perlLanguage() *Language {
+	return &Language{
+		Name:                 "perl",
+		Interpreter:          "/usr/local/bin/perl",
+		Bang:                 "#!/usr/local/bin/perl",
+		Comment:              "#",
+		AssignmentOperator:   " = ",
+		LineDelimiter:        ";",
+		VariableKeyword:      "$",
+		FlagEvaluateScript:   "-e",
+		FileExtension:        ".pl",
+		ExecOpPrefix:         "system(\"",
 		ExecOpSuffix:         "\")",
 		CorrectErrLineNumber: true,
 		ErrLineNumberSymbol:  "line",

@@ -82,8 +82,19 @@ commands:
             console.log("destination=" + dst);
     zsh:
         description: a zsh script
+        language: zsh
         exec: |
             echo hello from zsh!
+    perl:
+        description: a perl command
+        language: perl
+        exec: |
+            # Print a message.
+            print "Hello, World!\n";
+
+    perl-script:
+        description: a perl script
+        language: perl
 
     # examples
     #

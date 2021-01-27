@@ -210,10 +210,10 @@ func (c *command) parseArguments(args []string) (string, error) {
 			if arg.optional {
 				if arg.defaultValue != "" {
 					// default value has been set
-					argBuf.WriteString(lang.VariableKeyword + arg.name + lang.AssignmentOperator + strings.TrimSpace(arg.defaultValue) + "\n")
+					argBuf.WriteString(lang.VariableKeyword + arg.name + lang.AssignmentOperator + strings.TrimSpace(arg.defaultValue) + lang.LineDelimiter + "\n")
 				} else {
 					// init empty optionals with default value for their type
-					argBuf.WriteString(lang.VariableKeyword + arg.name + lang.AssignmentOperator + getDefaultValue(arg) + "\n")
+					argBuf.WriteString(lang.VariableKeyword + arg.name + lang.AssignmentOperator + getDefaultValue(arg) + lang.LineDelimiter + "\n")
 				}
 			} else {
 				// empty value and not optional - error
@@ -221,7 +221,7 @@ func (c *command) parseArguments(args []string) (string, error) {
 			}
 		} else {
 			// write value into buffer
-			argBuf.WriteString(lang.VariableKeyword + arg.name + lang.AssignmentOperator + arg.value + "\n")
+			argBuf.WriteString(lang.VariableKeyword + arg.name + lang.AssignmentOperator + arg.value + lang.LineDelimiter + "\n")
 		}
 	}
 

@@ -29,9 +29,9 @@ import (
 	"sync"
 
 	rice "github.com/GeertJohan/go.rice"
-	"github.com/sirupsen/logrus"
 	"github.com/desertbit/glue"
 	"github.com/julienschmidt/httprouter"
+	"github.com/sirupsen/logrus"
 )
 
 var (

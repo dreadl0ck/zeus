@@ -100,7 +100,7 @@ func initZeus() {
 	var (
 		err             error
 		flagCompletions = flag.String("completions", "", "get available command completions")
-		flagWorkDir = flag.String("C", "", "set work directory to start from")
+		flagWorkDir     = flag.String("C", "", "set work directory to start from")
 		flagHelp        = flag.Bool("h", false, "print zeus help and exit")
 	)
 
@@ -423,7 +423,7 @@ func handleArgs() {
 		if strings.HasPrefix(elem, "-C=") {
 			// delete i
 			os.Args = append(os.Args[:i], os.Args[i+1:]...)
-			break	
+			break
 		}
 		if elem == "-C" {
 			// delete i and i+1
