@@ -4,7 +4,7 @@
 #  /_____ \\___  >____//____  >  
 #        \/    \/           \/  
 #                    Build System
-#                          v0.8.5
+#                          v0.8.9
 #
 
 autoFormat: false
@@ -48,4 +48,19 @@ colorProfiles:
     CmdFields: blue
     CmdArgs: cyan
     CmdArgType: green
-languages: []
+languages:
+- name: perl
+  interpreter: /usr/local/test/perl
+  bang: ""
+  comment: ""
+  variableKeyword: ""
+  assignmentOperator: ""
+  lineDelimiter: ""
+  flagStopOnError: ""
+  flagEvaluateScript: ""
+  useTempFile: false
+  execOpPrefix: ""
+  execOpSuffix: ""
+  fileExtension: ""
+  correctErrLineNumber: false
+  errLineNumberSymbol: ""

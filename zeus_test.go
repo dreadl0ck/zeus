@@ -36,7 +36,7 @@ var (
 // Test main entrypoint
 // must be executed prior to other tests
 // because it handles command and config parsing
-func TestMain(t *testing.T) {
+func TestMainFunction(t *testing.T) {
 
 	if !running {
 
@@ -87,7 +87,7 @@ func TestMain(t *testing.T) {
 
 func TestCommandlineArgs(t *testing.T) {
 
-	TestMain(t)
+	TestMainFunction(t)
 
 	var commands = []string{
 		"config",
@@ -118,7 +118,7 @@ func TestCommandlineArgs(t *testing.T) {
 
 func TestAliases(t *testing.T) {
 
-	TestMain(t)
+	TestMainFunction(t)
 
 	Convey("Testing aliases", t, func(c C) {
 		handleLine("alias asdfsdf")
@@ -134,7 +134,7 @@ func TestAliases(t *testing.T) {
 
 func TestConfig(t *testing.T) {
 
-	TestMain(t)
+	TestMainFunction(t)
 
 	Convey("Testing config", t, func(c C) {
 		handleLine("config asdfasdf")
@@ -147,7 +147,7 @@ func TestConfig(t *testing.T) {
 
 func TestCommands(t *testing.T) {
 
-	TestMain(t)
+	TestMainFunction(t)
 
 	Convey("Testing commands", t, func() {
 		handleLine("help")
@@ -158,7 +158,7 @@ func TestCommands(t *testing.T) {
 
 func TestMilestones(t *testing.T) {
 
-	TestMain(t)
+	TestMainFunction(t)
 
 	Convey("Testing milestones", t, func(c C) {
 		handleLine("milestones")
@@ -174,7 +174,7 @@ func TestMilestones(t *testing.T) {
 
 func TestLanguages(t *testing.T) {
 
-	TestMain(t)
+	TestMainFunction(t)
 
 	Convey("Testing multiple languages", t, func(c C) {
 		handleLine("python src='asdf' dst='fdsa'")
@@ -186,7 +186,7 @@ func TestLanguages(t *testing.T) {
 
 func TestDeadlines(t *testing.T) {
 
-	TestMain(t)
+	TestMainFunction(t)
 
 	Convey("Testing deadline", t, func(c C) {
 		handleLine("deadline")
@@ -201,7 +201,7 @@ func TestDeadlines(t *testing.T) {
 
 func TestEvents(t *testing.T) {
 
-	TestMain(t)
+	TestMainFunction(t)
 
 	Convey("Testing events", t, func(c C) {
 
@@ -262,7 +262,7 @@ func TestEvents(t *testing.T) {
 
 func TestShell(t *testing.T) {
 
-	TestMain(t)
+	TestMainFunction(t)
 
 	Convey("Testing the interactive shell", t, func() {
 		commands := []string{
@@ -294,7 +294,7 @@ func TestShell(t *testing.T) {
 
 func TestColors(t *testing.T) {
 
-	TestMain(t)
+	TestMainFunction(t)
 
 	Convey("Testing colors", t, func() {
 
@@ -313,7 +313,7 @@ func TestColors(t *testing.T) {
 
 func TestMakefileMigration(t *testing.T) {
 
-	TestMain(t)
+	TestMainFunction(t)
 
 	Convey("Testing makefile migration", t, func() {
 
@@ -330,7 +330,7 @@ func TestMakefileMigration(t *testing.T) {
 
 func TestAuthorCommand(t *testing.T) {
 
-	TestMain(t)
+	TestMainFunction(t)
 
 	Convey("Testing author command", t, func(c C) {
 
@@ -353,7 +353,7 @@ func TestAuthorCommand(t *testing.T) {
 
 func TestKeybindings(t *testing.T) {
 
-	TestMain(t)
+	TestMainFunction(t)
 
 	Convey("Testing keybindings", t, func(c C) {
 
@@ -384,7 +384,7 @@ func TestKeybindings(t *testing.T) {
 
 func TestProjectData(t *testing.T) {
 
-	TestMain(t)
+	TestMainFunction(t)
 
 	// print project data
 	handleLine("data")
@@ -392,7 +392,7 @@ func TestProjectData(t *testing.T) {
 
 func TestDependencies(t *testing.T) {
 
-	TestMain(t)
+	TestMainFunction(t)
 
 	Convey("Testing Dependencies", t, func(c C) {
 
@@ -421,7 +421,7 @@ func TestDependencies(t *testing.T) {
 
 func TestCommandsFile(t *testing.T) {
 
-	TestMain(t)
+	TestMainFunction(t)
 
 	Convey("Testing CommandsFile parsing", t, func(c C) {
 
@@ -453,7 +453,7 @@ func TestCommandsFile(t *testing.T) {
 
 // func TestBootstrap(t *testing.T) {
 
-// 	TestMain(t)
+// 	TestMainFunction(t)
 
 // 	Convey("Testing zeus bootstrapping", t, func(c C) {
 
@@ -464,7 +464,7 @@ func TestCommandsFile(t *testing.T) {
 
 func TestGenerate(t *testing.T) {
 
-	TestMain(t)
+	TestMainFunction(t)
 
 	Convey("Testing standalone script generation", t, func(c C) {
 
@@ -478,7 +478,7 @@ func TestGenerate(t *testing.T) {
 
 // func TestCommandsFileMigration(t *testing.T) {
 
-// 	TestMain(t)
+// 	TestMainFunction(t)
 
 // 	Convey("Testing CommandsFile to zeusDir migration", t, func(c C) {
 
@@ -501,7 +501,7 @@ func TestGenerate(t *testing.T) {
 
 func TestProcesses(t *testing.T) {
 
-	TestMain(t)
+	TestMainFunction(t)
 
 	Convey("Testing process handling", t, func(c C) {
 
@@ -523,7 +523,7 @@ func TestProcesses(t *testing.T) {
 
 func TestCustomCompleters(t *testing.T) {
 
-	TestMain(t)
+	TestMainFunction(t)
 
 	Convey("Testing custom completers", t, func(c C) {
 

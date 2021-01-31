@@ -6,3 +6,4 @@ coverage.out
 tests/zeus/.history
 debug
 .vscode
+tests/zeus/dumps

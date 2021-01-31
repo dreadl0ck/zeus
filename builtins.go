@@ -336,7 +336,9 @@ func printTodos() {
 
 	contents, err := ioutil.ReadFile(conf.fields.TodoFilePath)
 	if err != nil {
-		l.Println(err)
+		if conf.fields.Debug {
+			l.Println(err)
+		}
 		return
 	}
 
@@ -365,7 +367,7 @@ func printTodoCount() {
 
 	contents, err := ioutil.ReadFile(conf.fields.TodoFilePath)
 	if err != nil {
-		if !conf.fields.Quiet {
+		if conf.fields.Debug {
 			l.Println(err)
 		}
 		return

@@ -205,7 +205,7 @@ func listMilestones() {
 		}
 		l.Println("")
 	} else {
-		if !conf.fields.Quiet {
+		if conf.fields.Debug {
 			l.Println("no milestones set.")
 			l.Println("")
 		}

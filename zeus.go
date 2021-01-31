@@ -395,7 +395,9 @@ func printProjectHeader() {
 	l.Println(cp.Text + asciiArt + "v" + version)
 
 	if !conf.fields.Quiet {
-		l.Println(cp.Text + pad("Project Name", 14) + cp.Prompt + filepath.Base(workingDir) + cp.Text + "\n")
+		if conf.fields.Debug {
+			l.Println(cp.Text + pad("Project Name", 14) + cp.Prompt + filepath.Base(workingDir) + cp.Text + "\n")
+		}
 		printAuthor()
 	}
 
@@ -405,10 +407,6 @@ func printProjectHeader() {
 	}
 	if projectData.fields.Deadline != "" {
 		l.Println(pad("Deadline", 14) + cp.Prompt + projectData.fields.Deadline + cp.Text)
-	}
-
-	if !conf.fields.Quiet {
-		l.Println()
 	}
 
 	// project infos

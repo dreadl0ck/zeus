@@ -130,9 +130,11 @@ func handleLine(line string) {
 		clearScreen()
 
 		l.Println(cp.Text + asciiArt + "v" + version)
-		l.Println(cp.Text + "Project Name: " + cp.Prompt + filepath.Base(workingDir) + cp.Text + "\n")
 
 		conf.Lock()
+		if conf.fields.Debug {
+			l.Println(cp.Text + "Project Name: " + cp.Prompt + filepath.Base(workingDir) + cp.Text + "\n")
+		}
 		if conf.fields.PrintBuiltins {
 			printBuiltins()
 		}

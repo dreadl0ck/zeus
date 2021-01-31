@@ -80,17 +80,21 @@ func (cm *commandMap) init(start time.Time) {
 
 	cLog := Log.WithField("prefix", "cmdMap.init")
 
-	cm.Lock()
-	defer cm.Unlock()
-
-	// only print info when using the interactive shell
-	if len(os.Args) == 1 {
-		if len(cm.items) == 1 {
-			l.Println(cp.Text+"initialized "+cp.Prompt, "1", cp.Text+" command in: "+cp.Prompt, time.Now().Sub(start), cp.Reset+"\n")
-		} else {
-			l.Println(cp.Text+"initialized "+cp.Prompt, len(cmdMap.items), cp.Text+" commands in: "+cp.Prompt, time.Now().Sub(start), cp.Reset+"\n")
+	conf.Lock()
+	if conf.fields.Debug {
+		// only print info when using the interactive shell
+		if len(os.Args) == 1 {
+			if len(cm.items) == 1 {
+				l.Println(cp.Text+"initialized "+cp.Prompt, "1", cp.Text+" command in: "+cp.Prompt, time.Now().Sub(start), cp.Reset+"\n")
+			} else {
+				l.Println(cp.Text+"initialized "+cp.Prompt, len(cmdMap.items), cp.Text+" commands in: "+cp.Prompt, time.Now().Sub(start), cp.Reset+"\n")
+			}
 		}
 	}
+	conf.Unlock()
+
+	cm.Lock()
+	defer cm.Unlock()
 
 	// check if custom command conflicts with builtin name
 	for _, name := range builtins {
