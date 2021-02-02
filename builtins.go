@@ -551,13 +551,13 @@ func handleEditCommand(args []string) {
 			}
 			args = append(args, "+call cursor("+strconv.Itoa(line+1)+","+strconv.Itoa(col)+")")
 		case strings.HasSuffix(editor, "micro"):
-			// find position of command in commandsfile
+			// find position of command in commands file
 			line, col, err := getYAMLFieldPosition(args[1])
 			if err != nil {
 				l.Println(err)
 				return
 			}
-			args = append(args, "-startpos="+strconv.Itoa(line+1)+","+strconv.Itoa(col))
+			args = append(args, "+"+strconv.Itoa(line+1)+":"+strconv.Itoa(col))
 		default: // not supported
 		}
 	}
@@ -571,7 +571,7 @@ func handleEditCommand(args []string) {
 				printEditCommandUsageErr()
 				return
 			}
-			editorArgs = append(editorArgs, "-startpos="+args[3]+",0")
+			editorArgs = append(editorArgs, "+"+args[3]+":0")
 		} else {
 			editorArgs = append(editorArgs, args[2:]...)
 		}
@@ -580,7 +580,7 @@ func handleEditCommand(args []string) {
 	// append path
 	editorArgs = append(editorArgs, path)
 
-	Log.Debug(editor, editorArgs)
+	Log.Debug(editor, " ", editorArgs)
 
 	cmd := exec.Command(editor, editorArgs...)
 	wireEnv(cmd)
