@@ -22,6 +22,8 @@ github.com/desertbit/glue v0.0.0-20190619185959-06de07e1e404 h1:ssU5AxBiDzI1TMmT
 github.com/desertbit/glue v0.0.0-20190619185959-06de07e1e404/go.mod h1:GmhZxaat6anpeRZmbGAvasJMoxyJmzIjQtkNfn1vSEo=
 github.com/dreadl0ck/readline v0.0.0-20170525151952-86c82ab4c663 h1:4VwqFQfEDenzMAyLCm1NuFtQdGCxyqclXY2M4SGLuLw=
 github.com/dreadl0ck/readline v0.0.0-20170525151952-86c82ab4c663/go.mod h1:aPoBKlRY5R1G+VNa3P1Wjwh3C9SSRcOIp7+DXKh2PYA=
+github.com/dreadl0ck/readline v0.0.0-20210203135358-2a7a5106ebf9 h1:8cY+7b5a9BrJo9MvNKbmnPb1hZvLFzup95DkNvlW/9I=
+github.com/dreadl0ck/readline v0.0.0-20210203135358-2a7a5106ebf9/go.mod h1:aPoBKlRY5R1G+VNa3P1Wjwh3C9SSRcOIp7+DXKh2PYA=
 github.com/elliotchance/orderedmap v1.2.1 h1:GtjbXT+bKnHtYZIDab/ns5AThDXQroKYaMWd+Ak7mvk=
 github.com/elliotchance/orderedmap v1.2.1/go.mod h1:8hdSl6jmveQw8ScByd3AaNHNk51RhbTazdqtTty+NFw=
 github.com/elliotchance/orderedmap v1.3.0 h1:k6m77/d0zCXTjsk12nX40TkEBkSICq8T4s6R6bpCqU0=

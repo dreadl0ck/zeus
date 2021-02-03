@@ -9,7 +9,7 @@ require (
 	github.com/chzyer/test v0.0.0-20180213035817-a1ea475d72b1 // indirect
 	github.com/daaku/go.zipexe v1.0.1 // indirect
 	github.com/desertbit/glue v0.0.0-20190619185959-06de07e1e404
-	github.com/dreadl0ck/readline v0.0.0-20170525151952-86c82ab4c663
+	github.com/dreadl0ck/readline v0.0.0-20210203135358-2a7a5106ebf9
 	github.com/elliotchance/orderedmap v1.3.0
 	github.com/fsnotify/fsnotify v1.4.9
 	github.com/gen2brain/beeep v0.0.0-20200526185328-e9c15c258e28
