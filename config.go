@@ -322,7 +322,7 @@ func (c *config) watch(eventID string) {
 		// lock config
 		c.Lock()
 
-		err = yaml.Unmarshal(contents, c.fields)
+		err = yaml.UnmarshalStrict(contents, c.fields)
 		if err != nil {
 			Log.WithError(err).Error("config parse error")
 			c.Unlock()

@@ -195,6 +195,7 @@ commands:
         description: description for command build
         help: help text for command build
         arguments:
+          - test:String
         dependencies:
         outputs:
 

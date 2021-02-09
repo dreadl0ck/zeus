@@ -1,28 +1,25 @@
 #!/bin/bash
 #
 # ZEUS Error Dump
-# Timestamp: [Wed Jan 27 11:19:09 2021]
-# Error: exit status 127
+# Timestamp: [Tue Feb 9 17:16:06 2021]
+# Error: exit status 1
 # StdErr: 
-# /bin/bash: line 13: use: command not found
 # 
 
 
 #!/bin/bash
-binaryName="zeus"
-buildDir="bin"
-version="0.8"
 
-#!/bin/bash
+# {zeus}
+# arguments:
+# description: build project for current OS
+# dependencies: configure
+# outputs:
+# buildNumber: true
+# help: compile binary for current OS into buildDir
+# {zeus}
 
-function bash_greet() {
-	echo "hello world from bash!"
-	echo "ZEUS version: $version"
-}
+echo "test: $test"
 
-
-use strict;
-use warnings;
-
-# Print a message.
-print "Hello, World!\n";
+echo "building $binaryName for current OS"
+rice embed-go
+godep go build -o ${buildDir}/$binaryName

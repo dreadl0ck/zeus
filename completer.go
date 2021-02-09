@@ -292,8 +292,10 @@ func eventIDCompleter(path string) (res []string) {
 func commandCompleter(path string) (res []string) {
 	cmdMap.Lock()
 	defer cmdMap.Unlock()
-	for name := range cmdMap.items {
-		res = append(res, name)
+	for name, cmd := range cmdMap.items {
+		if !cmd.hidden {
+			res = append(res, name)
+		}
 	}
 	return
 }

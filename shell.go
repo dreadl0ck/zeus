@@ -204,6 +204,11 @@ func handleLine(line string) {
 			handleAliasCommand(args)
 		case editCommand:
 			handleEditCommand(args)
+			time.Sleep(100 * time.Millisecond)
+			err := parseCommandsFile(commandsFilePath)
+			if err != nil {
+				Log.WithError(err).Error("failed to parse commands file")
+			}
 		case deadlineCommand:
 			handleDeadlineCommand(args)
 		case gitFilterCommand:
@@ -222,17 +227,21 @@ func handleLine(line string) {
 			handleKeysCommand(args)
 		case createCommand:
 			handleCreateCommand(args)
+			printProjectHeader()
+			printCommands()
 		case todoCommand:
 			handleTodoCommand(args)
 		case generateCommand:
 			handleGenerateCommand(args)
 
 		default:
-			// check if its a commandchain
+			// check if its a commandChain
 			if strings.Contains(line, commandChainSeparator) {
 				fields := strings.Split(line, commandChainSeparator)
 				if cmdChain, ok := validCommandChain(fields); ok {
+					shellBusy = true
 					cmdChain.exec(fields)
+					shellBusy = false
 				} else {
 					l.Println("invalid commandChain")
 				}
@@ -287,9 +296,21 @@ func handleLine(line string) {
 			s.Unlock()
 
 			// run the command
+			shellBusy = true
 			err = cmd.Run(args, cmd.async)
 			if err != nil {
+				if err.Error() == "signal: interrupt" {
+					fmt.Println(" " + err.Error())
+					return
+				}
 				fmt.Printf("command "+cmd.name+" failed. error: %v\n", err)
+			}
+			shellBusy = false
+
+			// check if the commandsFile became invalid due to an edit while the current command was running.
+			if lastCommandsFileError != nil {
+				Log.WithError(lastCommandsFileError).Error("invalid commandsFile")
+				lastCommandsFileError = nil
 			}
 
 			if cmd.async {

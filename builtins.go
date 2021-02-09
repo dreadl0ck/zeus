@@ -27,7 +27,8 @@ import (
 	"strings"
 )
 
-var editorProcRunning bool
+// used to indicate that no output shall be printed into the terminal
+var shellBusy bool
 
 // constants for builtin names
 const (
@@ -154,15 +155,15 @@ func printCommands() {
 		return
 	}
 
-	var (
-		sortedCommandKeys = make([]string, len(cmdMap.items))
-		index             = 0
-	)
+	var sortedCommandKeys []string
 
 	// copy command names into array for sorting
-	for key := range cmdMap.items {
-		sortedCommandKeys[index] = key
-		index++
+	for key, cmd := range cmdMap.items {
+		// do not display hidden commands
+		if cmd.hidden {
+			continue
+		}
+		sortedCommandKeys = append(sortedCommandKeys, key)
 	}
 
 	// sort alphabetically
@@ -186,9 +187,7 @@ func printSortedCommandKeys(sortedCommandKeys []string) {
 		)
 
 		if conf.fields.Quiet {
-			var (
-				deps string
-			)
+			var deps string
 			if len(cmd.dependencies) > 0 {
 				deps = cp.CmdFields + " [" + formatDependencies(cmd.dependencies) + "]"
 			}
@@ -536,14 +535,14 @@ func handleEditCommand(args []string) {
 		}
 	}
 
-	// commmand is in commandsFile? let's start the editor at the correct position!
+	// command is in commandsFile? let's start the editor at the correct position!
 	if path == commandsFilePath {
 
 		// check if editor supports starting at a position
 		// it could be supplied as a path, so we just check the path suffix
 		switch {
 		case strings.HasSuffix(editor, "vim"):
-			// find position of command in commandsfile
+			// find position of command in commands file
 			line, col, err := getYAMLFieldPosition(args[1])
 			if err != nil {
 				l.Println(err)
@@ -585,11 +584,11 @@ func handleEditCommand(args []string) {
 	cmd := exec.Command(editor, editorArgs...)
 	wireEnv(cmd)
 
-	editorProcRunning = true
+	shellBusy = true
 
 	err := cmd.Run()
 	if err != nil {
-		Log.WithError(err).Error("edit command failed: using vim as fallback")
+		//Log.WithError(err).Error("edit command failed: using vim as fallback")
 
 		// try vim as fallback
 		cmd = exec.Command("vim", path)
@@ -601,7 +600,7 @@ func handleEditCommand(args []string) {
 		}
 	}
 
-	editorProcRunning = false
+	shellBusy = false
 }
 
 func printGenerateCommandUsageErr() {

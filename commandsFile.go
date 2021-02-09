@@ -36,13 +36,13 @@ var (
 	commandsFilePath = zeusDir + "/commands.yml"
 
 	// ErrFailedToReadCommandsFile occurs when the CommandsFile could not be read
-	ErrFailedToReadCommandsFile = errors.New("failed to read CommandsFile")
+	ErrFailedToReadCommandsFile = errors.New("failed to read commandsFile")
 )
 
 // CommandsFile contains globals and commands for the CommandsFile.yml
 type CommandsFile struct {
 
-	// Overrride default language bash
+	// Override default language bash
 	Language string `yaml:"language"`
 
 	// global vars for all commands
@@ -72,28 +72,22 @@ func parseCommandsFile(path string) error {
 	contents, err := ioutil.ReadFile(path)
 	if err != nil {
 		Log.Debug(err)
-		return ErrFailedToReadCommandsFile
+		return errors.New(ErrFailedToReadCommandsFile.Error() + ": " + err.Error())
 	}
 
 	// unmarshal YAML
-	err = yaml.Unmarshal(contents, commandsFile)
+	err = yaml.UnmarshalStrict(contents, commandsFile)
 	if err != nil {
 		i, lineErr := extractLineNumFromError(err.Error(), "line")
 		if lineErr == ErrNoLineNumberFound {
 			i = -1
 		} else if lineErr != nil {
-			l.Println("failed to retrieve line number in which the error ocurred:", lineErr)
+			l.Println("failed to retrieve line number in which the error occurred:", lineErr)
 			i = -1
 		}
-		if !editorProcRunning {
+		if !shellBusy {
 			printCodeSnippet(string(contents), commandsFilePath, i)
 		}
-		return err
-	}
-
-	// validate
-	err = validateCommandsFile(contents)
-	if err != nil {
 		return err
 	}
 
@@ -265,6 +259,8 @@ func countLeadingSpace(line string) int {
 	return i
 }
 
+var lastCommandsFileError error
+
 // watch zeus file for changes and parse again
 func watchCommandsFile(path, eventID string) {
 
@@ -289,16 +285,18 @@ func watchCommandsFile(path, eventID string) {
 
 		Log.Debug("received commandsFile WRITE event: ", e.Name)
 
-		if !editorProcRunning {
-			printProjectHeader()
-		}
-
 		err := parseCommandsFile(path)
-		if !editorProcRunning {
+		if !shellBusy {
 			if err != nil {
 				Log.WithError(err).Error("failed to parse commandsFile")
+			}
+		} else {
+			if err != nil {
+				// shell is currently busy. store the error to present it to the user once the shell is free again.
+				lastCommandsFileError = err
 			} else {
-				printCommands()
+				// commandsFile was parsed successfully in the background. Make sure previous error is cleared.
+				lastCommandsFileError = nil
 			}
 		}
 	}))

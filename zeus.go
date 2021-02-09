@@ -163,8 +163,6 @@ func initZeus() {
 		if err != nil {
 			log.Fatal("failed to change dir: ", err)
 		}
-		commandsFilePath = filepath.Join(*flagWorkDir, commandsFilePath)
-		fmt.Println("commandsFilePath", commandsFilePath)
 	}
 
 	if *flagCompletions != "" {
@@ -315,32 +313,13 @@ func main() {
 
 	// check if a CommandsFile for the project exists
 	err = parseCommandsFile(commandsFilePath)
-	if err == ErrFailedToReadCommandsFile {
-
-		// remove commandsFileWatcher
-		var id string
-		projectData.Lock()
-		for _, e := range projectData.fields.Events {
-			if e.Name == "commandsFile watcher" {
-				id = e.ID
-			}
-		}
-		projectData.Unlock()
-
-		if id != "" {
-			removeEvent(id)
-		}
-
-		Log.Debug("no CommandsFile found. looking for scripts...")
-
-		// create commandList from ZEUS dir
-		findCommands()
-	} else if err != nil {
+	if err != nil {
 		Log.Error("failed to parse commandsFile: ", err, "\n")
+		os.Exit(1)
 	}
 
 	// watch commandsFile for changes in interactive mode
-	if err == nil && conf.fields.Interactive {
+	if conf.fields.Interactive {
 		go watchCommandsFile(commandsFilePath, "")
 	}
 
@@ -510,21 +489,25 @@ func handleArgs() {
 				s.numCommands = count
 				s.Unlock()
 
+				shellBusy = true
 				err = cmd.Run(os.Args[2:], cmd.async)
 				if err != nil {
 					cLog.WithError(err).Error("failed to execute " + cmd.name)
 					cleanup()
 					os.Exit(1)
 				}
+				shellBusy = false
 			} else {
 				cmdMap.Unlock()
 			}
 
-			// check if its a commandchain supplied with "" or ''
+			// check if its a commandChain supplied with "" or ''
 			if strings.Contains(os.Args[1], commandChainSeparator) {
 				fields := strings.Split(os.Args[1], commandChainSeparator)
 				if cmdChain, ok := validCommandChain(fields); ok {
+					shellBusy = true
 					cmdChain.exec(fields)
+					shellBusy = false
 				} else {
 					l.Println("invalid commandChain")
 				}

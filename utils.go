@@ -157,21 +157,23 @@ func printCodeSnippet(contents, path string, highlightLine int) {
 	fmt.Println(" |---------------------------------------------------------------------------------------------|")
 	for i, s := range strings.Split(contents, "\n") {
 
-		if i < rangeStart || i > rangeEnd {
+		line := i+1
+
+		if line < rangeStart || line > rangeEnd {
 			continue
 		}
 
 		var lineNumber string
 		switch true {
-		case i > 9:
-			lineNumber = strconv.Itoa(i) + " "
-		case i > 99:
-			lineNumber = strconv.Itoa(i)
+		case line > 9:
+			lineNumber = strconv.Itoa(line) + " "
+		case line > 99:
+			lineNumber = strconv.Itoa(line)
 		default:
-			lineNumber = strconv.Itoa(i) + "  "
+			lineNumber = strconv.Itoa(line) + "  "
 		}
 
-		if i == highlightLine {
+		if line == highlightLine {
 			fmt.Println(" "+ansi.Red+lineNumber, s+cp.Reset)
 		} else {
 			fmt.Println(" "+lineNumber, s)

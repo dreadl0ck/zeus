@@ -46,7 +46,7 @@ type commandData struct {
 	// Dependencies
 	Dependencies []string `yaml:"dependencies"`
 
-	// ouptuts
+	// outputs
 	Outputs []string `yaml:"outputs"`
 
 	// increase buildnumber on each execution
@@ -60,14 +60,17 @@ type commandData struct {
 
 	// Path allows to set a custom path for the command
 	Path string `yaml:"path"`
+
+	// Hidden controls if the command is shown the menu
+	Hidden bool `yaml:"hidden"`
 }
 
-// intialize a command from a commandData instance
+// initialize a command from a commandData instance
 // returns if command does already exist
 func (d *commandData) init(commandsFile *CommandsFile, name string) error {
 
 	// check if a path is set and an exec section specified
-	// thats invalid - print debug info and return an error
+	// that's invalid - print debug info and return an error
 	if d.Path != "" && d.Exec != "" {
 
 		c, err := ioutil.ReadFile(commandsFilePath)
@@ -145,6 +148,7 @@ func (d *commandData) init(commandsFile *CommandsFile, name string) error {
 		args:        args,
 		description: d.Description,
 		help:        d.Help,
+		hidden:      d.Hidden,
 		// PrefixCompleter: readline.PcItem(name,
 		// 	readline.PcItemDynamic(func(path string) (res []string) {
 
@@ -265,6 +269,11 @@ func (d *commandData) init(commandsFile *CommandsFile, name string) error {
 		exec:         d.Exec,
 		async:        d.Async,
 		language:     lang,
+	}
+
+	// disable completion for hidden commands
+	if d.Hidden {
+		cmd.PrefixCompleter = readline.NewPrefixCompleter()
 	}
 
 	if d.Exec == "" {
