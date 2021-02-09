@@ -158,15 +158,15 @@ func (c *command) AtomicRun(args []string, async bool) error {
 				Log.Debug("["+ansi.Red+c.name+cp.Reset+"] output missing: ", output)
 				outputMissing = true
 			}
+		}
 
-			if !outputMissing {
-				// all output files / dirs exist, skip command
-				s.Lock()
-				s.currentCommand++
-				l.Println(printPrompt() + "[" + strconv.Itoa(s.currentCommand) + "/" + strconv.Itoa(s.numCommands) + "] skipping " + cp.Prompt + c.name + cp.Reset + " because all named outputs exist")
-				s.Unlock()
-				return nil
-			}
+		if !outputMissing {
+			// all output files / dirs exist, skip command
+			s.Lock()
+			s.currentCommand++
+			l.Println(printPrompt() + "[" + strconv.Itoa(s.currentCommand) + "/" + strconv.Itoa(s.numCommands) + "] skipping " + cp.Prompt + c.name + cp.Reset + " because all named outputs exist")
+			s.Unlock()
+			return nil
 		}
 	}
 
