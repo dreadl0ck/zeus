@@ -81,6 +81,8 @@ var (
 
 	// running a test?
 	testingMode bool
+
+	promptFilePath = "zeus/.zeus_prompt"
 )
 
 type atomicLogger struct {

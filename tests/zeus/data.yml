@@ -12,17 +12,10 @@ deadline: ""
 milestones: []
 aliases: {}
 events:
-  3f9f4bd0908460eb:
-    name: commandsFile watcher
-    id: 3f9f4bd0908460eb
-    path: zeus/commands.yml
-    op: 2
-    fileextension: .yml
-    command: internal
-  29e2257383294ea9:
+  9fb4afa1910a47a3:
     name: config watcher
-    id: 29e2257383294ea9
-    path: zeus/config.yml
+    id: 9fb4afa1910a47a3
+    path: tests/zeus/config.yml
     op: 2
     fileextension: .yml
     command: internal

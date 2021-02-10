@@ -63,6 +63,9 @@ type commandData struct {
 
 	// Hidden controls if the command is shown the menu
 	Hidden bool `yaml:"hidden"`
+
+	// CanModifyPrompt controls if the command can modify the zeus prompt
+	CanModifyPrompt bool `yaml:"canModifyPrompt"`
 }
 
 // initialize a command from a commandData instance
@@ -263,12 +266,13 @@ func (d *commandData) init(commandsFile *CommandsFile, name string) error {
 				),
 			),
 		),
-		buildNumber:  d.BuildNumber,
-		dependencies: d.Dependencies,
-		outputs:      d.Outputs,
-		exec:         d.Exec,
-		async:        d.Async,
-		language:     lang,
+		buildNumber:     d.BuildNumber,
+		dependencies:    d.Dependencies,
+		outputs:         d.Outputs,
+		exec:            d.Exec,
+		async:           d.Async,
+		language:        lang,
+		canModifyPrompt: d.CanModifyPrompt,
 	}
 
 	// replace globals in outputs

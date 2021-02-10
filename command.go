@@ -100,6 +100,9 @@ type command struct {
 	// controls whether the command is shown in the help menu
 	// or is considered internal
 	hidden bool
+
+	// controls whether the command can modify the prompt for the zeus shell
+	canModifyPrompt bool
 }
 
 func (c *command) AsyncRun(args []string) error {
@@ -302,6 +305,10 @@ func (c *command) waitForProcess(cmd *exec.Cmd, cleanupFunc func(), script strin
 		return err
 	}
 
+	if c.canModifyPrompt {
+		modifyPrompt()
+	}
+
 	if c.async {
 
 		// add to process map PID +1
@@ -349,7 +356,7 @@ func (c *command) waitForProcess(cmd *exec.Cmd, cleanupFunc func(), script strin
 }
 
 // collect dependencies for the current command
-// iterating recursively on all the subdependencies
+// iterating recursively on all the sub-dependencies
 func (c *command) getDeepDependencies() (deps []string) {
 
 	for _, dep := range c.dependencies {
@@ -694,4 +701,20 @@ func initScript(path string) error {
 
 	return nil
 
+}
+
+func modifyPrompt() {
+	data, err := ioutil.ReadFile(promptFilePath)
+	if err == nil {
+		if len(data) > 0 {
+			// set shell prompt to project name + additional info
+			info := strings.TrimSpace(strings.ReplaceAll(string(data), "\n", ""))
+			zeusPrompt = filepath.Base(workingDir + "[" + info + "]")
+			readlineMutex.Lock()
+			if rl != nil {
+				rl.SetPrompt(printPrompt())
+			}
+			readlineMutex.Unlock()
+		}
+	}
 }
