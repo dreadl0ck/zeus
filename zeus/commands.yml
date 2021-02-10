@@ -13,7 +13,7 @@ language: bash
 
 # globals are visible for all commands
 # they can contain variables
-# for language specific code create a globals.[scriptExtension] file in the zeus directory
+# for language specific code create a globals.[scriptExtension] file in the zeus/globals directory
 globals:
   binaryName: zeus
   buildDir: bin
@@ -26,10 +26,10 @@ globals:
 # description               # string         # a short description text that will be display on startup
 # help                      # string         # a multi line manual entry for detailed explanations
 # dependencies              # []string       # a list of dependency commands with their arguments
-# outputs                   # []string       # a list of ouputs files / directories
+# outputs                   # []string       # a list of outputs files / directories
 # buildNumber               # bool           # increment buildNumber each execution
 # arguments                 # []string       # list of typed arguments, allows optionals and default values
-# async                     # bool           # detach comamnd async in a screen session, attach on demand
+# async                     # bool           # detach command async in a screen session, attach on demand
 # path                      # string         # custom path for script file
 # exec                      # string         # supply the script directly without a file
 # language                  # string         # set the language for the script

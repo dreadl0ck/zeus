@@ -1287,7 +1287,7 @@ You can find all assets in the **assets** directory.
 
 ### Vendoring
 
-ZEUS is vendored with [godep](https://github.com/tools/godep)
+ZEUS is vendored with go modules.
 That means it is independent of any API changes in the used libraries and will work seamlessly in the future!
 
 ### Notes

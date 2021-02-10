@@ -10,7 +10,7 @@ require (
 	github.com/daaku/go.zipexe v1.0.1 // indirect
 	github.com/desertbit/glue v0.0.0-20190619185959-06de07e1e404
 	github.com/dreadl0ck/readline v0.0.0-20210203135358-2a7a5106ebf9
-	github.com/elliotchance/orderedmap v1.3.0
+	github.com/elliotchance/orderedmap v1.4.0
 	github.com/fsnotify/fsnotify v1.4.9
 	github.com/gen2brain/beeep v0.0.0-20200526185328-e9c15c258e28
 	github.com/gopherjs/gopherjs v0.0.0-20210202160940-bed99a852dfe // indirect
