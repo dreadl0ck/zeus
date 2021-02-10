@@ -130,7 +130,7 @@ func handleGenerateCommand(args []string) {
 // generate a single script
 // if mixed each script will be put into the outputName directory
 // if not, a single script file will be generated
-// returns the fileDeskriptor, language and an error
+// returns the fileDescriptor, language and an error
 func generateScript(outputName string, mixed bool, cmd *command, args []string) (*os.File, *Language, error) {
 
 	var arguments string
@@ -144,11 +144,9 @@ func generateScript(outputName string, mixed bool, cmd *command, args []string) 
 
 	// handle arguments
 	if len(cmd.args) > 0 {
-		if len(args) > 0 {
-			arguments, err = cmd.parseArguments(args)
-			if err != nil {
-				return nil, nil, err
-			}
+		arguments, err = cmd.parseArguments(args)
+		if err != nil {
+			return nil, nil, err
 		}
 	}
 
@@ -166,9 +164,7 @@ func generateScript(outputName string, mixed bool, cmd *command, args []string) 
 	header += lang.Comment + " Timestamp: " + time.Now().Format(timestampFormat) + "\n"
 
 	// insert bang and args
-	f.WriteString(lang.Bang + "\n" + header + "\n" + arguments + "\n")
-
-	f.WriteString(generateGlobals(lang))
+	f.WriteString(lang.Bang + "\n" + header + "\n" + generateGlobals(lang) + "\n" + arguments + "\n")
 
 	// add language specific global code
 	code, err := ioutil.ReadFile(zeusDir + "/globals/globals" + lang.FileExtension)

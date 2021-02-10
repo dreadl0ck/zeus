@@ -157,7 +157,7 @@ func printCodeSnippet(contents, path string, highlightLine int) {
 	fmt.Println(" |---------------------------------------------------------------------------------------------|")
 	for i, s := range strings.Split(contents, "\n") {
 
-		line := i+1
+		line := i + 1
 
 		if line < rangeStart || line > rangeEnd {
 			continue

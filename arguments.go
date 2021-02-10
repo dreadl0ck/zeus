@@ -60,7 +60,7 @@ type commandArg struct {
 
 // validate arguments string from CommandsFile
 // and return the validatedArgs as map
-func validateArgs(args []string) (map[string]*commandArg, error) {
+func (c *CommandsFile) validateArgs(args []string) (map[string]*commandArg, error) {
 
 	// init map
 	validatedArgs := make(map[string]*commandArg, 0)
@@ -156,8 +156,8 @@ func validateArgs(args []string) (map[string]*commandArg, error) {
 func (c *command) parseArguments(args []string) (string, error) {
 
 	var (
-		argBuf     bytes.Buffer
-		ocurrences = make(map[string]int, 0)
+		argBuf      bytes.Buffer
+		occurrences = make(map[string]int, 0)
 	)
 
 	// parse args
@@ -180,13 +180,13 @@ func (c *command) parseArguments(args []string) (string, error) {
 				return "", errors.New(ErrInvalidArgumentLabel.Error() + ": " + ansi.Red + argSlice[0] + cp.Reset)
 			}
 
-			if _, ok := ocurrences[argSlice[0]]; ok {
-				ocurrences[argSlice[0]]++
+			if _, ok := occurrences[argSlice[0]]; ok {
+				occurrences[argSlice[0]]++
 			} else {
-				ocurrences[argSlice[0]] = 1
+				occurrences[argSlice[0]] = 1
 			}
 
-			if ocurrences[argSlice[0]] > 1 {
+			if occurrences[argSlice[0]] > 1 {
 				return "", errors.New("argument label appeared more than once: " + cmdArg.name)
 			}
 
@@ -231,4 +231,50 @@ func (c *command) parseArguments(args []string) (string, error) {
 	}
 
 	return argBuf.String(), nil
+}
+
+func (c *CommandsFile) replaceGlobals(input string) (string, error) {
+	var (
+		dollar, startOfIdent bool
+		name                 string
+		names                []string
+	)
+
+	// replace variables used in ${} notation with global values
+	for _, char := range input {
+		if char == '$' {
+			dollar = true
+			continue
+		}
+		if dollar {
+			if char == '{' {
+				startOfIdent = true
+				continue
+			}
+		}
+		if char == '}' {
+			// collect string
+			n := name
+			names = append(names, n)
+
+			// reset state values
+			name = ""
+			dollar = false
+			startOfIdent = false
+		}
+		if startOfIdent {
+			name += string(char)
+			continue
+		}
+	}
+
+	for _, n := range names {
+		if val, ok := c.Globals[n]; !ok {
+			return "", errors.New("variable used in default value that is not a global: " + n)
+		} else {
+			input = strings.ReplaceAll(input, "${"+n+"}", val)
+		}
+	}
+
+	return input, nil
 }

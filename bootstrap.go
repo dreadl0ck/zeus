@@ -25,7 +25,7 @@ import (
 	"strings"
 	"time"
 
-	yaml "gopkg.in/yaml.v1"
+	"gopkg.in/yaml.v2"
 )
 
 // bootstrap basic zeus setup
@@ -118,14 +118,14 @@ func handleCreateCommand(args []string) {
 					return
 				}
 
-				err = yaml.Unmarshal(contents, commandsFile)
+				err = yaml.UnmarshalStrict(contents, commandsFile)
 				if err != nil {
 					l.Println("failed to unmarshal commandsFile: " + err.Error())
 					return
 				}
 
 				if d, ok := commandsFile.Commands[args[2]]; ok {
-					err = createScript(d, cmd.name)
+					err = commandsFile.createScript(d, cmd.name)
 					if err != nil {
 						l.Println("failed to create script: " + err.Error())
 					}

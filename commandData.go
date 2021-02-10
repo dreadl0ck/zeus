@@ -129,7 +129,7 @@ func (d *commandData) init(commandsFile *CommandsFile, name string) error {
 	}
 
 	// assemble commands args
-	args, err := validateArgs(d.Arguments)
+	args, err := commandsFile.validateArgs(d.Arguments)
 	if err != nil {
 		return errors.New("command " + name + ": " + err.Error())
 	}
@@ -269,6 +269,15 @@ func (d *commandData) init(commandsFile *CommandsFile, name string) error {
 		exec:         d.Exec,
 		async:        d.Async,
 		language:     lang,
+	}
+
+	// replace globals in outputs
+	for i, o := range cmd.outputs {
+		out, err := commandsFile.replaceGlobals(o)
+		if err != nil {
+			return err
+		}
+		cmd.outputs[i] = out
 	}
 
 	// disable completion for hidden commands

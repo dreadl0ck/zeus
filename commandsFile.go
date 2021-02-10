@@ -340,7 +340,7 @@ func createAllScripts() error {
 	// write commands to disk
 	for name, d := range commandsFile.Commands {
 		if d.Path == "" {
-			err = createScript(d, name)
+			err = commandsFile.createScript(d, name)
 			if err != nil {
 				l.Println(err)
 				continue
@@ -358,7 +358,7 @@ func createAllScripts() error {
 	return parseCommandsFile(commandsFilePath)
 }
 
-func createScript(d *commandData, name string) error {
+func (c *CommandsFile) createScript(d *commandData, name string) error {
 
 	// set default language
 	if d.Language == "" {
@@ -371,7 +371,7 @@ func createScript(d *commandData, name string) error {
 	}
 
 	// check commands args
-	_, err = validateArgs(d.Arguments)
+	_, err = c.validateArgs(d.Arguments)
 	if err != nil {
 		return err
 	}

@@ -152,7 +152,6 @@ func (c *command) AtomicRun(args []string, async bool) error {
 
 		// check if all named outputs exist
 		for _, output := range c.outputs {
-
 			_, err := os.Stat(output)
 			if err != nil {
 				Log.Debug("["+ansi.Red+c.name+cp.Reset+"] output missing: ", output)
@@ -445,7 +444,6 @@ func (c *command) createCommand(argBuffer string) (cmd *exec.Cmd, script string,
 
 	var (
 		shellCommand []string
-		globalVars   string
 		globalFuncs  string
 	)
 
@@ -469,11 +467,9 @@ func (c *command) createCommand(argBuffer string) (cmd *exec.Cmd, script string,
 	if stopOnErr && lang.FlagStopOnError != "" {
 		shellCommand = append(shellCommand, lang.FlagStopOnError)
 	}
-	if c.path == "" && lang.FlagEvaluateScript != "" {
+	if lang.FlagEvaluateScript != "" {
 		shellCommand = append(shellCommand, lang.FlagEvaluateScript)
 	}
-
-	globalVars = generateGlobals(lang)
 
 	// add language specific global code
 	code, err := ioutil.ReadFile(zeusDir + "/globals/globals" + lang.FileExtension)
@@ -483,7 +479,7 @@ func (c *command) createCommand(argBuffer string) (cmd *exec.Cmd, script string,
 
 	// check if loaded via CommandsFile
 	if c.exec != "" {
-		script = lang.Bang + "\n" + globalVars + "\n" + globalFuncs + "\n" + argBuffer + "\n" + c.exec
+		script = lang.Bang + "\n" + globalFuncs + "\n" + argBuffer + "\n" + c.exec
 		if lang.UseTempFile {
 			// make sure the .tmp dir exists
 			os.MkdirAll(scriptDir+"/.tmp", 0700)
@@ -514,18 +510,17 @@ func (c *command) createCommand(argBuffer string) (cmd *exec.Cmd, script string,
 		}
 	} else {
 
-		// make sure script is executable
-		// just in case the user wants to run it manually one day
-		err = os.Chmod(c.path, 0700)
+		contents, err := ioutil.ReadFile(c.path)
 		if err != nil {
-			Log.Error("failed to make script executable")
+			Log.Error("failed to read script")
 			return nil, "", nil, err
 		}
 
-		shellCommand = append(shellCommand, c.path)
+		script = lang.Bang + "\n" + globalFuncs + "\n" + argBuffer + "\n" + string(contents)
+		shellCommand = append(shellCommand, script)
 	}
 
-	// Log.Debug("shellCommand: ", shellCommand)
+	Log.Debug("shellCommand: ", shellCommand)
 
 	cmd = exec.Command(shellCommand[0], shellCommand[1:]...)
 
