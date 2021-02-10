@@ -44,7 +44,7 @@ var (
 
 // readline loop for interactive mode
 // when there's an unknown command it will be passed to the shell
-func readlineLoop() error {
+func readlineLoop(cmdFile *CommandsFile) error {
 
 	if conf.fields.PrintBuiltins {
 		printBuiltins()
@@ -95,7 +95,7 @@ func readlineLoop() error {
 			if err == readline.ErrInterrupt {
 
 				if conf.fields.ExitOnInterrupt {
-					clearProcessMap()
+					cleanup(cmdFile)
 					os.Exit(0)
 				} else {
 					Log.Info("ExitOnInterrupt is disabled, type 'exit' if you want to leave.")
@@ -205,7 +205,7 @@ func handleLine(line string) {
 		case editCommand:
 			handleEditCommand(args)
 			time.Sleep(100 * time.Millisecond)
-			err := parseCommandsFile(commandsFilePath)
+			_, err := parseCommandsFile(commandsFilePath)
 			if err != nil {
 				Log.WithError(err).Error("failed to parse commands file")
 			}

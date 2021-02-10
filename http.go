@@ -294,7 +294,7 @@ var quitHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) 
 	w.Write([]byte("Bye."))
 
 	showNote("Bye.", "stopping server and cleaning up")
-	cleanup()
+	cleanup(nil)
 
 	err := rl.Close()
 	if err != nil {

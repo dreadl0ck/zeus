@@ -464,7 +464,7 @@ func updateZeus() {
 	}
 
 	l.Println("zeus updated!")
-	cleanup()
+	cleanup(nil)
 	os.Exit(0)
 }
 

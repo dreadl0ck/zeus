@@ -313,8 +313,13 @@ func main() {
 		printMakefileCommandOverview()
 	}
 
+	if conf.fields.ProjectNamePrompt {
+		// set shell prompt to project name
+		zeusPrompt = filepath.Base(workingDir)
+	}
+
 	// check if a CommandsFile for the project exists
-	err = parseCommandsFile(commandsFilePath)
+	cmdFile, err := parseCommandsFile(commandsFilePath)
 	if err != nil {
 		Log.Error("failed to parse commandsFile: ", err, "\n")
 		os.Exit(1)
@@ -325,13 +330,8 @@ func main() {
 		go watchCommandsFile(commandsFilePath, "")
 	}
 
-	if conf.fields.ProjectNamePrompt {
-		// set shell prompt to project name
-		zeusPrompt = filepath.Base(workingDir)
-	}
-
 	// handle commandline arguments
-	handleArgs()
+	handleArgs(cmdFile)
 
 	// check if interactive mode is enabled in the config
 	if conf.fields.Interactive {
@@ -342,10 +342,10 @@ func main() {
 
 		// handle OS Signals
 		// all child processes need to be killed when theres an error
-		handleSignals()
+		handleSignals(cmdFile)
 
 		// start interactive mode and start reading from stdin
-		err = readlineLoop()
+		err = readlineLoop(cmdFile)
 		if err != nil {
 			cLog.WithError(err).Fatal("failed to read user input")
 		}
@@ -395,7 +395,7 @@ func printProjectHeader() {
 }
 
 // handle commandline arguments
-func handleArgs() {
+func handleArgs(cmdFile *CommandsFile) {
 
 	// strip commandline flags
 	for i, elem := range os.Args {
@@ -471,8 +471,7 @@ func handleArgs() {
 			os.Exit(0)
 
 		default:
-			handleSignals()
-
+			handleSignals(cmdFile)
 			cmdMap.Lock()
 
 			// check if the command exists
@@ -495,7 +494,7 @@ func handleArgs() {
 				err = cmd.Run(os.Args[2:], cmd.async)
 				if err != nil {
 					cLog.WithError(err).Error("failed to execute " + cmd.name)
-					cleanup()
+					cleanup(cmdFile)
 					os.Exit(1)
 				}
 				shellBusy = false

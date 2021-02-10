@@ -183,7 +183,7 @@ func printCodeSnippet(contents, path string, highlightLine int) {
 }
 
 // handle OS SIGNALS for a clean exit and clean up all spawned processes
-func handleSignals() {
+func handleSignals(cmdFile *CommandsFile) {
 
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM, syscall.SIGSEGV, syscall.SIGHUP, syscall.SIGQUIT)
@@ -192,17 +192,16 @@ func handleSignals() {
 	go func() {
 
 		sig := <-c
-
-		Log.Debug("received SIGNAL: ", sig)
+		fmt.Println(sig)
 
 		// lock the mutex
 		signalMutex.Lock()
 
-		// pass signal to all spawned procs
+		// pass signal to all spawned processes
 		passSignalToProcs(sig)
 
-		// return to interactive shell
-		return
+		cleanup(cmdFile)
+		os.Exit(0)
 	}()
 }
 

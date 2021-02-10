@@ -19,6 +19,9 @@
 package main
 
 import (
+	"fmt"
+	"github.com/mgutz/ansi"
+	"log"
 	"os"
 	"os/exec"
 	"strconv"
@@ -85,10 +88,24 @@ func deleteProcessByPID(pid int) {
 
 // cleanup before we leave
 // used only on unrecoverable errors
-func cleanup() {
+func cleanup(cmdFile *CommandsFile) {
+
+	// reset terminal colors
+	fmt.Print(ansi.Reset)
 
 	// kill all spawned processes
 	clearProcessMap()
+
+	// invoke exitHook if set
+	if cmdFile != nil {
+		if cmdFile.ExitHook != "" {
+			out, err := exec.Command(cmdFile.ExitHook).CombinedOutput()
+			if err != nil {
+				fmt.Println(string(out))
+				log.Fatal("exitHook failed: ", err)
+			}
+		}
+	}
 
 	// close readline
 	if rl != nil {

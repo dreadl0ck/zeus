@@ -20,8 +20,11 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
+	"os/exec"
 	"strconv"
 	"strings"
 	"time"
@@ -39,7 +42,7 @@ var (
 	ErrFailedToReadCommandsFile = errors.New("failed to read commandsFile")
 )
 
-// CommandsFile contains globals and commands for the CommandsFile.yml
+// CommandsFile contains globals and commands for the main zeus configuration file commands.yml
 type CommandsFile struct {
 
 	// Override default language bash
@@ -50,6 +53,12 @@ type CommandsFile struct {
 
 	// command data
 	Commands map[string]*commandData `yaml:"commands"`
+
+	// script to call when starting zeus
+	StartupHook string `yaml:"startupHook"`
+
+	// script to call when exiting zeus
+	ExitHook string `yaml:"exitHook"`
 }
 
 func newCommandsFile() *CommandsFile {
@@ -61,7 +70,7 @@ func newCommandsFile() *CommandsFile {
 }
 
 // parse and initialize all commands from the CommandsFile
-func parseCommandsFile(path string) error {
+func parseCommandsFile(path string) (*CommandsFile, error) {
 
 	var (
 		start        = time.Now()
@@ -72,7 +81,7 @@ func parseCommandsFile(path string) error {
 	contents, err := ioutil.ReadFile(path)
 	if err != nil {
 		Log.Debug(err)
-		return errors.New(ErrFailedToReadCommandsFile.Error() + ": " + err.Error())
+		return nil, errors.New(ErrFailedToReadCommandsFile.Error() + ": " + err.Error())
 	}
 
 	// unmarshal YAML
@@ -88,13 +97,13 @@ func parseCommandsFile(path string) error {
 		if !shellBusy {
 			printCodeSnippet(string(contents), commandsFilePath, i)
 		}
-		return err
+		return nil, err
 	}
 
 	// check if language is supported
 	_, err = ls.getLang(commandsFile.Language)
 	if err != nil {
-		return errors.New(commandsFilePath + ": " + err.Error() + ": " + ansi.Red + commandsFile.Language + cp.Text)
+		return nil, errors.New(commandsFilePath + ": " + err.Error() + ": " + ansi.Red + commandsFile.Language + cp.Text)
 	}
 
 	// flush command map
@@ -111,7 +120,7 @@ func parseCommandsFile(path string) error {
 		if d != nil {
 			err = d.init(commandsFile, name)
 			if err != nil {
-				return errors.New("failed to init command: " + err.Error())
+				return nil, errors.New("failed to init command: " + err.Error())
 			}
 		}
 	}
@@ -126,7 +135,22 @@ func parseCommandsFile(path string) error {
 		}
 	}
 
-	return nil
+	// invoke startupHook if set
+	if commandsFile.StartupHook != "" {
+		out, err := exec.Command(commandsFile.StartupHook).CombinedOutput()
+		if err != nil {
+
+			// cleanup without calling the exitHook to avoid confusion
+			// in case the startupHook fails, and the exitHook would fail as well due to that.
+			cleanup(nil)
+
+			fmt.Println(string(out))
+			log.Fatal("startupHook failed: ", err)
+		}
+		modifyPrompt()
+	}
+
+	return commandsFile, nil
 }
 
 // look for invalid fields in commandsFile
@@ -285,7 +309,7 @@ func watchCommandsFile(path, eventID string) {
 
 		Log.Debug("received commandsFile WRITE event: ", e.Name)
 
-		err := parseCommandsFile(path)
+		_, err := parseCommandsFile(path)
 		if !shellBusy {
 			if err != nil {
 				Log.WithError(err).Error("failed to parse commandsFile")
@@ -355,7 +379,8 @@ func createAllScripts() error {
 		}
 	}
 
-	return parseCommandsFile(commandsFilePath)
+	_, err = parseCommandsFile(commandsFilePath)
+	return err
 }
 
 func (c *CommandsFile) createScript(d *commandData, name string) error {
