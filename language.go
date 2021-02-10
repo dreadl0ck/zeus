@@ -37,6 +37,7 @@ var (
 			"sh":         shellLanguage(),
 			"zsh":        zshellLanguage(),
 			"perl":       perlLanguage(),
+			"go":         goLanguage(),
 		},
 	}
 
@@ -66,6 +67,9 @@ func (langStore *languageStore) getLang(name string) (*Language, error) {
 // Language describes interpreter and syntactic elements of a scripting language
 type Language struct {
 	Name string `yaml:"name"`
+
+	// extra arguments
+	Args []string `yaml:"args"`
 
 	// path to Interpreter
 	Interpreter string `yaml:"interpreter"`
@@ -230,6 +234,20 @@ func perlLanguage() *Language {
 		FileExtension:        ".pl",
 		ExecOpPrefix:         "system(\"",
 		ExecOpSuffix:         "\")",
+		CorrectErrLineNumber: true,
+		ErrLineNumberSymbol:  "line",
+	}
+}
+
+func goLanguage() *Language {
+	return &Language{
+		Name:                 "go",
+		Interpreter:          "go",
+		Args:                 []string{"run"},
+		Comment:              "//",
+		AssignmentOperator:   " = ",
+		VariableKeyword:      "var ",
+		FileExtension:        ".go",
 		CorrectErrLineNumber: true,
 		ErrLineNumberSymbol:  "line",
 	}

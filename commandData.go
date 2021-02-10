@@ -279,6 +279,10 @@ func (d *commandData) init(commandsFile *CommandsFile, name string) error {
 		useBase:         d.UseBase,
 	}
 
+	if lang == "go" && d.Exec != "" {
+		return errors.New("when using Go, use of the exec field is not allowed. Please a create a file in the scripts folder instead")
+	}
+
 	// replace globals in outputs
 	for i, o := range cmd.outputs {
 		out, err := commandsFile.replaceGlobals(o)

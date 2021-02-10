@@ -191,7 +191,7 @@ func (c *command) AtomicRun(args []string, async bool) error {
 	}
 
 	// init command
-	cmd, script, cleanupFunc, err := c.createCommand(argBuffer)
+	cmd, script, cleanupFunc, err := c.createCommand(argBuffer, args)
 	if err != nil {
 		return err
 	}
@@ -450,7 +450,7 @@ func (c *command) getLanguage() (*Language, error) {
 
 // create an exec.Cmd instance ready for execution
 // for the given argument buffer
-func (c *command) createCommand(argBuffer string) (cmd *exec.Cmd, script string, cleanupFunc func(), err error) {
+func (c *command) createCommand(argBuffer string, rawArgs []string) (cmd *exec.Cmd, script string, cleanupFunc func(), err error) {
 
 	var (
 		shellCommand []string
@@ -473,6 +473,11 @@ func (c *command) createCommand(argBuffer string) (cmd *exec.Cmd, script string,
 
 	// add interpreter
 	shellCommand = append(shellCommand, lang.Interpreter)
+
+	// add extra args if set
+	if len(lang.Args) > 0 {
+		shellCommand = append(shellCommand, lang.Args...)
+	}
 
 	if stopOnErr && lang.FlagStopOnError != "" {
 		shellCommand = append(shellCommand, lang.FlagStopOnError)
@@ -520,14 +525,21 @@ func (c *command) createCommand(argBuffer string) (cmd *exec.Cmd, script string,
 		}
 	} else {
 
-		contents, err := ioutil.ReadFile(c.path)
-		if err != nil {
-			Log.Error("failed to read script")
-			return nil, "", nil, err
-		}
+		if lang.Name == "go" {
+			// make an exception for golang: invoke the source file directly and pass raw args on the commandline
+			shellCommand = append(shellCommand, c.path)
+			shellCommand = append(shellCommand, rawArgs...)
+		} else {
 
-		script = lang.Bang + "\n" + globalFuncs + "\n" + argBuffer + "\n" + string(contents)
-		shellCommand = append(shellCommand, script)
+			contents, err := ioutil.ReadFile(c.path)
+			if err != nil {
+				Log.Error("failed to read script")
+				return nil, "", nil, err
+			}
+
+			script = lang.Bang + "\n" + globalFuncs + "\n" + argBuffer + "\n" + string(contents)
+			shellCommand = append(shellCommand, script)
+		}
 	}
 
 	Log.Debug("shellCommand: ", shellCommand)
