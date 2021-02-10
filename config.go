@@ -28,8 +28,6 @@ import (
 	"strings"
 	"sync"
 
-	"time"
-
 	"github.com/fsnotify/fsnotify"
 	prefixed "github.com/x-cray/logrus-prefixed-formatter"
 	yaml "gopkg.in/yaml.v2"
@@ -304,8 +302,8 @@ func (c *config) watch(eventID string) {
 
 		// without sleeping every line written to stdout has the length of the previous line as offset
 		// sleeping at least 100 millisecs seems to work - strange
-		time.Sleep(100 * time.Millisecond)
-		l.Println()
+		//time.Sleep(100 * time.Millisecond)
+		//l.Println()
 
 		Log.Debug("config watcher event: ", event.Name)
 

@@ -103,6 +103,9 @@ type command struct {
 
 	// controls whether the command can modify the prompt for the zeus shell
 	canModifyPrompt bool
+
+	// sets the base configuration to use for this command
+	useBase string
 }
 
 func (c *command) AsyncRun(args []string) error {

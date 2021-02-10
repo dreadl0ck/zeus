@@ -192,16 +192,26 @@ func handleSignals(cmdFile *CommandsFile) {
 	go func() {
 
 		sig := <-c
-		fmt.Println(sig)
 
 		// lock the mutex
 		signalMutex.Lock()
+		defer signalMutex.Unlock()
 
 		// pass signal to all spawned processes
 		passSignalToProcs(sig)
 
-		cleanup(cmdFile)
-		os.Exit(0)
+		if shellBusy {
+			// user is currently running a command, reattach the signal handler after handling it.
+			go handleSignals(cmdFile)
+
+			// and stay in the zeus shell
+			return
+		} else {
+			// use is in the zeus shell - run cleanup and exit.
+			fmt.Println(sig)
+			cleanup(cmdFile)
+			os.Exit(0)
+		}
 	}()
 }
 

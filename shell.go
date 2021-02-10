@@ -301,6 +301,13 @@ func handleLine(line string) {
 			if err != nil {
 				if err.Error() == "signal: interrupt" {
 					fmt.Println(" " + err.Error())
+
+					// check if the commandsFile became invalid due to an edit while the current command was running.
+					if lastCommandsFileError != nil {
+						Log.WithError(lastCommandsFileError).Error("invalid commandsFile")
+						lastCommandsFileError = nil
+					}
+
 					return
 				}
 				fmt.Printf("command "+cmd.name+" failed. error: %v\n", err)

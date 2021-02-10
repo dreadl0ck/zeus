@@ -125,8 +125,58 @@ func parseCommandsFile(path string) (*CommandsFile, error) {
 		}
 	}
 
+	// handle base configurations
+	// since this allows commands to cross reference each other, this must be done after all commands have been initialized.
 	cmdMap.Lock()
 	defer cmdMap.Unlock()
+
+	for _, cmd := range cmdMap.items {
+		if cmd.useBase != "" {
+			if baseCmd, ok := cmdMap.items[cmd.useBase]; ok {
+
+				// handle arguments
+				// save old args
+				oldArgs := cmd.args
+				// overwrite args with base args
+				cmd.args = baseCmd.args
+				// add the args of the current command again. this will allow to overwrite args from the base if desired.
+				for n, a := range oldArgs {
+					cmd.args[n] = a
+				}
+
+				// prepend outputs from base command
+				cmd.outputs = append(baseCmd.outputs, cmd.outputs...)
+
+				// if no description is provided for the current command, use the one from the base command.
+				if cmd.description == "" {
+					cmd.description = baseCmd.description
+				}
+
+				// if no help text is provided for the current command, use the one from the base command.
+				if cmd.help == "" {
+					cmd.help = baseCmd.help
+				}
+
+				// prepend deps from base command
+				cmd.dependencies = append(baseCmd.dependencies, cmd.dependencies...)
+
+				cmd.canModifyPrompt = baseCmd.canModifyPrompt
+				cmd.buildNumber = baseCmd.buildNumber
+				cmd.language = baseCmd.language
+				cmd.async = baseCmd.async
+
+				// handle exec action
+				if cmd.exec == "" && baseCmd.exec != "" {
+					cmd.exec = baseCmd.exec
+				}
+				if cmd.path == "" && baseCmd.path != "" {
+					cmd.path = baseCmd.path
+				}
+			} else {
+				return nil, errors.New("base command not found: " + cmd.useBase)
+			}
+		}
+	}
 
 	// only print info when using the interactive shell
 	if len(os.Args) == 1 {
@@ -304,8 +354,8 @@ func watchCommandsFile(path, eventID string) {
 
 		// without sleeping every line written to stdout has the length of the previous line as offset
 		// sleeping at least 100 millisecs seems to work - strange
-		time.Sleep(100 * time.Millisecond)
-		l.Println()
+		//time.Sleep(100 * time.Millisecond)
+		//l.Println()
 
 		Log.Debug("received commandsFile WRITE event: ", e.Name)
 

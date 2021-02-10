@@ -261,9 +261,17 @@ func getArgumentString(args map[string]*commandArg) string {
 		requiredArgs string
 		optionalArgs string
 		count        = 1
+		names        []string
 	)
 
-	for _, arg := range args {
+	// sort args alphabetically before printing, so the order does not change in between multiple runs.
+	for name := range args {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+
+	for _, name := range names {
+		arg := args[name]
 		var t = cp.CmdArgType + strings.Title(arg.argType.String())
 		if arg.optional {
 			if arg.defaultValue != "" {
