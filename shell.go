@@ -238,7 +238,7 @@ func handleLine(line string) {
 			// check if its a commandChain
 			if strings.Contains(line, commandChainSeparator) {
 				fields := strings.Split(line, commandChainSeparator)
-				if cmdChain, ok := validCommandChain(fields); ok {
+				if cmdChain, ok := validCommandChain(fields, false); ok {
 					shellBusy = true
 					cmdChain.exec(fields)
 					shellBusy = false

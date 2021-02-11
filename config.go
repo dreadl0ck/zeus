@@ -20,6 +20,7 @@ package main
 
 import (
 	"errors"
+	"github.com/sirupsen/logrus"
 	"io/ioutil"
 	"os"
 	"reflect"
@@ -320,6 +321,9 @@ func (c *config) watch(eventID string) {
 		// lock config
 		c.Lock()
 
+		// reinit the config structure: strict parsing will throw an error if keys are already set in a map.
+		c.fields = new(configFields)
+
 		err = yaml.UnmarshalStrict(contents, c.fields)
 		if err != nil {
 			Log.WithError(err).Error("config parse error")
@@ -382,6 +386,16 @@ func (c *config) setValue(field, value string) {
 		f.SetBool(b)
 
 		Log.Info("set config field ", field, " to ", value)
+
+		// handle debug mode directly, otherwise the zeus shell would need to be restarted for changes to take effect.
+		if field == "debug" {
+			debug = b
+			if debug {
+				Log.Level = logrus.DebugLevel
+			} else {
+				Log.Level = logrus.InfoLevel
+			}
+		}
 
 	case reflect.Int:
 		i, err := strconv.ParseInt(value, 10, 0)

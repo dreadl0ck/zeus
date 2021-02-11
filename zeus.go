@@ -505,7 +505,7 @@ func handleArgs(cmdFile *CommandsFile) {
 			// check if its a commandChain supplied with "" or ''
 			if strings.Contains(os.Args[1], commandChainSeparator) {
 				fields := strings.Split(os.Args[1], commandChainSeparator)
-				if cmdChain, ok := validCommandChain(fields); ok {
+				if cmdChain, ok := validCommandChain(fields, false); ok {
 					shellBusy = true
 					cmdChain.exec(fields)
 					shellBusy = false

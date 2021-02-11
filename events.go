@@ -145,7 +145,7 @@ func registerEvent(args []string) {
 		return
 	}
 
-	if _, ok := validCommandChain(fields); ok {
+	if _, ok := validCommandChain(fields, true); ok {
 		Log.Info("adding command chain")
 	} else {
 		Log.Info("adding shell command")
@@ -157,7 +157,7 @@ func registerEvent(args []string) {
 
 			Log.Debug("event fired, name: ", event.Name, " path: ", args[3])
 
-			if cmdChain, ok := validCommandChain(fields); ok {
+			if cmdChain, ok := validCommandChain(fields, true); ok {
 				cmdChain.exec(fields)
 			} else {
 

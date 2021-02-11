@@ -112,7 +112,7 @@ func (cmdChain commandChain) exec(cmds []string) {
 // check if its a valid command chain
 // returns an initialized commandChain with all the commands
 // and a boolean inidicating wheter its valid or not
-func validCommandChain(commands []string) (commandChain, bool) {
+func validCommandChain(commands []string, quiet bool) (commandChain, bool) {
 
 	var (
 		cmdChain     commandChain
@@ -136,7 +136,9 @@ func validCommandChain(commands []string) (commandChain, bool) {
 			// check if command exists
 			cmd, err := cmdMap.getCommand(fields[0])
 			if err != nil {
-				l.Println(err)
+				if !quiet {
+					l.Println(err)
+				}
 				return nil, false
 			}
 

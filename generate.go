@@ -47,7 +47,7 @@ func handleGenerateCommand(args []string) {
 	)
 
 	// check if its a valid command chain
-	if chain, ok = validCommandChain(args[2:]); !ok {
+	if chain, ok = validCommandChain(args[2:], false); !ok {
 		l.Println("invalid command chain")
 		return
 	}

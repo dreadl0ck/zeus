@@ -178,17 +178,19 @@ func loadEvents() {
 				Log.Debug("event fired, name: ", event.Name, " path: ", path)
 
 				// validate commandChain
-				if cmdChain, ok := validCommandChain(fields); ok {
+				if cmdChain, ok := validCommandChain(fields, true); ok {
 					cmdChain.exec(fields)
 				} else {
 
-					Log.Debug("passing chain to shell")
+					Log.Debug("passing command to shell: ", fields)
 
 					// its a shell command
+					// ignoring the error here, because stdin, stdout and stderr will be wired up when the command gets executed
+					// so the user will become aware of any errors that occur.
 					if len(fields) > 1 {
-						passCommandToShell(fields[0], fields[1:])
+						_ = passCommandToShell(fields[0], fields[1:])
 					} else {
-						passCommandToShell(fields[0], []string{})
+						_ = passCommandToShell(fields[0], []string{})
 					}
 				}
 			}))
@@ -199,7 +201,7 @@ func loadEvents() {
 	}
 	projectData.Unlock()
 
-	// event creating is async
+	// event creation is async
 	// wait a little bit to avoid duplicate internal events
 	time.Sleep(50 * time.Millisecond)
 }
