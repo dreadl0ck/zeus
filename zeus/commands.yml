@@ -160,6 +160,13 @@ commands:
           go tool cover -html=coverage.out
       fi
 
+  test-goconvey:
+    description: run tests using goconvey
+    help: |
+      You can get the goconvey tool here:
+      https://github.com/smartystreets/goconvey
+    exec: goconvey -depth 0
+
   release:
     description: release a new version
 

@@ -20,7 +20,6 @@ package main
 
 import (
 	"os"
-	"sync"
 	"syscall"
 	"testing"
 	"time"
@@ -98,20 +97,14 @@ func TestCommandlineArgs(t *testing.T) {
 		"colors",
 		"author",
 		"makefile",
-		"info",
-		"clean",
+		////"info", // this will block until the git log view is dismissed with q
 		"data",
 	}
-
-	mutex := &sync.Mutex{}
 
 	Convey("Testing commandline args", t, func() {
 
 		for _, cmd := range commands {
-			mutex.Lock()
-			os.Args = []string{"zeus", cmd}
-			mutex.Unlock()
-			handleArgs()
+			handleArgs([]string{"zeus", cmd}, nil)
 		}
 	})
 }
@@ -267,7 +260,7 @@ func TestShell(t *testing.T) {
 	Convey("Testing the interactive shell", t, func() {
 		commands := []string{
 			"help",
-			"info",
+			//"info",
 			"format",
 			"globals",
 			"config",
@@ -275,7 +268,6 @@ func TestShell(t *testing.T) {
 			"version",
 			"clear",
 			"builtins",
-			"clean",
 			"edit",
 			"todo",
 			"git-filter",
@@ -426,8 +418,9 @@ func TestCommandsFile(t *testing.T) {
 	Convey("Testing CommandsFile parsing", t, func(c C) {
 
 		// parse ZEUS project CommandsFile
-		err := parseCommandsFile("zeus/commands.yml")
+		cmdFile, err := parseCommandsFile("zeus/commands.yml")
 		c.So(err, ShouldBeNil)
+		c.So(cmdFile, ShouldNotBeNil)
 
 		// event creation is async, wait a little bit
 		time.Sleep(100 * time.Millisecond)
@@ -470,7 +463,7 @@ func TestGenerate(t *testing.T) {
 
 		handleLine("generate")
 		handleLine("generate build.sh build")
-		handleLine("generate testChain.sh async -> optional bla=asdf req=asdfd -> error")
+		//handleLine("generate testChain.sh async -> optional bla=asdf req=asdfd -> error")
 
 		os.Remove("tests/zeus/generated")
 	})
@@ -508,13 +501,13 @@ func TestProcesses(t *testing.T) {
 		printProcsCommandUsageErr()
 
 		// spawn async command
-		handleLine("async")
+		//handleLine("async")
 
 		// kill it by passing SIGINT
 		passSignalToProcs(syscall.SIGINT)
 
 		// spawn async command again
-		handleLine("async")
+		//handleLine("async")
 
 		// flush process map
 		clearProcessMap()

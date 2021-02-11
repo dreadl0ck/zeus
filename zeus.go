@@ -331,7 +331,7 @@ func main() {
 	}
 
 	// handle commandline arguments
-	handleArgs(cmdFile)
+	handleArgs(os.Args, cmdFile)
 
 	// check if interactive mode is enabled in the config
 	if conf.fields.Interactive {
@@ -395,29 +395,29 @@ func printProjectHeader() {
 }
 
 // handle commandline arguments
-func handleArgs(cmdFile *CommandsFile) {
+func handleArgs(args []string, cmdFile *CommandsFile) {
 
 	// strip commandline flags
-	for i, elem := range os.Args {
+	for i, elem := range args {
 		if strings.HasPrefix(elem, "-C=") {
 			// delete i
-			os.Args = append(os.Args[:i], os.Args[i+1:]...)
+			args = append(args[:i], args[i+1:]...)
 			break
 		}
 		if elem == "-C" {
 			// delete i and i+1
-			os.Args = append(os.Args[:i], os.Args[i+2:]...)
+			args = append(args[:i], args[i+2:]...)
 			break
 		}
 	}
 
 	var cLog = Log.WithField("prefix", "handleArgs")
 
-	if len(os.Args) > 1 {
+	if len(args) > 1 {
 
 		var validCommand bool
 
-		switch os.Args[1] {
+		switch args[1] {
 		case helpCommand:
 			if conf.fields.PrintBuiltins {
 				printBuiltins()
@@ -430,15 +430,15 @@ func handleArgs(cmdFile *CommandsFile) {
 			printProjectData()
 
 		case aliasCommand:
-			if len(os.Args) == 2 {
+			if len(args) == 2 {
 				printAliases()
 				return
 			}
 
-			handleAliasCommand(os.Args[2:])
+			handleAliasCommand(args[2:])
 
 		case configCommand:
-			handleConfigCommand(os.Args[2:])
+			handleConfigCommand(args[2:])
 
 		case versionCommand:
 			l.Println(version)
@@ -449,25 +449,25 @@ func handleArgs(cmdFile *CommandsFile) {
 
 		case colorsCommand:
 
-			if len(os.Args) == 3 {
-				handleColorsCommand(os.Args[1:])
+			if len(args) == 3 {
+				handleColorsCommand(args[1:])
 			} else {
 				printColorsUsageErr()
 			}
 
 		case authorCommand:
-			handleAuthorCommand(os.Args[1:])
+			handleAuthorCommand(args[1:])
 
 		case builtinsCommand:
 			printBuiltins()
 
 		case makefileCommand:
-			handleMakefileCommand(os.Args[1:])
+			handleMakefileCommand(args[1:])
 		case gitFilterCommand:
-			handleGitFilterCommand(os.Args[1:])
+			handleGitFilterCommand(args[1:])
 
 		case createCommand:
-			handleCreateCommand(os.Args[1:])
+			handleCreateCommand(args[1:])
 			os.Exit(0)
 
 		default:
@@ -475,7 +475,7 @@ func handleArgs(cmdFile *CommandsFile) {
 			cmdMap.Lock()
 
 			// check if the command exists
-			if cmd, ok := cmdMap.items[os.Args[1]]; ok {
+			if cmd, ok := cmdMap.items[args[1]]; ok {
 				cmdMap.Unlock()
 
 				validCommand = true
@@ -491,7 +491,7 @@ func handleArgs(cmdFile *CommandsFile) {
 				s.Unlock()
 
 				shellBusy = true
-				err = cmd.Run(os.Args[2:], cmd.async)
+				err = cmd.Run(args[2:], cmd.async)
 				if err != nil {
 					cLog.WithError(err).Error("failed to execute " + cmd.name)
 					cleanup(cmdFile)
@@ -503,8 +503,8 @@ func handleArgs(cmdFile *CommandsFile) {
 			}
 
 			// check if its a commandChain supplied with "" or ''
-			if strings.Contains(os.Args[1], commandChainSeparator) {
-				fields := strings.Split(os.Args[1], commandChainSeparator)
+			if strings.Contains(args[1], commandChainSeparator) {
+				fields := strings.Split(args[1], commandChainSeparator)
 				if cmdChain, ok := validCommandChain(fields, false); ok {
 					shellBusy = true
 					cmdChain.exec(fields)
@@ -516,14 +516,14 @@ func handleArgs(cmdFile *CommandsFile) {
 			}
 
 			// check if its an alias
-			if command, ok := projectData.fields.Aliases[os.Args[1]]; ok {
+			if command, ok := projectData.fields.Aliases[args[1]]; ok {
 				handleLine(command)
 				os.Exit(0)
 			}
 
 			if !validCommand {
 				if !testingMode {
-					cLog.Fatal("unknown command: ", os.Args[1])
+					cLog.Fatal("unknown command: ", args[1])
 				}
 			}
 		}
