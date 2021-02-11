@@ -153,11 +153,18 @@ func (c *CommandsFile) validateArgs(args []string) (map[string]*commandArg, erro
 
 // parse arguments array in the label=value format
 // and return a code snippet that declares them in the language of the command
-func (c *command) parseArguments(args []string) (string, error) {
+func (c *command) parseArguments(args []string) (string, map[string]string, error) {
 
 	var (
 		argBuf      bytes.Buffer
 		occurrences = make(map[string]int, 0)
+
+		// In order to be able to use argument values in command output names,
+		// we need to return the current state of arguments.
+		// It's not possible to use the c.args map for that, as these are shared in between multiple invocations of the same command,
+		// and the argument values must  be determined again for every invocation.
+		// For that reason, the argument names mapped to their current values will be returned as a separate map to the caller.
+		argValues = map[string]string{}
 	)
 
 	// parse args
@@ -173,11 +180,11 @@ func (c *command) parseArguments(args []string) (string, error) {
 
 			argSlice := strings.Split(val, "=")
 			if len(argSlice) != 2 {
-				return "", errors.New("invalid argument: " + val)
+				return "", argValues, errors.New("invalid argument: " + val)
 			}
 
 			if cmdArg, ok = c.args[argSlice[0]]; !ok {
-				return "", errors.New(ErrInvalidArgumentLabel.Error() + ": " + ansi.Red + argSlice[0] + cp.Reset)
+				return "", argValues, errors.New(ErrInvalidArgumentLabel.Error() + ": " + ansi.Red + argSlice[0] + cp.Reset)
 			}
 
 			if _, ok := occurrences[argSlice[0]]; ok {
@@ -187,53 +194,63 @@ func (c *command) parseArguments(args []string) (string, error) {
 			}
 
 			if occurrences[argSlice[0]] > 1 {
-				return "", errors.New("argument label appeared more than once: " + cmdArg.name)
+				return "", argValues, errors.New("argument label appeared more than once: " + cmdArg.name)
 			}
 
 			if err := validArgType(argSlice[1], cmdArg.argType); err != nil {
-				return "", errors.New(ErrInvalidArgumentType.Error() + ": " + err.Error() + ", label=" + cmdArg.name + ", value=" + argSlice[1])
+				return "", argValues, errors.New(ErrInvalidArgumentType.Error() + ": " + err.Error() + ", label=" + cmdArg.name + ", value=" + argSlice[1])
 			}
 
+			// set value in c.args
 			c.args[argSlice[0]].value = argSlice[1]
 		} else {
-			return "", errors.New("invalid argument: " + val)
+			return "", argValues, errors.New("invalid argument: " + val)
 		}
 	}
 
 	lang, err := c.getLanguage()
 	if err != nil {
-		return "", err
+		return "", argValues, err
 	}
 
 	for _, arg := range c.args {
 		if arg.value == "" {
 			if arg.optional {
 				if arg.defaultValue != "" {
+
+					argValues[arg.name] = arg.defaultValue
+
 					// default value has been set
 					argBuf.WriteString(lang.VariableKeyword + arg.name + lang.AssignmentOperator + strings.TrimSpace(arg.defaultValue) + lang.LineDelimiter + "\n")
 				} else {
+
+					argValues[arg.name] =  getDefaultValue(arg)
+
 					// init empty optionals with default value for their type
 					argBuf.WriteString(lang.VariableKeyword + arg.name + lang.AssignmentOperator + getDefaultValue(arg) + lang.LineDelimiter + "\n")
 				}
 			} else {
 				// empty value and not optional - error
-				return "", errors.New("missing argument: " + ansi.Red + arg.name + ":" + strings.Title(arg.argType.String()) + cp.Reset)
+				return "", argValues, errors.New("missing argument: " + ansi.Red + arg.name + ":" + strings.Title(arg.argType.String()) + cp.Reset)
 			}
 		} else {
+
+			argValues[arg.name] = arg.value
+
 			// write value into buffer
 			argBuf.WriteString(lang.VariableKeyword + arg.name + lang.AssignmentOperator + arg.value + lang.LineDelimiter + "\n")
 		}
 	}
 
-	// flush arg values
+	// flush arg values before returning
 	for _, arg := range c.args {
 		arg.value = ""
 	}
 
-	return argBuf.String(), nil
+	return argBuf.String(), argValues, nil
 }
 
-func (c *CommandsFile) replaceGlobals(input string) (string, error) {
+func replaceArgs(input string, args map[string]string) (string, error) {
 	var (
 		dollar, startOfIdent bool
 		name                 string
@@ -269,12 +286,56 @@ func (c *CommandsFile) replaceGlobals(input string) (string, error) {
 	}
 
 	for _, n := range names {
-		if val, ok := c.Globals[n]; !ok {
-			return "", errors.New("variable used in default value that is not a global: " + n)
-		} else {
+		if val, ok := args[n]; ok {
 			input = strings.ReplaceAll(input, "${"+n+"}", val)
+		} else {
+			return "", errors.New("variable in output name is not provided via globals or arguments: ${" + n + "}")
 		}
 	}
 
 	return input, nil
+}
+
+func (c *CommandsFile) replaceGlobals(input string) string {
+	var (
+		dollar, startOfIdent bool
+		name                 string
+		names                []string
+	)
+
+	// replace variables used in ${} notation with global values
+	for _, char := range input {
+		if char == '$' {
+			dollar = true
+			continue
+		}
+		if dollar {
+			if char == '{' {
+				startOfIdent = true
+				continue
+			}
+		}
+		if char == '}' {
+			// collect string
+			n := name
+			names = append(names, n)
+
+			// reset state values
+			name = ""
+			dollar = false
+			startOfIdent = false
+		}
+		if startOfIdent {
+			name += string(char)
+			continue
+		}
+	}
+
+	for _, n := range names {
+		if val, ok := c.Globals[n]; ok {
+			input = strings.ReplaceAll(input, "${"+n+"}", val)
+		}
+	}
+
+	return input
 }

@@ -285,11 +285,7 @@ func (d *commandData) init(commandsFile *CommandsFile, name string) error {
 
 	// replace globals in outputs
 	for i, o := range cmd.outputs {
-		out, err := commandsFile.replaceGlobals(o)
-		if err != nil {
-			return err
-		}
-		cmd.outputs[i] = out
+		cmd.outputs[i] = commandsFile.replaceGlobals(o)
 	}
 
 	// disable completion for hidden commands

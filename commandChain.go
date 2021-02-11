@@ -143,7 +143,7 @@ func validCommandChain(commands []string, quiet bool) (commandChain, bool) {
 			}
 
 			// validate args
-			_, err = cmd.parseArguments(fields[1:])
+			_, _, err = cmd.parseArguments(fields[1:])
 			if err != nil {
 				l.Println(err)
 				return nil, false

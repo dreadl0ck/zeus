@@ -151,6 +151,12 @@ func (c *command) AtomicRun(args []string, async bool) error {
 		stdErrBuffer = &bytes.Buffer{}
 	)
 
+	// handle args
+	argBuffer, argValues, err := c.parseArguments(args)
+	if err != nil {
+		return err
+	}
+
 	// check outputs
 	if len(c.outputs) > 0 {
 
@@ -158,7 +164,15 @@ func (c *command) AtomicRun(args []string, async bool) error {
 
 		// check if all named outputs exist
 		for _, output := range c.outputs {
-			_, err := os.Stat(output)
+
+			out, err := replaceArgs(output, argValues)
+			if err != nil {
+				return err
+			}
+
+			Log.Debug("checking output ", out)
+
+			_, err = os.Stat(out)
 			if err != nil {
 				Log.Debug("["+ansi.Red+c.name+cp.Reset+"] output missing: ", output)
 				outputMissing = true
@@ -183,12 +197,6 @@ func (c *command) AtomicRun(args []string, async bool) error {
 	s.Lock()
 	s.currentCommand++
 	s.Unlock()
-
-	// handle args
-	argBuffer, err := c.parseArguments(args)
-	if err != nil {
-		return err
-	}
 
 	// init command
 	cmd, script, cleanupFunc, err := c.createCommand(argBuffer, args)
@@ -665,7 +673,7 @@ func (c *command) dump() {
 	}
 }
 
-// intialize a command from a path
+// initialize a command from a path
 func initScript(path string) error {
 
 	var (

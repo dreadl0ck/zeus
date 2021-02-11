@@ -144,7 +144,7 @@ func generateScript(outputName string, mixed bool, cmd *command, args []string) 
 
 	// handle arguments
 	if len(cmd.args) > 0 {
-		arguments, err = cmd.parseArguments(args)
+		arguments, _, err = cmd.parseArguments(args)
 		if err != nil {
 			return nil, nil, err
 		}
