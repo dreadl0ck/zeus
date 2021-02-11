@@ -131,8 +131,8 @@ func parseCommandsFile(path string) (*CommandsFile, error) {
 	defer cmdMap.Unlock()
 
 	for _, cmd := range cmdMap.items {
-		if cmd.useBase != "" {
-			if baseCmd, ok := cmdMap.items[cmd.useBase]; ok {
+		if cmd.extends != "" {
+			if baseCmd, ok := cmdMap.items[cmd.extends]; ok {
 
 				// handle arguments
 				// save old args
@@ -173,7 +173,7 @@ func parseCommandsFile(path string) (*CommandsFile, error) {
 					cmd.path = baseCmd.path
 				}
 			} else {
-				return nil, errors.New("base command not found: " + cmd.useBase)
+				return nil, errors.New("base command not found: " + cmd.extends)
 			}
 		}
 	}

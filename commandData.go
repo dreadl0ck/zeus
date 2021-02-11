@@ -67,8 +67,8 @@ type commandData struct {
 	// CanModifyPrompt controls if the command can modify the zeus prompt
 	CanModifyPrompt bool `yaml:"canModifyPrompt"`
 
-	// UseBase sets the base configuration to use for this command
-	UseBase string `yaml:"useBase"`
+	// Extends sets the base configuration to use for this command
+	Extends string `yaml:"extends"`
 }
 
 // initialize a command from a commandData instance
@@ -276,7 +276,7 @@ func (d *commandData) init(commandsFile *CommandsFile, name string) error {
 		async:           d.Async,
 		language:        lang,
 		canModifyPrompt: d.CanModifyPrompt,
-		useBase:         d.UseBase,
+		extends:         d.Extends,
 	}
 
 	if lang == "go" && d.Exec != "" {

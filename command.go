@@ -105,7 +105,7 @@ type command struct {
 	canModifyPrompt bool
 
 	// sets the base configuration to use for this command
-	useBase string
+	extends string
 }
 
 func (c *command) AsyncRun(args []string) error {
