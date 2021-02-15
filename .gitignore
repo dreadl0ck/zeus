@@ -7,3 +7,4 @@ tests/zeus/.history
 debug
 .vscode
 tests/zeus/dumps
+zeus/data.yml
