@@ -224,14 +224,14 @@ func (c *command) parseArguments(args []string) (string, map[string]string, erro
 					argBuf.WriteString(lang.VariableKeyword + arg.name + lang.AssignmentOperator + strings.TrimSpace(arg.defaultValue) + lang.LineDelimiter + "\n")
 				} else {
 
-					argValues[arg.name] =  getDefaultValue(arg)
+					argValues[arg.name] = getDefaultValue(arg)
 
 					// init empty optionals with default value for their type
 					argBuf.WriteString(lang.VariableKeyword + arg.name + lang.AssignmentOperator + getDefaultValue(arg) + lang.LineDelimiter + "\n")
 				}
 			} else {
 				// empty value and not optional - error
-				return "", argValues, errors.New("missing argument: " + ansi.Red + arg.name + ":" + strings.Title(arg.argType.String()) + cp.Reset)
+				return "", argValues, errors.New(c.name + " is missing an argument: " + ansi.Red + arg.name + ":" + strings.Title(arg.argType.String()) + cp.Reset)
 			}
 		} else {
 

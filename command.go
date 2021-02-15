@@ -129,20 +129,26 @@ func (c *command) Run(args []string, async bool) error {
 		return c.AsyncRun(args)
 	}
 
+	// handle args
+	argBuffer, argValues, err := c.parseArguments(args)
+	if err != nil {
+		return err
+	}
+
 	// handle dependencies
-	err := c.execDependencies()
+	err = c.execDependencies(argValues)
 	if err != nil {
 		return errors.New("dependency error: " + err.Error())
 	}
 
-	return c.AtomicRun(args, false)
+	return c.AtomicRun(argBuffer, argValues, args, false)
 }
 
-func (c *command) AtomicRun(args []string, async bool) error {
+func (c *command) AtomicRun(argBuffer string, argValues map[string]string, rawArgs []string, async bool) error {
 
 	// spawn async commands in a new goroutine
 	if async {
-		return c.AsyncRun(args)
+		return c.AsyncRun(rawArgs)
 	}
 
 	var (
@@ -150,12 +156,6 @@ func (c *command) AtomicRun(args []string, async bool) error {
 		start        = time.Now()
 		stdErrBuffer = &bytes.Buffer{}
 	)
-
-	// handle args
-	argBuffer, argValues, err := c.parseArguments(args)
-	if err != nil {
-		return err
-	}
 
 	// check outputs
 	if len(c.outputs) > 0 {
@@ -191,7 +191,7 @@ func (c *command) AtomicRun(args []string, async bool) error {
 
 	cLog.WithFields(logrus.Fields{
 		"prefix": "exec",
-		"args":   args,
+		"args":   rawArgs,
 	}).Debug(cp.CmdName + c.name + cp.Reset)
 
 	s.Lock()
@@ -199,7 +199,7 @@ func (c *command) AtomicRun(args []string, async bool) error {
 	s.Unlock()
 
 	// init command
-	cmd, script, cleanupFunc, err := c.createCommand(argBuffer, args)
+	cmd, script, cleanupFunc, err := c.createCommand(argBuffer, rawArgs)
 	if err != nil {
 		return err
 	}
@@ -368,32 +368,52 @@ func (c *command) waitForProcess(cmd *exec.Cmd, cleanupFunc func(), script strin
 
 // collect dependencies for the current command
 // iterating recursively on all the sub-dependencies
-func (c *command) getDeepDependencies() (deps []string) {
+func (c *command) getDeepDependencies(argValues map[string]string) (deps []string, err error) {
 
 	for _, dep := range c.dependencies {
-		// fields
+
+		// get fields
 		depFields := strings.Fields(dep)
 		if len(depFields) == 0 {
 			continue
 		}
 
-		// lookup
+		// lookup dep command
 		depCmd, err := cmdMap.getCommand(depFields[0])
 		if err == nil {
-			deps = append(deps, depCmd.getDeepDependencies()...)
+
+			// found it - get its dependencies, don't pass down the argValues as these are only valid for the current command
+			dps, err := depCmd.getDeepDependencies(nil)
+			if err != nil {
+				return nil, err
+			}
+
+			// collect deps
+			deps = append(deps, dps...)
 		}
 
-		deps = append(deps, dep)
+		// replace args
+		out, err := replaceArgs(dep, argValues)
+		if err != nil {
+			return nil, err
+		}
+
+		deps = append(deps, out)
 	}
 
-	return stripArrayRight(deps)
+	return stripArrayRight(deps), nil
 }
 
 // execute dependencies for the current command
 // if their named outputs do not exist
-func (c *command) execDependencies() error {
+func (c *command) execDependencies(argValues map[string]string) error {
 
-	for _, depCommand := range c.getDeepDependencies() {
+	deps, err := c.getDeepDependencies(argValues)
+	if err != nil {
+		return err
+	}
+
+	for _, depCommand := range deps {
 
 		fields := strings.Fields(depCommand)
 		if len(fields) == 0 {
@@ -406,6 +426,11 @@ func (c *command) execDependencies() error {
 			return errors.New("invalid dependency: " + err.Error())
 		}
 
+		argBuffer, argValues, err := dep.parseArguments(fields[1:])
+		if err != nil {
+			return err
+		}
+
 		// check if dependency has outputs defined
 		if len(dep.outputs) > 0 {
 
@@ -413,14 +438,21 @@ func (c *command) execDependencies() error {
 
 			// check if all named outputs exist
 			for _, output := range dep.outputs {
-				_, err := os.Stat(output)
+
+				// replace args in output name
+				out, err := replaceArgs(output, argValues)
+				if err != nil {
+					return err
+				}
+
+				// check if output exists
+				_, err = os.Stat(out)
 				if err != nil {
 					outputMissing = true
 				}
 			}
 
-			// no outputs missing
-			// next iteration
+			// no outputs missing - skip command
 			if !outputMissing {
 
 				s.Lock()
@@ -433,7 +465,7 @@ func (c *command) execDependencies() error {
 		}
 
 		// execute dependency and pass args
-		err = dep.AtomicRun(fields[1:], c.async)
+		err = dep.AtomicRun(argBuffer, argValues, fields[1:], c.async)
 		if err != nil {
 			Log.WithError(err).Error("failed to execute " + dep.name)
 			return err

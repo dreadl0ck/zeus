@@ -288,6 +288,11 @@ func (d *commandData) init(commandsFile *CommandsFile, name string) error {
 		cmd.outputs[i] = commandsFile.replaceGlobals(o)
 	}
 
+	// replace globals in dependencies
+	for i, dep := range cmd.dependencies {
+		cmd.dependencies[i] = commandsFile.replaceGlobals(dep)
+	}
+
 	// disable completion for hidden commands
 	if d.Hidden {
 		cmd.PrefixCompleter = readline.NewPrefixCompleter()
