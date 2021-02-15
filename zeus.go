@@ -319,11 +319,14 @@ func main() {
 	}
 
 	// check if a CommandsFile for the project exists
-	cmdFile, err := parseCommandsFile(commandsFilePath)
+	cmdFile, err := parseCommandsFile(commandsFilePath, false)
 	if err != nil {
 		Log.Error("failed to parse commandsFile: ", err, "\n")
 		os.Exit(1)
 	}
+
+	// handle commandsFile extension
+	cmdFile.handleExtension()
 
 	// watch commandsFile for changes in interactive mode
 	if conf.fields.Interactive {

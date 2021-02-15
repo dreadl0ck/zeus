@@ -189,7 +189,7 @@ func migrateMakefile(zeusDirectory string) {
 	migrateGlobals(contents)
 
 	// parse commands
-	_, err = parseCommandsFile(commandsFilePath)
+	_, err = parseCommandsFile(commandsFilePath, true)
 	if err != nil {
 		l.Println(err)
 	}

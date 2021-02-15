@@ -25,6 +25,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -59,6 +60,9 @@ type CommandsFile struct {
 
 	// script to call when exiting zeus
 	ExitHook string `yaml:"exitHook"`
+
+	// commandsfile that is extended by this
+	Extends string `yaml:"extends"`
 }
 
 func newCommandsFile() *CommandsFile {
@@ -70,7 +74,7 @@ func newCommandsFile() *CommandsFile {
 }
 
 // parse and initialize all commands from the CommandsFile
-func parseCommandsFile(path string) (*CommandsFile, error) {
+func parseCommandsFile(path string, flush bool) (*CommandsFile, error) {
 
 	var (
 		start        = time.Now()
@@ -106,12 +110,22 @@ func parseCommandsFile(path string) (*CommandsFile, error) {
 		return nil, errors.New(commandsFilePath + ": " + err.Error() + ": " + ansi.Red + commandsFile.Language + cp.Text)
 	}
 
-	// flush command map
-	cmdMap.flush()
+	if flush {
+		// flush command map
+		cmdMap.flush()
+		g = nil
+	}
 
 	if len(commandsFile.Globals) > 0 {
-		g = &globals{
-			Vars: commandsFile.Globals,
+		if g != nil {
+			for k, v := range commandsFile.Globals {
+				g.Vars[k] = v
+			}
+		} else {
+			// init
+			g = &globals{
+				Vars: commandsFile.Globals,
+			}
 		}
 	}
 
@@ -129,6 +143,19 @@ func parseCommandsFile(path string) (*CommandsFile, error) {
 	// since this allows commands to cross reference each other, this must be done after all commands have been initialized.
 	cmdMap.Lock()
 	defer cmdMap.Unlock()
+
+	// get current working directory
+	wd, err := os.Getwd()
+	if err != nil {
+		return nil, err
+	}
+
+	// set working directory for all commands that are from the current commandsFile
+	for name := range commandsFile.Commands {
+		if cmd, ok := cmdMap.items[name]; ok {
+			cmd.root = wd
+		}
+	}
 
 	for _, cmd := range cmdMap.items {
 		if cmd.extends != "" {
@@ -359,7 +386,7 @@ func watchCommandsFile(path, eventID string) {
 
 		Log.Debug("received commandsFile WRITE event: ", e.Name)
 
-		_, err := parseCommandsFile(path)
+		cmdFile, err := parseCommandsFile(path, true)
 		if !shellBusy {
 			if err != nil {
 				Log.WithError(err).Error("failed to parse commandsFile")
@@ -371,6 +398,44 @@ func watchCommandsFile(path, eventID string) {
 			} else {
 				// commandsFile was parsed successfully in the background. Make sure previous error is cleared.
 				lastCommandsFileError = nil
+			}
+		}
+
+		// handle commandsfile extension
+		if cmdFile.Extends != "" {
+
+			// get current working directory
+			wd, err := os.Getwd()
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			// change into extension directory
+			p := strings.TrimSuffix(filepath.Dir(cmdFile.Extends), "zeus")
+			err = os.Chdir(p)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			// check if a CommandsFile for the project exists
+			// parse and flush it, in order to use it as base for the actual commandsfile of this project
+			_, err = parseCommandsFile(commandsFilePath, true)
+			if err != nil {
+				Log.Error("failed to parse commandsFile: ", err, "\n")
+				os.Exit(1)
+			}
+
+			// move back into actual root directory
+			err = os.Chdir(wd)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			// check if a CommandsFile for the project exists and collect the commands
+			cmdFile, err = parseCommandsFile(commandsFilePath, false)
+			if err != nil {
+				Log.Error("failed to parse commandsFile: ", err, "\n")
+				os.Exit(1)
 			}
 		}
 	}))
@@ -429,7 +494,7 @@ func createAllScripts() error {
 		}
 	}
 
-	_, err = parseCommandsFile(commandsFilePath)
+	_, err = parseCommandsFile(commandsFilePath, true)
 	return err
 }
 
@@ -473,4 +538,44 @@ func (c *CommandsFile) createScript(d *commandData, name string) error {
 	d.Exec = ""
 
 	return nil
+}
+
+func (c *CommandsFile) handleExtension() {
+	// handle commandsFile extension
+	if c.Extends != "" {
+
+		// get current working directory
+		wd, err := os.Getwd()
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		// change into extension directory
+		p := strings.TrimSuffix(filepath.Dir(c.Extends), "zeus")
+		err = os.Chdir(p)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		// check if a CommandsFile for the project exists
+		// parse and flush it, in order to use it as base for the actual commandsfile of this project
+		_, err = parseCommandsFile(commandsFilePath, true)
+		if err != nil {
+			Log.Error("failed to parse commandsFile: ", err, "\n")
+			os.Exit(1)
+		}
+
+		// move back into actual root directory
+		err = os.Chdir(wd)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		// check if a CommandsFile for the project exists and collect the commands
+		c, err = parseCommandsFile(commandsFilePath, false)
+		if err != nil {
+			Log.Error("failed to parse commandsFile: ", err, "\n")
+			os.Exit(1)
+		}
+	}
 }

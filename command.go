@@ -60,6 +60,9 @@ type command struct {
 	// the path where the script resides
 	path string
 
+	// root path that contains the zeus folder
+	root string
+
 	// language identifier
 	// set automatically via fileExtension
 	language string
@@ -127,6 +130,11 @@ func (c *command) Run(args []string, async bool) error {
 	// spawn async commands in a new goroutine
 	if async {
 		return c.AsyncRun(args)
+	}
+
+	err := os.Chdir(c.root)
+	if err != nil {
+		return err
 	}
 
 	// handle args

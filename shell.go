@@ -205,7 +205,7 @@ func handleLine(line string) {
 		case editCommand:
 			handleEditCommand(args)
 			time.Sleep(100 * time.Millisecond)
-			_, err := parseCommandsFile(commandsFilePath)
+			_, err := parseCommandsFile(commandsFilePath, true)
 			if err != nil {
 				Log.WithError(err).Error("failed to parse commands file")
 			}
