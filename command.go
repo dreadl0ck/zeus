@@ -60,8 +60,8 @@ type command struct {
 	// the path where the script resides
 	path string
 
-	// root path that contains the zeus folder
-	root string
+	// workingDir path that contains the zeus folder
+	workingDir string
 
 	// language identifier
 	// set automatically via fileExtension
@@ -132,9 +132,12 @@ func (c *command) Run(args []string, async bool) error {
 		return c.AsyncRun(args)
 	}
 
-	err := os.Chdir(c.root)
-	if err != nil {
-		return err
+	if c.workingDir != "" {
+		Log.Debug("moving into workingDir", c.workingDir)
+		err := os.Chdir(c.workingDir)
+		if err != nil {
+			return err
+		}
 	}
 
 	// handle args

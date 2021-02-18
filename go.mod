@@ -8,6 +8,7 @@ require (
 	github.com/chzyer/logex v1.1.10 // indirect
 	github.com/chzyer/test v0.0.0-20180213035817-a1ea475d72b1 // indirect
 	github.com/daaku/go.zipexe v1.0.1 // indirect
+	github.com/davecgh/go-spew v1.1.1
 	github.com/desertbit/glue v0.0.0-20190619185959-06de07e1e404
 	github.com/dreadl0ck/readline v0.0.0-20210203135358-2a7a5106ebf9
 	github.com/elliotchance/orderedmap v1.4.0

@@ -153,7 +153,9 @@ func parseCommandsFile(path string, flush bool) (*CommandsFile, error) {
 	// set working directory for all commands that are from the current commandsFile
 	for name := range commandsFile.Commands {
 		if cmd, ok := cmdMap.items[name]; ok {
-			cmd.root = wd
+			if cmd.workingDir == "" {
+				cmd.workingDir = wd
+			}
 		}
 	}
 

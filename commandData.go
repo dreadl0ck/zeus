@@ -69,6 +69,9 @@ type commandData struct {
 
 	// Extends sets the base configuration to use for this command
 	Extends string `yaml:"extends"`
+
+	// WorkingDir overwrites the working directory for this command
+	WorkingDir string `yaml:"workingDir"`
 }
 
 // initialize a command from a commandData instance
@@ -277,6 +280,10 @@ func (d *commandData) init(commandsFile *CommandsFile, name string) error {
 		language:        lang,
 		canModifyPrompt: d.CanModifyPrompt,
 		extends:         d.Extends,
+	}
+
+	if d.WorkingDir != "" {
+		cmd.workingDir = d.WorkingDir
 	}
 
 	if lang == "go" && d.Exec != "" {
