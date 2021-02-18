@@ -418,7 +418,7 @@ func TestCommandsFile(t *testing.T) {
 	Convey("Testing CommandsFile parsing", t, func(c C) {
 
 		// parse ZEUS project CommandsFile
-		cmdFile, err := parseCommandsFile("zeus/commands.yml")
+		cmdFile, err := parseCommandsFile("zeus/commands.yml", true)
 		c.So(err, ShouldBeNil)
 		c.So(cmdFile, ShouldNotBeNil)
 

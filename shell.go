@@ -22,6 +22,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -204,10 +205,14 @@ func handleLine(line string) {
 			handleAliasCommand(args)
 		case editCommand:
 			handleEditCommand(args)
+
+			// wait a little for the commandsFile watcher to kick in and handle the write event
 			time.Sleep(100 * time.Millisecond)
-			_, err := parseCommandsFile(commandsFilePath, true)
-			if err != nil {
-				Log.WithError(err).Error("failed to parse commands file")
+
+			// check if the commandsFile became invalid due to an edit while the current command was running.
+			if lastCommandsFileError != nil {
+				Log.WithError(lastCommandsFileError).Error("invalid commandsFile")
+				lastCommandsFileError = nil
 			}
 		case deadlineCommand:
 			handleDeadlineCommand(args)
@@ -308,6 +313,8 @@ func handleLine(line string) {
 						lastCommandsFileError = nil
 					}
 
+					moveBack()
+
 					return
 				}
 				fmt.Printf("command "+cmd.name+" failed. error: %v\n", err)
@@ -320,9 +327,19 @@ func handleLine(line string) {
 				lastCommandsFileError = nil
 			}
 
+			moveBack()
+
 			if cmd.async {
 				time.Sleep(100 * time.Millisecond)
 			}
 		}
+	}
+}
+
+func moveBack() {
+	Log.Debug("moving back to: ", workingDir)
+	err := os.Chdir(workingDir)
+	if err != nil {
+		log.Fatal(err)
 	}
 }

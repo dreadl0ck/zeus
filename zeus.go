@@ -328,6 +328,9 @@ func main() {
 	// handle commandsFile extension
 	cmdFile.handleExtension()
 
+	// handle commandsFile inclusion
+	cmdFile.handleInclusion()
+
 	// watch commandsFile for changes in interactive mode
 	if conf.fields.Interactive {
 		go watchCommandsFile(commandsFilePath, "")

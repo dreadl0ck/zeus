@@ -26,7 +26,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"time"
 
@@ -61,8 +60,13 @@ type CommandsFile struct {
 	// script to call when exiting zeus
 	ExitHook string `yaml:"exitHook"`
 
-	// commandsfile that is extended by this
+	// commandsFile that is extended by the current commandsFile.
+	// commands from this file will be executed within the CURRENT zeus directory.
 	Extends string `yaml:"extends"`
+
+	// commandsFile that is extended by the current commandsFile.
+	// commands from this file will be executed within the ORIGINAL zeus directory.
+	Includes string `yaml:"includes"`
 }
 
 func newCommandsFile() *CommandsFile {
@@ -102,6 +106,12 @@ func parseCommandsFile(path string, flush bool) (*CommandsFile, error) {
 			printCodeSnippet(string(contents), commandsFilePath, i)
 		}
 		return nil, err
+	}
+
+	// catch attempts to use includes and extends at the same time
+	// TODO: add support for this in the future
+	if commandsFile.Extends != "" && commandsFile.Includes != "" {
+		return nil, errors.New("commandsFile options 'extends' and 'includes' can't be used in combination at the moment")
 	}
 
 	// check if language is supported
@@ -232,123 +242,6 @@ func parseCommandsFile(path string, flush bool) (*CommandsFile, error) {
 	return commandsFile, nil
 }
 
-// look for invalid fields in commandsFile
-func validateCommandsFile(c []byte) error {
-
-	var (
-		fields = []string{
-			"description",
-			"help",
-			"language",
-			"arguments",
-			"dependencies",
-			"outputs",
-			"buildNumber",
-			"async",
-			"exec",
-			"globals",
-			"path",
-			"commands",
-		}
-		parsedFields                 []string
-		foundField                   bool
-		globalsStarted               bool
-		commandsStarted              bool
-		globalNames                  []string
-		commandNames                 []string
-		offsetCommandNamesAndGlobals int
-	)
-
-	// iterate over contents line by line
-	for i, line := range strings.Split(string(c), "\n") {
-
-		// determine current section
-		if strings.Contains(line, "globals:") {
-			globalsStarted = true
-			continue
-		} else if strings.Contains(line, "commands:") {
-			commandsStarted = true
-			globalsStarted = false
-			continue
-		}
-
-		if offsetCommandNamesAndGlobals == 0 {
-			if globalsStarted || commandsStarted {
-				offsetCommandNamesAndGlobals = countLeadingSpace(line)
-			}
-		}
-
-		// validate names of commands and custom global variable names
-		leadingSpace := countLeadingSpace(line)
-		if leadingSpace == offsetCommandNamesAndGlobals {
-
-			// catch duplicate global variable names
-			if globalsStarted {
-				field := extractYAMLField(line)
-				if field != "" {
-					for _, name := range globalNames {
-						if field == name {
-							printCodeSnippet(string(c), commandsFilePath, i)
-							return errors.New("line " + strconv.Itoa(i) + ": duplicate global name detected: " + name)
-						}
-					}
-					globalNames = append(globalNames, field)
-				}
-			}
-
-			// catch duplicate command names
-			if commandsStarted {
-				field := extractYAMLField(line)
-				if field != "" {
-
-					for _, name := range commandNames {
-						if field == name {
-							printCodeSnippet(string(c), commandsFilePath, i)
-							return errors.New("line " + strconv.Itoa(i) + ": duplicate command name detected: " + name)
-						}
-					}
-					commandNames = append(commandNames, field)
-					// next command started - reset parsedFields
-					parsedFields = []string{}
-				}
-			}
-			continue
-
-		} else if leadingSpace > offsetCommandNamesAndGlobals*2 {
-			// ignore everything that contains a colon inside the 'exec' field
-			continue
-		}
-
-		// check for unknown and duplicate fields + invalid combinations
-		field := extractYAMLField(line)
-		if field != "" {
-
-			// check for unknown fields
-			for _, item := range fields {
-				if field == strings.TrimSpace(string(item)) {
-					foundField = true
-				}
-			}
-			if !foundField {
-				printCodeSnippet(string(c), commandsFilePath, i)
-				return errors.New("line " + strconv.Itoa(i) + ": unknown field: " + field)
-			}
-			foundField = false
-
-			// check duplicate fields
-			for _, f := range parsedFields {
-				if f == field {
-					printCodeSnippet(string(c), commandsFilePath, i)
-					return errors.New("line " + strconv.Itoa(i) + ": duplicate field: " + field)
-				}
-			}
-			parsedFields = append(parsedFields, field)
-		}
-	}
-
-	return nil
-}
-
 // count prefix whitespace characters of a string
 func countLeadingSpace(line string) int {
 	i := 0
@@ -391,10 +284,16 @@ func watchCommandsFile(path, eventID string) {
 		cmdFile, err := parseCommandsFile(path, true)
 		if !shellBusy {
 			if err != nil {
+				// flush command map
+				cmdMap.flush()
+				g = nil
 				Log.WithError(err).Error("failed to parse commandsFile")
 			}
 		} else {
 			if err != nil {
+				// flush command map
+				cmdMap.flush()
+				g = nil
 				// shell is currently busy. store the error to present it to the user once the shell is free again.
 				lastCommandsFileError = err
 			} else {
@@ -403,42 +302,13 @@ func watchCommandsFile(path, eventID string) {
 			}
 		}
 
-		// handle commandsfile extension
-		if cmdFile.Extends != "" {
+		if cmdFile != nil {
 
-			// get current working directory
-			wd, err := os.Getwd()
-			if err != nil {
-				log.Fatal(err)
-			}
+			// handle commandsFile extension
+			cmdFile.handleExtension()
 
-			// change into extension directory
-			p := strings.TrimSuffix(filepath.Dir(cmdFile.Extends), "zeus")
-			err = os.Chdir(p)
-			if err != nil {
-				log.Fatal(err)
-			}
-
-			// check if a CommandsFile for the project exists
-			// parse and flush it, in order to use it as base for the actual commandsfile of this project
-			_, err = parseCommandsFile(commandsFilePath, true)
-			if err != nil {
-				Log.Error("failed to parse commandsFile: ", err, "\n")
-				os.Exit(1)
-			}
-
-			// move back into actual root directory
-			err = os.Chdir(wd)
-			if err != nil {
-				log.Fatal(err)
-			}
-
-			// check if a CommandsFile for the project exists and collect the commands
-			cmdFile, err = parseCommandsFile(commandsFilePath, false)
-			if err != nil {
-				Log.Error("failed to parse commandsFile: ", err, "\n")
-				os.Exit(1)
-			}
+			// handle commandsFile inclusion
+			cmdFile.handleInclusion()
 		}
 	}))
 	if err != nil {
@@ -561,6 +431,51 @@ func (c *CommandsFile) handleExtension() {
 
 		// check if a CommandsFile for the project exists
 		// parse and flush it, in order to use it as base for the actual commandsfile of this project
+		_, err = parseCommandsFile(commandsFilePath, true)
+		if err != nil {
+			Log.Error("failed to parse commandsFile: ", err, "\n")
+			os.Exit(1)
+		}
+
+		// move back into actual root directory
+		err = os.Chdir(wd)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		// update workingDirs on loaded commands to point to the current directory
+		for _, cmd := range cmdMap.items {
+			cmd.workingDir = wd
+		}
+
+		// check if a CommandsFile for the project exists and collect the commands
+		c, err = parseCommandsFile(commandsFilePath, false)
+		if err != nil {
+			Log.Error("failed to parse commandsFile: ", err, "\n")
+			os.Exit(1)
+		}
+	}
+}
+
+func (c *CommandsFile) handleInclusion() {
+	// handle commandsFile inclusion
+	if c.Includes != "" {
+
+		// get current working directory
+		wd, err := os.Getwd()
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		// change into extension directory
+		p := strings.TrimSuffix(filepath.Dir(c.Includes), "zeus")
+		err = os.Chdir(p)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		// check if a CommandsFile for the project exists
+		// parse and flush it, in order to use it as base for the actual commandsFile of this project
 		_, err = parseCommandsFile(commandsFilePath, true)
 		if err != nil {
 			Log.Error("failed to parse commandsFile: ", err, "\n")
