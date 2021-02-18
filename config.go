@@ -110,7 +110,7 @@ func newConfig() *config {
 			DisableTimestamps:   false,
 			PrintBuiltins:       false,
 			StopOnError:         true,
-			DumpScriptOnError:   true,
+			DumpScriptOnError:   false,
 			Quiet:               false,
 			// default: german date format DD-MM-YYYY
 			DateFormat:   "02-01-2006",
