@@ -123,7 +123,9 @@ func parseCommandsFile(path string, flush bool) (*CommandsFile, error) {
 	if flush {
 		// flush command map
 		cmdMap.flush()
-		g = nil
+		g = &globals{
+			Vars: make(map[string]string, 0),
+		}
 	}
 
 	if len(commandsFile.Globals) > 0 {
@@ -286,14 +288,18 @@ func watchCommandsFile(path, eventID string) {
 			if err != nil {
 				// flush command map
 				cmdMap.flush()
-				g = nil
+				g = &globals{
+					Vars: make(map[string]string, 0),
+				}
 				Log.WithError(err).Error("failed to parse commandsFile")
 			}
 		} else {
 			if err != nil {
 				// flush command map
 				cmdMap.flush()
-				g = nil
+				g = &globals{
+					Vars: make(map[string]string, 0),
+				}
 				// shell is currently busy. store the error to present it to the user once the shell is free again.
 				lastCommandsFileError = err
 			} else {

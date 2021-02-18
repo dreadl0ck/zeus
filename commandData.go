@@ -21,6 +21,8 @@ package main
 import (
 	"errors"
 	"io/ioutil"
+	"log"
+	"os/user"
 	"strconv"
 	"strings"
 
@@ -283,7 +285,30 @@ func (d *commandData) init(commandsFile *CommandsFile, name string) error {
 	}
 
 	if d.WorkingDir != "" {
-		cmd.workingDir = d.WorkingDir
+
+		// 1) expand home dir
+		var workDir string
+		for _, v := range []string{"~", "${HOME}", "$HOME"} {
+			if strings.Contains(d.WorkingDir, v) {
+				u, err := user.Current()
+				if err != nil {
+					log.Fatal(err)
+				}
+
+				// replace home dir variable with path
+				workDir = strings.Replace(d.WorkingDir, v, u.HomeDir, 1)
+				break
+			}
+		}
+		if workDir == "" {
+			workDir = d.WorkingDir
+		}
+
+		// 2) expand ZEUS globals
+		workDir = commandsFile.replaceGlobals(workDir)
+
+		// 3) update workingDir
+		cmd.workingDir = workDir
 	}
 
 	if lang == "go" && d.Exec != "" {

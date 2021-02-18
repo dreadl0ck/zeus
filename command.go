@@ -132,18 +132,26 @@ func (c *command) Run(args []string, async bool) error {
 		return c.AsyncRun(args)
 	}
 
-	if c.workingDir != "" {
-		Log.Debug("moving into workingDir", c.workingDir)
-		err := os.Chdir(c.workingDir)
-		if err != nil {
-			return err
-		}
-	}
-
 	// handle args
 	argBuffer, argValues, err := c.parseArguments(args)
 	if err != nil {
 		return err
+	}
+
+	if c.workingDir != "" {
+
+		// handle args in workingDir
+		finalWorkDir, err := replaceArgs(c.workingDir, argValues)
+		if err != nil {
+			return err
+		}
+
+		Log.Debug("moving into workingDir: ", finalWorkDir)
+
+		err = os.Chdir(finalWorkDir)
+		if err != nil {
+			return err
+		}
 	}
 
 	// handle dependencies
