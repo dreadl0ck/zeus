@@ -20,6 +20,7 @@ package main
 
 import (
 	"io/ioutil"
+	"log"
 	"os"
 	"os/exec"
 	"sort"
@@ -251,7 +252,7 @@ func printLine(line string, lastElem, lastItem bool) {
 }
 
 // format commandArg map into human readable string
-func getArgumentString(args map[string]*commandArg) string {
+func getArgumentString(args []*commandArg) string {
 
 	if len(args) == 0 {
 		return ""
@@ -265,13 +266,18 @@ func getArgumentString(args map[string]*commandArg) string {
 	)
 
 	// sort args alphabetically before printing, so the order does not change in between multiple runs.
-	for name := range args {
-		names = append(names, name)
+	for _, a := range args {
+		names = append(names, a.name)
 	}
 	sort.Strings(names)
 
 	for _, name := range names {
-		arg := args[name]
+
+		arg, ok := containsArg(args, name)
+		if !ok {
+			log.Fatal("could not find arg: " + name)
+		}
+
 		var t = cp.CmdArgType + strings.Title(arg.argType.String())
 		if arg.optional {
 			if arg.defaultValue != "" {

@@ -40,7 +40,7 @@ var (
 	ErrInvalidUsage = errors.New("invalid usage")
 )
 
-// temporarely disable change event
+// temporarily disable change event
 func blockWriteEvent() {
 	disableWriteEventMutex.Lock()
 	disableWriteEvent = true

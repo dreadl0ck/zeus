@@ -61,10 +61,10 @@ type commandArg struct {
 
 // validate arguments string from CommandsFile
 // and return the validatedArgs as map
-func (c *CommandsFile) validateArgs(args []string) (map[string]*commandArg, error) {
+func (c *CommandsFile) validateArgs(args []string) ([]*commandArg, error) {
 
 	// init map
-	validatedArgs := make(map[string]*commandArg, 0)
+	var validatedArgs []*commandArg
 
 	// empty string - empty args
 	if len(args) == 0 {
@@ -102,7 +102,7 @@ func (c *CommandsFile) validateArgs(args []string) (map[string]*commandArg, erro
 			g.Unlock()
 
 			// check for duplicate argument names
-			if a, ok := validatedArgs[argumentName]; ok {
+			if a, ok := containsArg(validatedArgs, argumentName); ok {
 				Log.Error("argument label ", a.name, " was used twice")
 				return nil, ErrDuplicateArgumentNames
 			}
@@ -138,12 +138,12 @@ func (c *CommandsFile) validateArgs(args []string) (map[string]*commandArg, erro
 			}
 
 			// add to validatedArgs
-			validatedArgs[argumentName] = &commandArg{
+			validatedArgs = append(validatedArgs, &commandArg{
 				name:         argumentName,
 				argType:      k,
 				optional:     opt,
 				defaultValue: defaultValue,
-			}
+			})
 		} else {
 			return nil, errors.New("invalid argument declaration: " + s)
 		}
@@ -184,7 +184,8 @@ func (c *command) parseArguments(args []string) (string, map[string]string, erro
 				return "", argValues, errors.New("invalid argument: " + val)
 			}
 
-			if cmdArg, ok = c.args[argSlice[0]]; !ok {
+			cmdArg, ok = containsArg(c.args, argSlice[0])
+			if !ok {
 				return "", argValues, errors.New(ErrInvalidArgumentLabel.Error() + ": " + ansi.Red + argSlice[0] + cp.Reset)
 			}
 
@@ -202,8 +203,8 @@ func (c *command) parseArguments(args []string) (string, map[string]string, erro
 				return "", argValues, errors.New(ErrInvalidArgumentType.Error() + ": " + err.Error() + ", label=" + cmdArg.name + ", value=" + argSlice[1])
 			}
 
-			// set value in c.args
-			c.args[argSlice[0]].value = argSlice[1]
+			// temporarily set value on arg
+			cmdArg.value = argSlice[1]
 		} else {
 			return "", argValues, errors.New("invalid argument: " + val)
 		}
@@ -381,4 +382,13 @@ func resolveEnvironment(input string) string {
 	}
 
 	return input
+}
+
+func containsArg(args []*commandArg, name string) (*commandArg, bool) {
+	for _, a := range args {
+		if a.name == name {
+			return a, true
+		}
+	}
+	return nil, false
 }

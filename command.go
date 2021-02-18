@@ -72,7 +72,7 @@ type command struct {
 
 	// arguments for the command
 	// mapped labels to commandArg instances
-	args map[string]*commandArg
+	args []*commandArg
 
 	// short descriptive text
 	description string
@@ -762,7 +762,7 @@ func initScript(path string) error {
 	cmd := &command{
 		path:            path,
 		name:            name,
-		args:            make(map[string]*commandArg, 0),
+		args:            []*commandArg{},
 		description:     "",
 		help:            "",
 		buildNumber:     false,
