@@ -139,6 +139,12 @@ func parseCommandsFile(path string, flush bool) (*CommandsFile, error) {
 				Vars: commandsFile.Globals,
 			}
 		}
+
+		// resolve environment vars used in the globals
+		// must be in format ${VAR}
+		for k, v := range g.Vars {
+			g.Vars[k] = resolveEnvironment(v)
+		}
 	}
 
 	// initialize commands

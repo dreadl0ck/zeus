@@ -26,8 +26,8 @@ require (
 	github.com/smartystreets/assertions v1.0.1 // indirect
 	github.com/smartystreets/goconvey v1.6.4
 	github.com/x-cray/logrus-prefixed-formatter v0.5.2
-	golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad // indirect
-	golang.org/x/sys v0.0.0-20210218085108-9555bcde0c6a // indirect
+	golang.org/x/crypto v0.0.0-20210218145215-b8e89b74b9df // indirect
+	golang.org/x/sys v0.0.0-20210218145245-beda7e5e158e // indirect
 	golang.org/x/term v0.0.0-20201210144234-2321bbc49cbf // indirect
 	gopkg.in/yaml.v2 v2.4.0
 )

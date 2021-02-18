@@ -154,7 +154,6 @@ func (d *commandData) init(commandsFile *CommandsFile, name string) error {
 
 	// create command
 	cmd := &command{
-		path:        d.Path,
 		name:        name,
 		args:        args,
 		description: d.Description,
@@ -282,6 +281,32 @@ func (d *commandData) init(commandsFile *CommandsFile, name string) error {
 		language:        lang,
 		canModifyPrompt: d.CanModifyPrompt,
 		extends:         d.Extends,
+	}
+
+	if d.Path != "" {
+		// 1) expand home dir
+		var p string
+		for _, v := range []string{"~", "${HOME}", "$HOME"} {
+			if strings.Contains(d.Path, v) {
+				u, err := user.Current()
+				if err != nil {
+					log.Fatal(err)
+				}
+
+				// replace home dir variable with path
+				p = strings.Replace(d.Path, v, u.HomeDir, 1)
+				break
+			}
+		}
+		if p == "" {
+			p = d.Path
+		}
+
+		// 2) expand ZEUS globals
+		p = commandsFile.replaceGlobals(p)
+
+		// 3) update workingDir
+		cmd.path = p
 	}
 
 	if d.WorkingDir != "" {

@@ -138,22 +138,6 @@ func (c *command) Run(args []string, async bool) error {
 		return err
 	}
 
-	if c.workingDir != "" {
-
-		// handle args in workingDir
-		finalWorkDir, err := replaceArgs(c.workingDir, argValues)
-		if err != nil {
-			return err
-		}
-
-		Log.Debug("moving into workingDir: ", finalWorkDir)
-
-		err = os.Chdir(finalWorkDir)
-		if err != nil {
-			return err
-		}
-	}
-
 	// handle dependencies
 	err = c.execDependencies(argValues)
 	if err != nil {
@@ -208,6 +192,22 @@ func (c *command) AtomicRun(argBuffer string, argValues map[string]string, rawAr
 		}
 	}
 
+	if c.workingDir != "" {
+
+		// handle args in workingDir
+		finalWorkDir, err := replaceArgs(c.workingDir, argValues)
+		if err != nil {
+			return err
+		}
+
+		Log.Debug("moving into workingDir: ", finalWorkDir)
+
+		err = os.Chdir(finalWorkDir)
+		if err != nil {
+			return err
+		}
+	}
+
 	cLog.WithFields(logrus.Fields{
 		"prefix": "exec",
 		"args":   rawArgs,
@@ -218,7 +218,7 @@ func (c *command) AtomicRun(argBuffer string, argValues map[string]string, rawAr
 	s.Unlock()
 
 	// init command
-	cmd, script, cleanupFunc, err := c.createCommand(argBuffer, rawArgs)
+	cmd, script, cleanupFunc, err := c.createCommand(argValues, argBuffer, rawArgs)
 	if err != nil {
 		return err
 	}
@@ -509,7 +509,7 @@ func (c *command) getLanguage() (*Language, error) {
 
 // create an exec.Cmd instance ready for execution
 // for the given argument buffer
-func (c *command) createCommand(argBuffer string, rawArgs []string) (cmd *exec.Cmd, script string, cleanupFunc func(), err error) {
+func (c *command) createCommand(argValues map[string]string, argBuffer string, rawArgs []string) (cmd *exec.Cmd, script string, cleanupFunc func(), err error) {
 
 	var (
 		shellCommand []string
@@ -584,13 +584,25 @@ func (c *command) createCommand(argBuffer string, rawArgs []string) (cmd *exec.C
 		}
 	} else {
 
+		var path = c.path
+		if c.path != "" {
+
+			// handle args in path
+			p, err := replaceArgs(c.path, argValues)
+			if err != nil {
+				return nil, "", nil, err
+			}
+
+			path = p
+		}
+
 		if lang.Name == "go" {
 			// make an exception for golang: invoke the source file directly and pass raw args on the commandline
-			shellCommand = append(shellCommand, c.path)
+			shellCommand = append(shellCommand, path)
 			shellCommand = append(shellCommand, rawArgs...)
 		} else {
 
-			contents, err := ioutil.ReadFile(c.path)
+			contents, err := ioutil.ReadFile(path)
 			if err != nil {
 				Log.Error("failed to read script")
 				return nil, "", nil, err

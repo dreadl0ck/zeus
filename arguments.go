@@ -21,6 +21,7 @@ package main
 import (
 	"bytes"
 	"errors"
+	"os"
 	"reflect"
 	"strconv"
 	"strings"
@@ -289,7 +290,7 @@ func replaceArgs(input string, args map[string]string) (string, error) {
 		if val, ok := args[n]; ok {
 			input = strings.ReplaceAll(input, "${"+n+"}", val)
 		} else {
-			return "", errors.New("variable in output name is not provided via globals or arguments: ${" + n + "}")
+			return "", errors.New(input + ": variable is not provided via globals or arguments: ${" + n + "}")
 		}
 	}
 
@@ -332,9 +333,51 @@ func (c *CommandsFile) replaceGlobals(input string) string {
 	}
 
 	for _, n := range names {
-		if val, ok := c.Globals[n]; ok {
+		if val, ok := g.Vars[n]; ok {
 			input = strings.ReplaceAll(input, "${"+n+"}", val)
 		}
+	}
+
+	return input
+}
+
+func resolveEnvironment(input string) string {
+	var (
+		dollar, startOfIdent bool
+		name                 string
+		names                []string
+	)
+
+	// replace variables used in ${} notation with global values
+	for _, char := range input {
+		if char == '$' {
+			dollar = true
+			continue
+		}
+		if dollar {
+			if char == '{' {
+				startOfIdent = true
+				continue
+			}
+		}
+		if char == '}' {
+			// collect string
+			n := name
+			names = append(names, n)
+
+			// reset state values
+			name = ""
+			dollar = false
+			startOfIdent = false
+		}
+		if startOfIdent {
+			name += string(char)
+			continue
+		}
+	}
+
+	for _, n := range names {
+		input = strings.ReplaceAll(input, "${"+n+"}", os.Getenv(n))
 	}
 
 	return input
