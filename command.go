@@ -401,8 +401,16 @@ func (c *command) getDeepDependencies(argValues map[string]string) (deps []strin
 		depCmd, err := cmdMap.getCommand(depFields[0])
 		if err == nil {
 
-			// found it - get its dependencies, don't pass down the argValues as these are only valid for the current command
-			dps, err := depCmd.getDeepDependencies(nil)
+			Log.Debug("getDeepDependencies: ", depCmd.name, " parseArguments: ", depFields[1:])
+
+			// parse args for command
+			_, args, err := depCmd.parseArguments(depFields[1:])
+			if err != nil {
+				return nil, err
+			}
+
+			// get it's dependencies
+			dps, err := depCmd.getDeepDependencies(args)
 			if err != nil {
 				return nil, err
 			}
