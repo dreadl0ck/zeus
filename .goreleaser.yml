@@ -14,7 +14,7 @@ builds:
 brews:
   -
     # Repository to push the tap to.
-    github:
+    tap:
       owner: dreadl0ck
       name: homebrew-formulas
 
