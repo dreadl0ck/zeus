@@ -9,8 +9,8 @@ builds:
     goarch:
       - amd64
       - arm64
-    hooks:
-      pre: rice embed-go
+    #hooks:
+      #pre: rice embed-go
 
 brews:
   -
