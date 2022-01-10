@@ -311,7 +311,7 @@ func handleGitFilterCommand(args []string) {
 
 	w := 35
 	l.Println(cp.Prompt + pad("time", w) + pad("author", 41) + "subject")
-	out, err := exec.Command("git", "log", "--pretty=format:"+cp.Text+pad("[%ci]", 13)+pad("%cn", w)+"%s").CombinedOutput()
+	out, err := exec.Command("git", "log", "--all", "--pretty=format:"+cp.Text+pad("[%ci]", 13)+pad("%cn", w)+"%s").CombinedOutput()
 	if err != nil {
 		l.Println(err)
 		return

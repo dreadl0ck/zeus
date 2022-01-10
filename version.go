@@ -20,4 +20,4 @@ package main
 
 // zeus version
 // generated with the gen-version command
-var version = "0.9.8"
+var version = "0.9.9"
