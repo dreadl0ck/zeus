@@ -121,6 +121,7 @@ commands:
             - user:String? = bob
             - password:String
             - ipAddr:String
+            - host:String? = "http://examplehost.com"
             - port:Int? = 80
         dependencies:
         outputs:
@@ -129,6 +130,7 @@ commands:
             print("user=" + user)
             print("password=" + password)
             print("ipAddr=" + ipAddr)
+            print("host=" + host)
             print("port=" + port)
 
     buildNumber:

@@ -85,7 +85,7 @@ func (c *CommandsFile) validateArgs(args []string) ([]*commandArg, error) {
 			defaultValue string
 		)
 
-		if len(slice) == 2 {
+		if len(slice) > 1 {
 
 			// argument name may contain leading whitespace - trim it
 			var argumentName = strings.TrimSpace(slice[0])
