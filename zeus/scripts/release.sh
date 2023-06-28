@@ -9,6 +9,6 @@ echo "[INFO] pushing new git tag"
 git push origin "v${version}"
 
 echo "[INFO] running goreleaser"
-goreleaser --rm-dist
+goreleaser --clean
 
 echo "[INFO] done"
