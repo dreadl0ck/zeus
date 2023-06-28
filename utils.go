@@ -56,16 +56,22 @@ var (
 // dump the currently executed script to disk
 func dumpScript(script, language string, e error, stdErr string) {
 
-	stat, err := os.Stat(zeusDir + "/dumps")
+	pathZeusDir := filepath.Join(projectDir, zeusDir)
+
+	stat, err := os.Stat(pathZeusDir + "/dumps")
 	if err != nil {
-		err := os.Mkdir(zeusDir+"/dumps", 0700)
+		err := os.Mkdir(pathZeusDir+"/dumps", 0700)
 		if err != nil {
-			Log.WithError(err).Error("failed to create dumps directory")
+			wd, _ := os.Getwd()
+			Log.WithError(err).
+				WithField("workingDir", wd).
+				WithField("projectDir", projectDir).
+				Error("failed to create dumps directory")
 			return
 		}
 	} else {
 		if !stat.IsDir() {
-			Log.Error("dumpScript: " + zeusDir + "/dumps is a file")
+			Log.Error("dumpScript: " + pathZeusDir + "/dumps is a file")
 			return
 		}
 	}
@@ -84,21 +90,21 @@ func dumpScript(script, language string, e error, stdErr string) {
 	var (
 		t            = lang.Comment + " Timestamp: " + time.Now().Format(timestampFormat) + "\n"
 		errString    = lang.Comment + " Error: " + e.Error() + "\n" + lang.Comment + " StdErr: \n" + stdErrOutputComment + "\n\n"
-		dumpFileName = zeusDir + "/dumps/error_dump" + lang.FileExtension
+		dumpFileName = pathZeusDir + "/dumps/error_dump" + lang.FileExtension
 	)
 
-	f, err := os.OpenFile(dumpFileName, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0700)
+	fd, err := os.OpenFile(dumpFileName, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0700)
 	if err != nil {
 		Log.WithError(err).Error("failed to open dump file")
 		return
 	}
-	defer f.Close()
+	defer fd.Close()
 
-	f.WriteString(lang.Bang + "\n" + lang.Comment + "\n")
-	f.WriteString(lang.Comment + " ZEUS Error Dump\n")
-	f.WriteString(t)
-	f.WriteString(errString)
-	f.WriteString(script)
+	fd.WriteString(lang.Bang + "\n" + lang.Comment + "\n")
+	fd.WriteString(lang.Comment + " ZEUS Error Dump\n")
+	fd.WriteString(t)
+	fd.WriteString(errString)
+	fd.WriteString(script)
 	Log.Debug("script dumped: ", dumpFileName)
 }
 

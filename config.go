@@ -41,6 +41,9 @@ var (
 	// path for project config file
 	projectConfigPath string
 
+	// directory of the current project, set on startup
+	projectDir string
+
 	// path for project config files
 	zeusDir = "zeus"
 

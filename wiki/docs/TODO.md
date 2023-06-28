@@ -11,7 +11,10 @@
     COMMIT:
 ------------------------------------------------------------------------------------
 
-## v0.8.5
+## TODO
+
+- feedback jan path completion and shell passthrough behavior
+- remove go rice and use go:embed instead
 
 - globals should start with an uppercase letter
 - fix argument / chain / path completion

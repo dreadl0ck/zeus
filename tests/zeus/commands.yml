@@ -33,6 +33,10 @@ globals:
 # async                     # bool           # detach comamnd async in a screen session, attach on demand
 # path                      # string         # custom path for script file
 # exec                      # string         # supply the script directly without a file
+# hidden                    # bool           # hidden controls if the command is shown the menu
+# canModifyPrompt           # bool           # canModifyPrompt controls if the command can modify the zeus prompt
+# extends                   # string         # extends sets the base configuration to use for this command
+# workingDir                # string         # workingDir overwrites the working directory for this command
 commands:
     
     # multi language examples
@@ -95,6 +99,25 @@ commands:
     perl-script:
         description: a perl script
         language: perl
+
+    go:
+        description: a zeus command implemented in Go
+        language: go
+        arguments:
+            - url:String
+        # zeus is usually started from the root of your project
+        # to find the go program to compile and execute, provide the relative path starting from your project root.
+        path: zeus/go/goprogram/main.go
+
+    go-custom:
+        description: a zeus command implemented in Go with custom workingDir
+        language: go
+        arguments:
+            - url:String
+        # set a custom location for working directory
+        workingDir: zeus/go/goprogram
+        # path to your entrypoint
+        path: main.go
 
     # examples
     #

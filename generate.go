@@ -46,14 +46,17 @@ func handleGenerateCommand(args []string) {
 		outputName = zeusDir + "/generated/" + args[1]
 	)
 
-	// check if its a valid command chain
+	// check if it's a valid command chain
 	if chain, ok = validCommandChain(args[2:], false); !ok {
 		l.Println("invalid command chain")
 		return
 	}
 
 	// make sure generated dir exists
-	os.Mkdir(zeusDir+"/generated", 0744)
+	err := os.Mkdir(zeusDir+"/generated", 0744)
+	if err != nil && err != os.ErrExist {
+		l.Println("failed to create generated directory:", err)
+	}
 
 	// check if it contains multiple languages
 	for _, cmd := range chain {

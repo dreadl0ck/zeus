@@ -165,6 +165,18 @@ func initZeus() {
 		if err != nil {
 			log.Fatal("failed to change dir: ", err)
 		}
+
+		fullPath, err := os.Getwd()
+		if err != nil {
+			log.Fatal("failed to obtain full path of current working directory: ", err)
+		}
+
+		projectDir = fullPath
+	} else {
+		projectDir, err = os.Getwd()
+		if err != nil {
+			log.Fatal("failed to set project directory on startup: ", err)
+		}
 	}
 
 	if *flagCompletions != "" {

@@ -8,3 +8,5 @@ debug
 .vscode
 tests/zeus/dumps
 zeus/data.yml
+.DS_Store
+.idea/

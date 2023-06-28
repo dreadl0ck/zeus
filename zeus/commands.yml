@@ -33,6 +33,10 @@ globals:
 # path                      # string         # custom path for script file
 # exec                      # string         # supply the script directly without a file
 # language                  # string         # set the language for the script
+# hidden                    # bool           # hidden controls if the command is shown the menu
+# canModifyPrompt           # bool           # canModifyPrompt controls if the command can modify the zeus prompt
+# extends                   # string         # extends sets the base configuration to use for this command
+# workingDir                # string         # workingDir overwrites the working directory for this command
 commands:
   # Utils
   #
@@ -55,7 +59,7 @@ commands:
       cp -f README.md wiki/docs
 
       # @todo: release the tools...
-      #echo "[ZEUS v${version}] minifying javscript and css"
+      #echo "[ZEUS v${version}] minifying javascript and css"
       #jsobfus -d frontend/src/js/:frontend/dist/js
       #sasscompile -d frontend/src/sass:frontend/dist/css
 
