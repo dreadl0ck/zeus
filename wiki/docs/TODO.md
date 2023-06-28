@@ -13,6 +13,7 @@
 
 ## TODO
 
+- docs and examples for async command usage
 - feedback jan path completion and shell passthrough behavior
 - remove go rice and use go:embed instead
 

@@ -179,8 +179,8 @@ func (c *command) parseArguments(args []string) (string, map[string]string, erro
 				ok     bool
 			)
 
-			argSlice := strings.Split(val, "=")
-			if len(argSlice) < 2 {
+			argSlice := strings.SplitN(val, "=", 2)
+			if len(argSlice) != 2 {
 				return "", argValues, errors.New("invalid argument: " + val)
 			}
 
@@ -199,8 +199,7 @@ func (c *command) parseArguments(args []string) (string, map[string]string, erro
 				return "", argValues, errors.New("argument label appeared more than once: " + cmdArg.name)
 			}
 
-			argValue := strings.Join(argSlice[1:], "=")
-
+			argValue := argSlice[1]
 			if err := validArgType(argValue, cmdArg.argType); err != nil {
 				return "", argValues, errors.New(ErrInvalidArgumentType.Error() + ": " + err.Error() + ", label=" + cmdArg.name + ", value=" + argValue)
 			}

@@ -13,4 +13,5 @@ func main() {
 	}
 
 	fmt.Println("got url", urlValue)
+	fmt.Println("got name", zeusutils.Prompt("name"))
 }
