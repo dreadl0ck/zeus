@@ -180,7 +180,7 @@ func (c *command) parseArguments(args []string) (string, map[string]string, erro
 			)
 
 			argSlice := strings.Split(val, "=")
-			if len(argSlice) != 2 {
+			if len(argSlice) < 2 {
 				return "", argValues, errors.New("invalid argument: " + val)
 			}
 
@@ -199,12 +199,14 @@ func (c *command) parseArguments(args []string) (string, map[string]string, erro
 				return "", argValues, errors.New("argument label appeared more than once: " + cmdArg.name)
 			}
 
-			if err := validArgType(argSlice[1], cmdArg.argType); err != nil {
-				return "", argValues, errors.New(ErrInvalidArgumentType.Error() + ": " + err.Error() + ", label=" + cmdArg.name + ", value=" + argSlice[1])
+			argValue := strings.Join(argSlice[1:], "=")
+
+			if err := validArgType(argValue, cmdArg.argType); err != nil {
+				return "", argValues, errors.New(ErrInvalidArgumentType.Error() + ": " + err.Error() + ", label=" + cmdArg.name + ", value=" + argValue)
 			}
 
 			// temporarily set value on arg
-			cmdArg.value = argSlice[1]
+			cmdArg.value = argValue
 		} else {
 			return "", argValues, errors.New("invalid argument: " + val)
 		}
