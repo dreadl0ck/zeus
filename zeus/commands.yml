@@ -17,7 +17,7 @@ language: bash
 globals:
   binaryName: zeus
   buildDir: bin
-  version: 0.9.14
+  version: 0.9.15
 
 # all commands
 # available fields:

@@ -13,7 +13,16 @@
 
 ## TODO
 
+- indicate in overview if there is a help text available for a command
+
+- export all targets to scripts function!
+  - proper script editing with syntax highlighting etc after bootstrapping in cmds file
+- deps as arrays of arrays
+  - everything in an array can be parallelized
+
+- dump creation for commands with different working dir
 - docs and examples for async command usage
+- docs for writing commands in Go
 - feedback jan path completion and shell passthrough behavior
 - remove go rice and use go:embed instead
 
