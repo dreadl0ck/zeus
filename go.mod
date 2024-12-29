@@ -25,6 +25,7 @@ require (
 	github.com/sirupsen/logrus v1.8.0
 	github.com/smartystreets/assertions v1.0.1 // indirect
 	github.com/smartystreets/goconvey v1.6.4
+	github.com/stretchr/testify v1.7.0
 	github.com/x-cray/logrus-prefixed-formatter v0.5.2
 	golang.org/x/crypto v0.0.0-20210218145215-b8e89b74b9df // indirect
 	golang.org/x/sys v0.0.0-20210218145245-beda7e5e158e // indirect

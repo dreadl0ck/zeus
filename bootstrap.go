@@ -32,7 +32,16 @@ import (
 // useful when starting from scratch
 func runBootstrapCommand() {
 
-	err := os.MkdirAll(scriptDir, 0700)
+	// never overwrite existing zeus dir
+	stat, err := os.Stat(scriptDir)
+	if err == nil {
+		if stat.IsDir() {
+			l.Println("zeus directory already exists")
+			return
+		}
+	}
+
+	err = os.MkdirAll(scriptDir, 0700)
 	if err != nil {
 		Log.WithError(err).Fatal("failed to create zeus directory")
 	}

@@ -127,7 +127,7 @@ func initZeus() {
 	asciiArtYAML += version + "\n#\n\n"
 
 	if len(os.Args) > 1 {
-		if os.Args[1] == bootstrapCommand {
+		if os.Args[1] == bootstrapCommand || os.Args[1] == "init" { // allow init command as well, similar to other tools like git, go mod etc
 			runBootstrapCommand()
 
 			// remove bootstrap arg
