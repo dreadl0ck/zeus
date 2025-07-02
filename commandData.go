@@ -25,8 +25,6 @@ import (
 	"os/user"
 	"strconv"
 	"strings"
-
-	"github.com/dreadl0ck/readline"
 )
 
 // command header
@@ -159,120 +157,8 @@ func (d *commandData) init(commandsFile *CommandsFile, name string) error {
 		description: d.Description,
 		help:        d.Help,
 		hidden:      d.Hidden,
-		// PrefixCompleter: readline.PcItem(name,
-		// 	readline.PcItemDynamic(func(path string) (res []string) {
-
-		// 		// fmt.Println("\npath:", path)
-
-		// 		var allRequiredArgsSet = true
-		// 		for _, a := range args {
-		// 			if !strings.Contains(path, a.name+"=") {
-		// 				res = append(res, a.name+"=")
-		// 				if !a.optional {
-		// 					allRequiredArgsSet = false
-		// 				}
-		// 			}
-		// 		}
-
-		// 		if !allRequiredArgsSet {
-		// 			return
-		// 		}
-
-		// 		if allRequiredArgsSet && strings.HasSuffix(path, commandChainSeparator+" ") {
-		// 			// return all available commands
-		// 			cmdMap.Lock()
-		// 			defer cmdMap.Unlock()
-		// 			for name := range cmdMap.items {
-		// 				res = append(res, name)
-		// 			}
-		// 			//					fmt.Println("allRequiredArgsSet:", allRequiredArgsSet, "commands result:", res)
-		// 			return
-		// 		}
-		// 		if allRequiredArgsSet {
-		// 			res = append(res, "->")
-		// 		}
-		// 		return
-		// 	}),
-		// ),
-		PrefixCompleter: readline.PcItem(name,
-
-			// completer for current commands arguments
-			readline.PcItemDynamic(func(path string) (res []string) {
-				var allRequiredArgsSet = true
-				for _, a := range args {
-					if !strings.Contains(path, a.name+"=") {
-						res = append(res, a.name+"=")
-						if !a.optional {
-							allRequiredArgsSet = false
-						}
-					}
-				}
-				if allRequiredArgsSet {
-					res = append(res, commandChainSeparator)
-				}
-				// l.Println("\npath:", path)
-				// l.Println("result:", res)
-				return
-			},
-
-				// completer for next command names
-				readline.PcItemDynamic(func(path string) (res []string) {
-
-					// return all available commands
-					cmdMap.Lock()
-					defer cmdMap.Unlock()
-					for name := range cmdMap.items {
-						res = append(res, name)
-					}
-					// l.Println("\npath:", path)
-					// l.Println("result:", res)
-					return
-				},
-
-					// completer for next commands args
-					readline.PcItemDynamic(func(path string) (res []string) {
-
-						slice := strings.Split(path, commandChainSeparator)
-						if len(slice) == 0 {
-							return
-						}
-
-						cmdArgSlice := strings.Fields(slice[len(slice)-1])
-						if len(cmdArgSlice) == 0 {
-							return
-						}
-
-						cmdMap.Lock()
-						c, ok := cmdMap.items[cmdArgSlice[0]]
-						if !ok {
-							cmdMap.Unlock()
-							return
-						}
-						cmdMap.Unlock()
-
-						// return the next commands completer?
-						// return c.PrefixCompleter.Callback(path)
-
-						var allRequiredArgsSet = true
-						for _, a := range c.args {
-							if !strings.Contains(path, a.name+"=") {
-								res = append(res, a.name+"=")
-								if !a.optional {
-									allRequiredArgsSet = false
-								}
-							}
-						}
-						if allRequiredArgsSet {
-							res = append(res, commandChainSeparator)
-						}
-
-						// l.Println("\npath:", path)
-						// l.Println("result:", res)
-						return
-					}),
-				),
-			),
-		),
+		// Use enhanced completer - completion is now handled globally
+		PrefixCompleter: nil,
 		buildNumber:     d.BuildNumber,
 		dependencies:    d.Dependencies,
 		outputs:         d.Outputs,
@@ -350,11 +236,6 @@ func (d *commandData) init(commandsFile *CommandsFile, name string) error {
 		cmd.dependencies[i] = commandsFile.replaceGlobals(dep)
 	}
 
-	// disable completion for hidden commands
-	if d.Hidden {
-		cmd.PrefixCompleter = readline.NewPrefixCompleter()
-	}
-
 	if d.Exec == "" {
 		if d.Path == "" {
 			l, err := cmd.getLanguage()
@@ -364,24 +245,6 @@ func (d *commandData) init(commandsFile *CommandsFile, name string) error {
 			cmd.path = scriptDir + "/" + name + l.FileExtension
 		}
 	}
-
-	var exists bool
-
-	// update the completer if a completion exists
-	completer.Lock()
-	for i, c := range completer.Children {
-		if string(cmd.PrefixCompleter.GetName()) == string(c.GetName()) {
-			exists = true
-			// update completer
-			completer.Children[i] = cmd.PrefixCompleter
-		}
-	}
-
-	// add to completer if none exists
-	if !exists {
-		completer.Children = append(completer.Children, cmd.PrefixCompleter)
-	}
-	completer.Unlock()
 
 	// add to command map
 	cmdMap.Lock()
