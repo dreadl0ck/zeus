@@ -6,4 +6,4 @@
 # help: zeus reset script
 # {zeus}
 
-rm -f rice-box.go
+echo "reset complete"

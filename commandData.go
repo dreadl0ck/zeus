@@ -74,6 +74,10 @@ type commandData struct {
 
 	// WorkingDir overwrites the working directory for this command
 	WorkingDir string `yaml:"workingDir"`
+
+	// StopOnError controls whether execution stops if this command encounters an error
+	// If not set, defaults to the global StopOnError config
+	StopOnError *bool `yaml:"stopOnError"`
 }
 
 // initialize a command from a commandData instance
@@ -281,6 +285,7 @@ func (d *commandData) init(commandsFile *CommandsFile, name string) error {
 		language:        lang,
 		canModifyPrompt: d.CanModifyPrompt,
 		extends:         d.Extends,
+		stopOnError:     d.StopOnError,
 	}
 
 	if d.Path != "" {

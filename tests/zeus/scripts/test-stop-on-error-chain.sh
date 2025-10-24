@@ -1,23 +1,4 @@
 #!/bin/bash
-#
-# ZEUS Error Dump
-# Timestamp: [Fri Oct 24 17:29:46 2025]
-# Error: exit status 1
-# StdErr: 
-# cat: /tmp/this_file_does_not_exist_zeus_test.txt: No such file or directory
-# 
-
-
-#!/bin/bash
-#!/bin/bash
-
-function bash_greet() {
-	echo "hello world from bash!"
-	echo "ZEUS version: $version"
-}
-
-
-#!/bin/bash
 # Test script for stopOnError with multiple operations
 # Tests more complex scenarios with stopOnError enabled
 

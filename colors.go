@@ -151,10 +151,7 @@ func handleColorsCommand(args []string) {
 		return
 	}
 
-	var (
-		err     error
-		profile = args[1]
-	)
+	profile := args[1]
 
 	// lock to prevent a race on the global ansiProfile instance
 	cp.Lock()
@@ -188,17 +185,11 @@ func handleColorsCommand(args []string) {
 	if profile == "off" {
 		conf.fields.Colors = false
 		// load uncolored ascii art
-		asciiArt, err = assetBox.String("ascii_art.txt")
-		if err != nil {
-			Log.WithError(err).Fatal("failed to get ascii_art.txt from rice box")
-		}
+		asciiArt = asciiArtPlain
 	} else {
 		conf.fields.Colors = true
 		// load colored ascii art
-		asciiArt, err = assetBox.String("ascii_art_color.txt")
-		if err != nil {
-			Log.WithError(err).Fatal("failed to get ascii_art_color.txt from rice box")
-		}
+		asciiArt = asciiArtColor
 	}
 	conf.Unlock()
 

@@ -109,6 +109,10 @@ type command struct {
 
 	// sets the base configuration to use for this command
 	extends string
+
+	// controls whether execution stops if this command encounters an error
+	// if nil, uses the global StopOnError config
+	stopOnError *bool
 }
 
 func (c *command) AsyncRun(args []string) error {
@@ -533,10 +537,17 @@ func (c *command) createCommand(argValues map[string]string, argBuffer string, r
 		return
 	}
 
+	// Determine stopOnError behavior:
+	// 1. Use command-specific setting if available
+	// 2. Otherwise, fall back to global config
 	var stopOnErr bool
-	conf.Lock()
-	stopOnErr = conf.fields.StopOnError
-	conf.Unlock()
+	if c.stopOnError != nil {
+		stopOnErr = *c.stopOnError
+	} else {
+		conf.Lock()
+		stopOnErr = conf.fields.StopOnError
+		conf.Unlock()
+	}
 
 	// add interpreter
 	shellCommand = append(shellCommand, lang.Interpreter)

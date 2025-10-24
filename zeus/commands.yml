@@ -37,6 +37,7 @@ globals:
 # canModifyPrompt           # bool           # canModifyPrompt controls if the command can modify the zeus prompt
 # extends                   # string         # extends sets the base configuration to use for this command
 # workingDir                # string         # workingDir overwrites the working directory for this command
+# stopOnError               # bool           # stopOnError controls whether execution stops if this command encounters an error (defaults to global config)
 commands:
   # Utils
   #
@@ -67,7 +68,7 @@ commands:
     description: reset and delete all generated files
     dependencies:
       - clean
-    exec: rm -f rice-box.go
+    exec: echo "reset complete"
 
   delete-tag:
     description: delete tag locally and remotely
@@ -89,7 +90,6 @@ commands:
       - bin/zeus
     exec: |
       echo "[ZEUS v${version}] building ${buildDir}/${binaryName} for current OS $(uname -s)"
-      rice embed-go
       go build -o ${buildDir}/${binaryName}
 
   build-linux:
@@ -102,7 +102,6 @@ commands:
       - bin/zeus-linux
     exec: |
       echo "[ZEUS v${version}] building for linux amd64"
-      rice embed-go
       GOOS=linux GOARCH=amd64 go build -o ${buildDir}/zeus-linux
   build-race:
     buildNumber: true
@@ -120,13 +119,12 @@ commands:
     description: start the dev mode
     help: |
       zeus development mode script
-      clears bindata & installs to $GOPATH
+      installs to $GOPATH
     dependencies:
       - clean
       - configure
     exec: |
-      echo "[ZEUS v${version}] development mode. Removing assets and installing to $GOBIN"
-      rm -f rice-box.go
+      echo "[ZEUS v${version}] development mode. Installing to $GOBIN"
       go install && zeus
   install:
     buildNumber: true
@@ -138,7 +136,6 @@ commands:
       - gen-version
     exec: |
       echo "[ZEUS v${version}] installing zeus"
-      rice embed-go
       go install
 
   # run the test with race detection enabled
@@ -178,8 +175,3 @@ commands:
     description: generate version file
     exec: head -n 21 version.go > version_temp.go && echo -e "// generated with the gen-version command\nvar version = \"${version}\"" >> version_temp.go && mv version_temp.go version.go
 
-  install-rice:
-    description: install the go.rice tool
-    exec: |
-      go get github.com/GeertJohan/go.rice
-      go get github.com/GeertJohan/go.rice/rice

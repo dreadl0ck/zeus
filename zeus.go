@@ -19,6 +19,7 @@
 package main
 
 import (
+	_ "embed"
 	"flag"
 	"fmt"
 	"log"
@@ -30,12 +31,23 @@ import (
 	"strings"
 	"sync"
 
-	rice "github.com/GeertJohan/go.rice"
 	"github.com/dreadl0ck/readline"
 	"github.com/mgutz/ansi"
 	"github.com/sirupsen/logrus"
 	prefixed "github.com/x-cray/logrus-prefixed-formatter"
 )
+
+//go:embed assets/ascii_art.txt
+var asciiArtPlain string
+
+//go:embed assets/ascii_art_color.txt
+var asciiArtColor string
+
+//go:embed assets/ascii_art.yml
+var asciiArtYAMLContent string
+
+//go:embed assets/wiki_index.html
+var wikiIndexHTML string
 
 var (
 
@@ -52,9 +64,6 @@ var (
 
 	// readline auto completion
 	completer = newAtomicCompleter()
-
-	// assets folder
-	assetBox *rice.Box
 
 	// configuration
 	conf *config
@@ -113,18 +122,9 @@ func initZeus() {
 		Log.Fatal("windows is not (yet) supported.")
 	}
 
-	assetBox = rice.MustFindBox("assets")
-	asciiArt, err = assetBox.String("ascii_art.txt")
-	if err != nil {
-		Log.WithError(err).Fatal("failed to get ascii_art.txt from rice box")
-	}
-	asciiArtYAML, err = assetBox.String("ascii_art.yml")
-	if err != nil {
-		Log.WithError(err).Fatal("failed to get ascii_art.yml from rice box")
-	}
-
-	// add version number
-	asciiArtYAML += version + "\n#\n\n"
+	// Initialize ASCII art from embedded files
+	asciiArt = asciiArtPlain
+	asciiArtYAML = asciiArtYAMLContent + version + "\n#\n\n"
 
 	if len(os.Args) > 1 {
 		if os.Args[1] == bootstrapCommand || os.Args[1] == "init" { // allow init command as well, similar to other tools like git, go mod etc
@@ -286,10 +286,7 @@ func main() {
 		ansi.DisableColors(true)
 	} else {
 		// load colored ascii art
-		asciiArt, err = assetBox.String("ascii_art_color.txt")
-		if err != nil {
-			Log.WithError(err).Fatal("failed to get ascii_art_color.txt from rice box")
-		}
+		asciiArt = asciiArtColor
 	}
 
 	// set working directory

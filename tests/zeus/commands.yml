@@ -37,6 +37,7 @@ globals:
 # canModifyPrompt           # bool           # canModifyPrompt controls if the command can modify the zeus prompt
 # extends                   # string         # extends sets the base configuration to use for this command
 # workingDir                # string         # workingDir overwrites the working directory for this command
+# stopOnError               # bool           # stopOnError controls whether execution stops if this command encounters an error
 commands:
     
     # multi language examples
@@ -230,3 +231,53 @@ commands:
         arguments:
         dependencies:
         outputs:
+
+    test-stop-on-error:
+        description: test stopOnError with strict error checking
+        stopOnError: true
+        exec: |
+            echo "This will fail and stop"
+            false
+            echo "This should not be printed"
+
+    test-continue-on-error:
+        description: test with stopOnError disabled
+        stopOnError: false
+        exec: |
+            echo "This will fail but continue"
+            false
+            echo "This should still be printed"
+
+    test-stop-on-error-chain:
+        description: test stopOnError with chained operations (script file)
+        help: |
+            Tests stopOnError behavior with multiple operations.
+            When stopOnError is true, execution should stop at the first failing command.
+        stopOnError: true
+    
+    test-continue-on-error-chain:
+        description: test stopOnError=false with chained operations (script file)
+        help: |
+            Tests stopOnError=false behavior with multiple operations.
+            Execution should continue even after commands fail.
+        stopOnError: false
+
+    test-stop-on-error-with-deps:
+        description: test stopOnError with dependencies
+        help: |
+            Tests stopOnError behavior in a command with dependencies.
+            If stopOnError is true, the entire chain should stop on first error.
+        stopOnError: true
+        dependencies:
+            - test-stop-on-error
+        exec: |
+            echo "Running command with stopOnError dependencies"
+            echo "This should execute if dependencies succeed"
+    
+    test-stop-on-error-suite:
+        description: comprehensive test suite for stopOnError functionality
+        help: |
+            Runs a comprehensive suite of tests to validate stopOnError behavior
+            across various scenarios including pipelines, command substitution,
+            and explicit exit codes.
+        stopOnError: false

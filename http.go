@@ -19,6 +19,7 @@
 package main
 
 import (
+	"embed"
 	"errors"
 	"net/http"
 	"os"
@@ -28,14 +29,15 @@ import (
 	"strings"
 	"sync"
 
-	rice "github.com/GeertJohan/go.rice"
 	"github.com/desertbit/glue"
 	"github.com/julienschmidt/httprouter"
 	"github.com/sirupsen/logrus"
 )
 
+//go:embed frontend/dist
+var distFS embed.FS
+
 var (
-	distBox                  *rice.Box
 	webInterfaceRunning      bool
 	webInterfaceRunningMutex = &sync.Mutex{}
 
@@ -96,8 +98,6 @@ func StartWebListener(openInBrowser bool) {
 	webInterfaceRunning = true
 	webInterfaceRunningMutex.Unlock()
 
-	distBox = rice.MustFindBox("frontend/dist")
-
 	showNote("serving on "+strconv.Itoa(conf.fields.PortWebPanel), "starting server...")
 
 	socketstoreMutex.Lock()
@@ -132,9 +132,11 @@ var serveHTTP = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	c, err := distBox.Bytes("html/index.html")
+	c, err := distFS.ReadFile("frontend/dist/html/index.html")
 	if err != nil {
 		Log.WithError(err).Error("failed to serve index page")
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
 	}
 
 	w.Header().Set("Content-Type", "text/html")
@@ -155,8 +157,8 @@ var serveFiles = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 	Log.Debug("serveFiles: ", fileName)
 
-	// get file contents
-	b, err := distBox.Bytes(fileName)
+	// get file contents from embedded FS
+	b, err := distFS.ReadFile("frontend/dist/" + fileName)
 	if err != nil {
 		Log.WithError(err).Error("unknown file")
 		w.WriteHeader(404)

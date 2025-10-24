@@ -43,13 +43,7 @@ var wikiIndexHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	tpl, err := assetBox.String("wiki_index.html")
-	if err != nil {
-		Log.WithError(err).Error("failed to read wiki index HTML")
-		return
-	}
-
-	t, err := template.New("wiki").Parse(tpl)
+	t, err := template.New("wiki").Parse(wikiIndexHTML)
 	if err != nil {
 		Log.WithError(err).Error("failed to create index template")
 		return
@@ -119,15 +113,8 @@ var wikiDocsHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Reque
 
 	w.Header().Set("Content-Type", "text/html")
 
-	// get template
-	tpl, err := assetBox.String("wiki_index.html")
-	if err != nil {
-		Log.WithError(err).Error("failed to read wiki index HTML")
-		return
-	}
-
 	// parse template
-	t, err := template.New("wiki").Parse(tpl)
+	t, err := template.New("wiki").Parse(wikiIndexHTML)
 	if err != nil {
 		Log.WithError(err).Error("failed to create index template")
 		return

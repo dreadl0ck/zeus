@@ -162,7 +162,8 @@ Also, generic scripts can be reused in multiple projects.
 Similar to GNU Make, ZEUS offers stopping shellscript execution,
 if a line returned an error code != 0.
 
-This Behaviour can be disabled in the config by using the **StopOnError** option.
+This behaviour can be disabled globally in the config by using the **StopOnError** option.
+Additionally, each command can override this setting using the **stopOnError** field in the command definition.
 Other languages such as python or ruby have this behaviour by default.
 
 Signals to the ZEUS shell will be passed to the scripts, that means handling signals inside the scripts is possible.
@@ -1038,6 +1039,7 @@ exampleCommand:
 | *arguments*         | []string     | list of typed arguments, allows optionals and default values |
 | *path*         | string     | custom path for script file|
 | *exec*         | string     | supply script directly            |
+| *stopOnError*  | bool     | stop execution if this command encounters an error (defaults to global config) |
 
 *All data fields are optional.*
 Just throw your scripts into **zeus/scripts/** fire up the interactive shell and start hacking!
@@ -1064,6 +1066,36 @@ A multiline help text can be set for each script by using the *help* field.
 ```shell
 zeus » help <command>
 ```
+
+### Stop On Error
+
+The **stopOnError** field allows you to control error handling on a per-command basis.
+When set to `true`, the command will stop execution if any error occurs.
+When set to `false`, the command will continue executing even if errors occur.
+If not specified, the command uses the global **StopOnError** config setting.
+
+Example:
+
+```yaml
+commands:
+  test:
+    description: run tests without stopping on first failure
+    stopOnError: false
+    exec: |
+      npm test
+      go test ./...
+      python -m pytest
+
+  build:
+    description: build with strict error checking
+    stopOnError: true
+    exec: |
+      go build -o bin/app
+      ./scripts/post-build.sh
+```
+
+In this example, the `test` command will run all tests even if one fails,
+while the `build` command will stop immediately if any step encounters an error.
 
 You can get the projects command overview at any time just type help in the interactive shell:
 
@@ -1272,18 +1304,12 @@ Windows is currently not supported! This might change in the future.
 ### Assets
 
 ZEUS uses asset embedding to provide a path independent executable.
-For this [rice](https://github.com/GeertJohan/go.rice) is used.
+This is done using Go's built-in `//go:embed` directive, which embeds files directly into the binary at compile time.
 
-If you want to work on ZEUS source, you need to install the tool with:
+No external tools are required to work on ZEUS - the embedding is handled automatically by the Go compiler.
 
-```shell
-$ go get github.com/GeertJohan/go.rice
-$ go get github.com/GeertJohan/go.rice/rice
-...
-```
-
-The assets currently contains the shell asciiArt as well the bare scripts for the bootstrap command.
-You can find all assets in the **assets** directory.
+The assets currently contain the shell asciiArt as well as the frontend web interface files.
+You can find all assets in the **assets** and **frontend/dist** directories.
 
 ### Vendoring
 
